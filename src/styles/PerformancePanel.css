@@ -1,0 +1,67 @@
+.performance-panel {
+  position: fixed !important;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 15px;
+  border-radius: 8px;
+  font-family: monospace;
+  z-index: 9999;
+  width: 250px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  transform: none !important;
+  will-change: auto !important;
+  backface-visibility: visible !important;
+  -webkit-backface-visibility: visible !important;
+  -webkit-transform: none !important;
+  -webkit-perspective: none !important;
+  perspective: none !important;
+  isolation: isolate !important;
+  contain: layout style paint !important;
+}
+
+.performance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.performance-header h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.performance-header button {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.performance-metrics {
+  display: grid;
+  gap: 8px;
+}
+
+.metric {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  padding: 4px 0;
+}
+
+.metric.warning {
+  color: #ff4444;
+}
+
+@media (max-width: 768px) {
+  .performance-panel {
+    width: 200px;
+    bottom: 10px;
+    right: 10px;
+  }
+}
