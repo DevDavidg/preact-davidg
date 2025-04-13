@@ -133,6 +133,32 @@
           transform: rotate(360deg);
         }
       }
+
+      html,
+      body,
+      #app,
+      #app * {
+        transform-style: flat !important;
+      }
+
+      .noise-overlay {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        pointer-events: none !important;
+        z-index: 1000 !important;
+        transform: none !important;
+        backface-visibility: visible !important;
+        mix-blend-mode: overlay !important;
+        will-change: auto !important;
+      }
+
+      .real-fixed {
+        position: fixed !important;
+        z-index: 9999;
+      }
     </style>
     <script>
       window.removeInitialLoader = function () {
@@ -144,6 +170,79 @@
           }, 500);
         }
       };
+
+      document.addEventListener("DOMContentLoaded", function () {
+        const observer = new MutationObserver((mutations) => {
+          handleFixedElements();
+        });
+
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ["style", "class"],
+        });
+
+        function shouldHandleElement(el) {
+          const style = window.getComputedStyle(el);
+          return (
+            style.position === "fixed" && !el.hasAttribute("data-fixed-handled")
+          );
+        }
+
+        function getOriginalStyles(el, style) {
+          const rect = el.getBoundingClientRect();
+          return {
+            top: style.top,
+            right: style.right,
+            bottom: style.bottom,
+            left: style.left,
+            width: style.width === "auto" ? `${rect.width}px` : style.width,
+            height: style.height === "auto" ? `${rect.height}px` : style.height,
+          };
+        }
+
+        function applyStyles(el, originalStyles, hasPositionClasses) {
+          if (!hasPositionClasses) {
+            for (const [prop, value] of Object.entries(originalStyles)) {
+              if (value !== "auto" && value !== "0px") {
+                el.style[prop] = value;
+              }
+            }
+          }
+        }
+
+        function handleFixedElements() {
+          const elements = document.querySelectorAll(
+            '.fixed, [style*="position: fixed"], [style*="position:fixed"]'
+          );
+
+          elements.forEach((el) => {
+            if (!shouldHandleElement(el)) return;
+
+            const style = window.getComputedStyle(el);
+            const originalClasses = el.className;
+
+            el.setAttribute("data-fixed-handled", "true");
+            const originalStyles = getOriginalStyles(el, style);
+            const hasPositionClasses = /(top|right|bottom|left)-\d+/.test(
+              originalClasses
+            );
+
+            document.body.appendChild(el);
+            el.className = originalClasses;
+
+            if (!el.classList.contains("real-fixed")) {
+              el.classList.add("real-fixed");
+            }
+
+            applyStyles(el, originalStyles, hasPositionClasses);
+          });
+        }
+
+        setTimeout(handleFixedElements, 100);
+        setTimeout(handleFixedElements, 1000);
+      });
 
       console.log("HTML document loaded");
     </script>

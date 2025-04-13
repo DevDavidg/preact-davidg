@@ -16,6 +16,7 @@ import PerformanceNotifier from "./components/PerformanceNotifier";
 import PerformanceMonitor from "./utils/PerformanceMonitor";
 import Nav from "./components/Nav";
 import { ENV } from "./config/env";
+import { createNoiseTexture } from "./utils/noiseTexture";
 
 declare global {
   interface Window {
@@ -32,6 +33,7 @@ export const App: FunctionComponent = () => {
   const [showPerformancePanel, setShowPerformancePanel] = useState(false);
   const loadingTimeout = useRef<number | null>(null);
   const isInitialized = useRef<boolean>(false);
+  const noiseOverlay = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (ENV.PERFORMANCE_MONITOR_ENABLED) {
@@ -52,6 +54,17 @@ export const App: FunctionComponent = () => {
   }, []);
 
   useEffect(() => {
+    if (!noiseOverlay.current) {
+      noiseOverlay.current = createNoiseTexture();
+
+      if (noiseOverlay.current) {
+        noiseOverlay.current.style.transform = "none";
+        noiseOverlay.current.style.willChange = "auto";
+        noiseOverlay.current.style.zIndex = "1000";
+        document.body.appendChild(noiseOverlay.current);
+      }
+    }
+
     const removeLoader = () => {
       if (window.removeInitialLoader) {
         window.removeInitialLoader();

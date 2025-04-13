@@ -17,8 +17,6 @@
   -webkit-transform: none !important;
   -webkit-perspective: none !important;
   perspective: none !important;
-  isolation: isolate !important;
-  contain: layout style paint !important;
 }
 
 .performance-header {

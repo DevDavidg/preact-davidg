@@ -1,71 +1,72 @@
 # 🚀 Herramientas de Monitoreo de Rendimiento
 
-Este documento explica cómo utilizar las herramientas de monitoreo de rendimiento implementadas en el proyecto para detectar problemas de lag y uso excesivo de CPU.
+Este documento explica cómo utilizar las herramientas de monitoreo de rendimiento implementadas en el proyecto para detectar y solucionar problemas de rendimiento.
 
-## 📊 Herramientas disponibles
+## 📊 Sistemas de Monitoreo Disponibles
 
-El proyecto incluye las siguientes herramientas para monitorear y diagnosticar problemas de rendimiento:
+El proyecto incluye los siguientes sistemas integrados:
 
-1. **Monitor de Rendimiento**: Panel visual con métricas en tiempo real (FPS, tiempo de frame, memoria)
-2. **Diagnóstico de Rendimiento**: Identificación automática de problemas y recomendaciones
-3. **Exportación de Logs**: Guardado de datos detallados para análisis posterior
-4. **Notificador de Problemas**: Alertas automáticas cuando el rendimiento cae
+1. **PerformanceMonitor**: Clase principal que rastrea y analiza métricas en tiempo real
+2. **PerformancePanel**: Panel visual con información detallada sobre el rendimiento
+3. **PerformanceOptimizer**: Sistema automático que optimiza elementos según el rendimiento
+4. **diagnosePerfIssues**: Herramienta de diagnóstico que identifica problemas específicos
+5. **ComponentProfiler**: Componente para medir el rendimiento de componentes específicos
 
-## 🔍 Cómo acceder a las herramientas
+## 🔍 Cómo Acceder a las Herramientas
 
-### Monitor de Rendimiento
+### Panel de Rendimiento (PerformancePanel)
 
-Hay varias formas de acceder al monitor de rendimiento:
+Muestra métricas clave como FPS, tiempo de frame, memoria y conteo de animaciones.
 
 - **Atajo de teclado**: Presiona `Alt+Shift+P` para mostrar/ocultar el panel
-- **Console**: Ejecuta `window.showPerformanceMonitor()` en la consola del navegador
+- El panel aparece por defecto en la esquina superior izquierda, pero puede configurarse para aparecer en cualquiera de las 4 esquinas
 
-El panel de rendimiento muestra:
+El panel muestra:
 
-- FPS actual (verde si es bueno, rojo si es bajo)
-- Tiempo de frame
+- FPS actual (verde si es bueno, amarillo si es aceptable, rojo si es bajo)
+- Tiempo de frame en milisegundos
+- FPS promedio y estabilidad
 - Uso de memoria (cuando está disponible)
-- Conteo de frames con lag
-- Gráficos de FPS y tiempo de frame
+- Conteo de animaciones activas
+- Número de renderizados
+- Frames con lag ("Lags")
+- Información del dispositivo (clase, núcleos, RAM)
 
 ### Diagnóstico de Problemas
 
-Para ejecutar un diagnóstico de problemas de rendimiento:
+Para ejecutar un diagnóstico completo de problemas de rendimiento:
 
-- **Atajo de teclado**: Presiona `Alt+Shift+D`
-- **Console**: Ejecuta `window.diagnosePerformance()` en la consola
+- **Console**: Ejecuta `window.diagnosePerformance()` en la consola del navegador
 
-El diagnóstico muestra:
+El diagnóstico analiza:
 
-- FPS promedio
-- Elementos problemáticos en la página
-- Componentes con bajo rendimiento
-- Recomendaciones específicas para mejorar el rendimiento
+- Elementos con efectos visuales pesados (filtros, blur, sombras)
+- Animaciones excesivas o ineficientes
+- Problemas de layout thrashing (operaciones que causan recálculos del layout)
+- Componentes con tiempos de renderizado altos
 
-### Exportación de Datos
+### Exportación de Datos de Rendimiento
 
-Para exportar los datos recopilados y analizarlos externamente:
-
-1. Abre el Monitor de Rendimiento con `Alt+Shift+P`
-2. Haz clic en "Exportar"
-
-También puedes exportar los logs desde la consola:
+Para exportar los datos recopilados por el PerformanceMonitor:
 
 ```js
-window.exportPerformanceLogs();
+// En la consola del navegador
+const monitor = PerformanceMonitor.getInstance();
+monitor.exportLogs();
 ```
 
-## 📋 Interpretando los resultados
+## 📋 Interpretando los Resultados
 
-### Indicadores de problemas de rendimiento
+### Indicadores de Problemas de Rendimiento
 
 | Métrica         | Bueno  | Aceptable | Problemático |
 | --------------- | ------ | --------- | ------------ |
 | FPS             | > 50   | 30-50     | < 30         |
 | Tiempo de frame | < 16ms | 16-33ms   | > 33ms       |
 | Frames con lag  | < 5    | 5-20      | > 20         |
+| Estabilidad     | < 5%   | 5-15%     | > 15%        |
 
-### Problemas comunes y soluciones
+### Problemas Comunes y Soluciones
 
 1. **Alto número de elementos con filtros (blur, etc.)**
 
@@ -90,47 +91,76 @@ window.exportPerformanceLogs();
    - Usar CSS transform en lugar de cambiar propiedades que provocan layout
    - Utilizar posicionamiento absoluto o fijo para elementos que cambian frecuentemente
 
-## 🧪 Probando el rendimiento en diferentes dispositivos
+## 🚀 Optimizador de Rendimiento Automático
 
-Para simular dispositivos de baja potencia:
+El sistema incluye un optimizador automático (`PerformanceOptimizer`) que:
+
+1. Detecta la capacidad del dispositivo del usuario (CPU, memoria, conexión)
+2. Crea un perfil de rendimiento personalizado
+3. Aplica optimizaciones automáticas según sea necesario:
+   - Pausa animaciones fuera de la vista
+   - Desactiva efectos visuales complejos en dispositivos de baja potencia
+   - Reduce la calidad de efectos como sombras y blur cuando el FPS es bajo
+   - Convierte GIFs a videos para mejorar rendimiento
+   - Aplica `content-visibility: auto` para elementos fuera de la vista
+
+## 🧪 Probando el Rendimiento
+
+### Simulando Dispositivos de Baja Potencia
+
+Para probar la aplicación en condiciones de bajo rendimiento:
 
 1. Abre las DevTools del navegador
 2. Ve a la pestaña "Performance" o "Rendimiento"
 3. Activa la opción de throttling de CPU (4x o 6x slowdown)
 
-## 🛠️ Personalizando la configuración
+### Forzando el Modo de Bajo Rendimiento
 
-Puedes ajustar los umbrales y comportamiento del monitor modificando las constantes en `src/utils/PerformanceMonitor.ts`:
+Puedes forzar el modo de bajo rendimiento:
+
+```js
+// En la consola del navegador
+document.documentElement.setAttribute("data-perf-mode", "low");
+```
+
+## 🛠️ Configuración y Personalización
+
+### Ajustando los Umbrales
+
+Puedes personalizar los umbrales en `src/utils/PerformanceMonitor.ts`:
 
 ```typescript
 export const PERFORMANCE_CONFIG = {
   targetFPS: 60,
-  frameBudget: 16.67, // ~60fps en ms
-  lagThreshold: 50, // Umbral para detectar lag severo (ms)
-  logLevel: "debug", // 'debug' | 'warning' | 'error'
-  sampleRate: 5, // Muestreo (1 = cada frame, 5 = cada 5 frames)
-  bufferSize: 300, // Número máximo de entradas en el buffer
-  autoExport: true, // Exportar automáticamente logs cuando detecte problemas
+  frameTimeThreshold: 16.67,
+  longFrameThreshold: 33.33,
+  memoryWarningThreshold: 90,
+  lowEndDeviceThreshold: 30,
+  maxLogEntries: 1000,
+  scanInterval: 2000,
+  rafThrottle: 0,
+  highEndDeviceThreshold: 8,
+  ultraHighEndDeviceThreshold: 16,
 };
 ```
 
-## 👨‍💻 Para desarrolladores: Perfilando componentes específicos
+### Personalizando el Panel de Rendimiento
 
-Si quieres monitorear el rendimiento de componentes específicos, puedes usar el HOC `withProfiling`:
+El componente `PerformancePanel` acepta las siguientes props:
 
-```tsx
-import { withProfiling } from "../utils/ComponentProfiler";
-
-// Componente normal
-const MyComponent = (props) => {
-  // ...
-};
-
-// Componente con monitoreo de rendimiento
-export default withProfiling(MyComponent, "MyComponentName");
+```typescript
+type PanelProps = Readonly<{
+  position?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
+  visible?: boolean;
+  onClose?: () => void;
+}>;
 ```
 
-O usar el componente `ComponentProfiler` directamente:
+## 👨‍💻 Para Desarrolladores: Monitoreando Componentes Específicos
+
+### Usando ComponentProfiler
+
+Para medir el rendimiento de un componente específico:
 
 ```tsx
 import ComponentProfiler from "../utils/ComponentProfiler";
@@ -143,3 +173,47 @@ const MyComponent = () => {
   );
 };
 ```
+
+### Usando markComponentRender
+
+Para un enfoque más detallado, puedes usar el método directo:
+
+```tsx
+import PerformanceMonitor from "../utils/PerformanceMonitor";
+
+const MyComponent = () => {
+  // Dentro del componente, antes de cualquier renderizado costoso
+  const endMark =
+    PerformanceMonitor.getInstance().markComponentRender("MyComponent");
+
+  // Lógica de renderizado costosa...
+
+  // Al finalizar el renderizado
+  useEffect(() => {
+    return endMark; // Llama a la función de finalización cuando el componente se monta
+  }, []);
+
+  return <div>Mi componente</div>;
+};
+```
+
+### Entendiendo los Informes de Rendimiento
+
+Los informes generados por `diagnosePerformance()` incluyen:
+
+- **type**: Tipo de problema (animation, rendering, layout, script, memory, network, asset)
+- **severity**: Gravedad del problema (low, medium, high, critical)
+- **description**: Descripción del problema
+- **recommendations**: Recomendaciones para solucionar el problema
+- **component**: Componente afectado (si aplica)
+- **count**: Número de elementos afectados
+- **selector**: Selector CSS para identificar los elementos problemáticos
+
+## 📈 Futuras Mejoras
+
+Próximas características planificadas:
+
+- Dashboard avanzado con gráficos de tendencias
+- Exportación de métricas a servicios de análisis externos
+- Más optimizaciones automáticas para dispositivos de gama baja
+- API para integración con herramientas de pruebas automatizadas

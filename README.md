@@ -1,69 +1,74 @@
 # DevDavidG - Preact Application
 
-This project is a modern web application built with Preact and bundled with Vite. It leverages Bun for improved development speed and performance.
+Este proyecto es una aplicación web moderna construida con Preact y empaquetada con Vite, optimizada para ofrecer el mejor rendimiento posible incluso en dispositivos de gama baja.
 
-## 🚀 Technologies
+## 🚀 Tecnologías
 
-- **Preact**: A fast 3kB alternative to React with the same API
-- **Vite**: Next-generation frontend build tool
-- **Bun**: A modern JavaScript runtime and package manager
-- **TailwindCSS**: Utility-first CSS framework
-- **TypeScript**: Typed JavaScript at scale
-- **Express**: Backend server for production deployment
-- **Framer Motion**: Animation library for Preact
+- **Preact**: Alternativa rápida de 3kB a React con la misma API
+- **Vite**: Herramienta de compilación frontend de próxima generación
+- **TailwindCSS**: Framework CSS basado en utilidades
+- **TypeScript**: JavaScript tipado a escala
+- **Express**: Servidor backend para despliegue en producción
+- **Framer Motion**: Biblioteca de animaciones para Preact
 
-## 📋 Prerequisites
-
-- Bun >= 1.0.0
-- Node.js (as fallback)
-
-## 🔧 Installation
+## 🔧 Instalación
 
 ```bash
-# Clone the repository
+# Clonar el repositorio
 git clone <repository-url>
 cd dev-davidg
 
-# Install dependencies with Bun (preferred)
-bun install
-
-# Or use npm if Bun is not available
+# Instalar dependencias
 npm install
 ```
 
-## 💻 Development
+## 💻 Desarrollo
 
-Start the development server with hot reload:
+Inicia el servidor de desarrollo con recarga en caliente:
 
 ```bash
-# Using Bun
-bun run dev
-
-# Or using npm
 npm run dev
 ```
 
-The development server will be available at http://localhost:5173.
+El servidor de desarrollo estará disponible en http://localhost:5173.
 
-### Type Checking
+### Verificación de tipos
 
-Check TypeScript types:
+Verifica los tipos de TypeScript:
 
 ```bash
-bun run check-types
+npm run check-types
 ```
+
+## 📊 Sistema de Monitoreo de Rendimiento
+
+Esta aplicación incluye un sistema avanzado de monitoreo y optimización de rendimiento que:
+
+- Rastrea métricas clave (FPS, tiempo de frame, memoria)
+- Diagnostica automáticamente problemas de rendimiento
+- Optimiza elementos fuera de la vista para reducir la carga de CPU
+- Adapta las animaciones según la capacidad del dispositivo
+
+### Herramientas de rendimiento
+
+Para acceder a las herramientas de monitoreo:
+
+- Usa el atajo `Alt+Shift+P` para mostrar/ocultar el panel de rendimiento
+- Ejecuta `window.diagnosePerformance()` en la consola del navegador para un diagnóstico completo
+
+Para más detalles, consulta [PERFORMANCE_MONITORING.md](./PERFORMANCE_MONITORING.md).
 
 ## 🚀 Construcción y Despliegue
 
-### ✅ Comando principal: deploy
+### Comando principal: deploy
 
-Para construir y desplegar la aplicación, use:
+Para construir y desplegar la aplicación:
 
 ```bash
 npm run deploy
 ```
 
-Este comando es el **método recomendado y oficial** que:
+Este comando:
 
 1. Verifica si la aplicación ya está construida (carpeta `dist/`)
 2. Si no existe, construye automáticamente la aplicación con optimizaciones
@@ -73,47 +78,99 @@ Este comando es el **método recomendado y oficial** que:
 
 ### Construcción manual
 
-Si necesita solo construir la aplicación sin servirla:
-
 ```bash
 npm run build
 ```
 
 Esto generará la aplicación optimizada en la carpeta `dist/`.
 
-### Solución a problemas comunes
+## 📁 Estructura del Proyecto
 
-#### Problemas con tipos MIME
-
-Si ves el código HTML en lugar de la página renderizada, probablemente estás teniendo problemas con los tipos MIME. Esto ocurre porque:
-
-1. El servidor que estás usando no está configurando correctamente el `Content-Type` del HTML o de los assets
-2. Los navegadores modernos son estrictos con los tipos MIME y bloquearán recursos con tipos incorrectos
-
-Para resolver este problema:
-
-- Usa siempre `npm run deploy` o `npm run build:http` que incluyen un servidor HTTP configurado correctamente
-- Evita usar `npm run preview` directamente si experimentas problemas
-
-#### Opciones alternativas para servir la aplicación
-
-Además del comando recomendado, puedes usar:
-
-```bash
-# Usar el servidor HTTP simple:
-npm run serve:http
-
-# Usar Express (requiere express-compression instalado):
-npm run serve:express
-
-# Usar el servidor de Vite (puede tener problemas de MIME):
-npm run preview
-
-# Usar servidor estático:
-npm run serve
+```
+dev-davidg/
+├── dist/               # Resultado de la compilación
+├── public/             # Activos estáticos
+├── src/
+│   ├── assets/         # Imágenes y otros activos
+│   ├── components/     # Componentes reutilizables
+│   │   └── PerformancePanel.tsx  # Panel visual de rendimiento
+│   ├── config/         # Configuración de la aplicación
+│   ├── hooks/          # Hooks personalizados
+│   ├── pages/          # Páginas/rutas de la aplicación
+│   ├── styles/         # Estilos globales
+│   ├── types/          # Definiciones de tipos TypeScript
+│   ├── utils/          # Funciones utilitarias
+│   │   ├── PerformanceMonitor.ts       # Monitor de rendimiento
+│   │   ├── PerformanceOptimizer.tsx    # Optimizador automático
+│   │   ├── diagnosePerfIssues.ts       # Diagnóstico de problemas
+│   │   └── ComponentProfiler.tsx       # Perfilador de componentes
+│   ├── app.tsx         # Componente principal de la aplicación
+│   ├── index.css       # Punto de entrada CSS
+│   └── main.tsx        # Punto de entrada
+├── serve.json          # Configuración para servidor estático
+├── simple-http-server.js # Servidor HTTP simple
+├── simple-server.js    # Servidor Express
+├── vite.config.ts      # Configuración de Vite
+├── tailwind.config.js  # Configuración de TailwindCSS
+├── tsconfig.json       # Configuración de TypeScript
+└── package.json        # Dependencias y scripts
 ```
 
-Todas estas opciones servirán la aplicación en [http://localhost:4173](http://localhost:4173).
+## 🎨 Enfoque de Estilizado
+
+Este proyecto utiliza un enfoque de estilizado unificado que combina:
+
+1. **TailwindCSS**: Para estilizado basado en utilidades
+2. **Variables CSS**: Para consistencia de tema (modo claro/oscuro)
+3. **Framer Motion**: Para animaciones
+
+Características clave del sistema de estilizado:
+
+- Esquema de colores unificado con variables CSS
+- Soporte para modo oscuro con toggles basados en clases
+- Diseño responsivo con optimizaciones para móviles
+- Sistema de animaciones con keyframes y utilidades de transición
+- Efectos 3D con transformaciones de perspectiva
+
+## 🧪 Depuración y Optimización
+
+El sistema de monitoreo de rendimiento proporciona:
+
+- Identificación de componentes lentos
+- Detección de elementos que causan reflow y layout thrashing
+- Optimización automática de efectos visuales en dispositivos lentos
+- Exportación de métricas para análisis profundo
+- Notificaciones automáticas cuando el rendimiento es bajo
+
+## 👨‍💻 Para desarrolladores
+
+### Perfilando componentes específicos
+
+```tsx
+import { withProfiling } from "../utils/ComponentProfiler";
+
+// Componente normal
+const MyComponent = (props) => {
+  // ...
+};
+
+// Componente con monitoreo de rendimiento
+export default withProfiling(MyComponent, "MyComponentName");
+```
+
+O usar el componente `ComponentProfiler` directamente:
+
+```tsx
+import ComponentProfiler from "../utils/ComponentProfiler";
+
+const MyComponent = () => {
+  return (
+    <ComponentProfiler id="MyCustomSection">
+      <div>{/* Contenido del componente */}</div>
+    </ComponentProfiler>
+  );
+};
+```
 
 ## 🌎 Despliegue en hosting
 
@@ -194,29 +251,78 @@ Después de desplegar, verifique:
 - Que la navegación de la SPA funcione sin problemas
 - Que el rendimiento sea óptimo en producción
 
-## 📁 Project Structure
+## 📄 License
 
-```
-dev-davidg/
-├── dist/               # Build output
-├── public/             # Static assets
-├── src/
-│   ├── assets/         # Images and other assets
-│   ├── components/     # Reusable components
-│   ├── hooks/          # Custom React hooks
-│   ├── styles/         # Global styles
-│   ├── utils/          # Utility functions
-│   ├── app.tsx         # Main application component
-│   ├── index.css       # Main CSS entry point (includes all styles)
-│   └── main.tsx        # Entry point
-├── bun.js              # Bun server script
-├── simple-server.js    # Express server script
-├── serve.json          # Configuration for static server
-├── vite.config.ts      # Vite configuration
-├── tailwind.config.js  # Tailwind CSS configuration
-├── tsconfig.json       # TypeScript configuration
-└── package.json        # Project dependencies and scripts
-```
+[Your License Information]
+
+## 🎨 Styling Approach
+
+This project uses a unified styling approach combining:
+
+1. **TailwindCSS**: For utility-first styling
+2. **CSS Variables**: For theme consistency (light/dark mode)
+3. **CSS Modules**: For component-specific styles
+4. **Framer Motion**: For animations
+
+The styles are organized as follows:
+
+- `src/index.css`: The main entry point that imports all styles
+- `src/styles/globals.css`: Global styles, variables, and utility classes
+- `src/styles/3d-effects.css`: Specialized 3D visual effects
+
+Key features of the styling system:
+
+- Unified color scheme with CSS variables
+- Dark mode support with class-based toggle
+- Responsive design with mobile optimizations
+- Animation system with keyframes and transition utilities
+- 3D effects with perspective transforms
+
+### Best Practices for Styling
+
+1. Use Tailwind utilities whenever possible
+2. Leverage the predefined CSS classes for common patterns
+3. Keep component-specific animations in the component files
+4. Follow the existing naming conventions for consistency
+5. Use CSS variables for theme-related values
+6. Custom CSS should be added to globals.css under the appropriate section
+
+## 🌟 Best Practices
+
+### Performance Optimization
+
+- The project uses code splitting with `manualChunks` in Vite config to separate vendor code
+- Assets are optimized during build
+- Terser minification is enabled for production builds
+
+### Development Workflow
+
+1. Write code with TypeScript for enhanced developer experience
+2. Use hot module replacement during development for instant feedback
+3. Run type checking before committing code
+4. Build and test the production version before deployment
+
+### MIME Type Handling
+
+One common issue in SPAs is incorrect MIME type handling when serving files. This project includes multiple server options that properly handle MIME types:
+
+- The Bun server (`bun.js`) includes MIME type mapping
+- The Express server (`simple-server.js`) sets appropriate Content-Type headers
+- The static server configuration (`serve.json`) includes MIME type definitions
+
+### SPA Routing
+
+All server implementations handle SPA routing by redirecting non-file requests to index.html.
+
+## ⚠️ Common Issues and Solutions
+
+### MIME Type Errors
+
+If you see MIME type errors in the console, ensure you're using one of the provided server scripts rather than serving files directly.
+
+### Content Security Policy
+
+If encountering CSP issues, review the headers in your server configuration.
 
 ## 🎨 Styling Approach
 

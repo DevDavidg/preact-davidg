@@ -49,13 +49,13 @@ export default defineConfig({
           "framer-motion": ["framer-motion"],
         },
         assetFileNames: (assetInfo) => {
-          const info = assetInfo.name?.split(".") || [];
-          const extType = info[info.length - 1];
-          if (
-            assetInfo.name &&
-            /\.(png|jpe?g|svg|gif|tiff|webp|bmp|ico)$/i.test(assetInfo.name)
-          ) {
-            return `assets/images/[name]-[hash][extname]`;
+          if (assetInfo.type === "asset" && assetInfo.name) {
+            if (
+              /\.(png|jpe?g|svg|gif|tiff|webp|bmp|ico)$/i.test(assetInfo.name)
+            ) {
+              return `assets/images/[name]-[hash][extname]`;
+            }
+            return `assets/[name]-[hash][extname]`;
           }
           return `assets/[name]-[hash][extname]`;
         },
