@@ -1,44 +1,30 @@
-import { useState, useEffect } from "preact/hooks";
-import { updateNoiseOpacity } from "../utils/noiseTexture";
+// src/hooks/useTheme.ts
+import { useState, useEffect, useCallback } from 'preact/hooks';
 
-type Theme = "light" | "dark";
+export type Theme = 'light' | 'dark';
 
-export const useTheme = () => {
+export function useTheme(defaultTheme: Theme = 'dark'): { theme: Theme; toggleTheme: () => void } {
   const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window === "undefined") return "light";
-
-    const savedTheme = localStorage.getItem("theme") as Theme;
-    if (savedTheme) return savedTheme;
-
-    if (
-      window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches
-    ) {
-      return "dark";
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        return savedTheme;
+      }
     }
-
-    return "light";
+    return defaultTheme;
   });
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    localStorage.setItem("theme", theme);
-
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-      updateNoiseOpacity(true);
-    } else {
-      document.documentElement.classList.remove("dark");
-      updateNoiseOpacity(false);
+    if (typeof window !== 'undefined') {
+      document.documentElement.classList.remove('light', 'dark');
+      document.documentElement.classList.add(theme);
+      localStorage.setItem('theme', theme);
     }
   }, [theme]);
 
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "light" ? "dark" : "light"));
-  };
+  const toggleTheme = useCallback(() => {
+    setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
+  }, []);
 
   return { theme, toggleTheme };
-};
-
-export default useTheme;
+}

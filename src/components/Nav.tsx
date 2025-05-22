@@ -18,6 +18,7 @@ import {
   slideUp,
   initialSlideUp,
 } from "../hooks/animations";
+import { useTheme } from "../../hooks/useTheme";
 
 const springTransition = {
   type: "spring",
@@ -337,7 +338,7 @@ const Nav: FunctionComponent = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeLink, setActiveLink] = useState("#home");
-  const [theme, setTheme] = useState("");
+  const { theme, toggleTheme } = useTheme(); // Use the custom hook
   const [isAnimationReady, setIsAnimationReady] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const prevScrollY = useRef<number>(0);
@@ -351,13 +352,8 @@ const Nav: FunctionComponent = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") ?? "dark";
-    setTheme(savedTheme);
-    document.documentElement.classList.toggle("dark", savedTheme === "dark");
-
-    checkActiveSection();
-  }, []);
+  // useEffect for theme initialization is removed, now handled by useTheme hook.
+  // checkActiveSection is called by the scroll handler, which runs on mount.
 
   const checkActiveSection = useCallback(() => {
     const sections = document.querySelectorAll("section[id]");
@@ -450,14 +446,7 @@ const Nav: FunctionComponent = () => {
     []
   );
 
-  const toggleTheme = useCallback(() => {
-    setTheme((prevTheme) => {
-      const newTheme = prevTheme === "dark" ? "light" : "dark";
-      document.documentElement.classList.toggle("dark", newTheme === "dark");
-      localStorage.setItem("theme", newTheme);
-      return newTheme;
-    });
-  }, []);
+  // toggleTheme is now provided by useTheme hook.
 
   const toggleMenu = useCallback(() => {
     setIsMenuOpen((prev) => !prev);

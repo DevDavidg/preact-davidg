@@ -1,7 +1,7 @@
 import { FunctionComponent } from "preact";
 import { useEffect, useRef, useCallback } from "preact/hooks";
 import { ENV } from "../config/env";
-import PerformanceMonitor from "../utils/PerformanceMonitor";
+import PerformanceMonitor from "../features/performance-monitoring/utils/PerformanceMonitor";
 
 interface NavigatorWithConnection extends Navigator {
   connection?: {

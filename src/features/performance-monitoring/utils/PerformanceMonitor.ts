@@ -1,4 +1,4 @@
-import { ENV } from "../config/env";
+import { ENV } from "../../../config/env";
 
 export const PERFORMANCE_CONFIG = {
   targetFPS: 60,

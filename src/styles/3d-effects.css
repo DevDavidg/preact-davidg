@@ -24,22 +24,21 @@
   --glow-color-dark: rgba(80, 80, 200, 0.15);
 }
 
+/* General 3D setup: Enables perspective view. Used by AboutMe.tsx, Contact.tsx, Hero.tsx */
 .perspective {
   perspective: var(--perspective-value);
 }
 
-.perspective-origin-center {
-  perspective-origin: center center;
-}
+/* Unused .perspective-origin-center removed */
 
+/* General 3D setup: Allows child elements to maintain their 3D position. Used by AboutMe.tsx, Contact.tsx, Hero.tsx */
 .preserve-3d {
   transform-style: preserve-3d;
 }
 
-.backface-hidden {
-  backface-visibility: hidden;
-}
+/* Unused .backface-hidden removed */
 
+/* Used by: src/components/AboutMe.tsx */
 .card-3d {
   position: relative;
   transform-style: preserve-3d;
@@ -50,6 +49,7 @@
   transform: translateZ(20px) rotateX(5deg) rotateY(5deg);
 }
 
+/* Used by: src/components/AboutMe.tsx */
 .depth-effect {
   position: relative;
   transform-style: preserve-3d;
@@ -73,30 +73,14 @@
   background: var(--gradient-dark);
 }
 
-.layer-1 {
-  transform: translateZ(10px);
-}
-.layer-2 {
-  transform: translateZ(20px);
-}
-.layer-3 {
-  transform: translateZ(30px);
-}
-.layer-4 {
-  transform: translateZ(40px);
-}
-.layer-back-1 {
-  transform: translateZ(-10px);
-}
-.layer-back-2 {
-  transform: translateZ(-20px);
-}
+/* Unused .layer-* classes removed */
 
 .shadow-3d {
   box-shadow: 0 10px 20px -5px var(--shadow-color-light),
     0 20px 30px -10px var(--shadow-color-dark);
 }
 
+/* Used by: src/components/AboutMe.tsx */
 .shadow-3d-hover {
   transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
@@ -107,6 +91,7 @@
   transform: translateY(-5px);
 }
 
+/* Used by: src/components/AboutMe.tsx */
 .glow-3d {
   position: relative;
 }
@@ -127,326 +112,44 @@
   opacity: 1;
 }
 
-.float-card-3d {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
+/* Unused .float-card-3d and its keyframes removed */
+/* Unused .prism-3d removed */
+/* Unused .animate-float-3d and its keyframes removed */
+/* Unused .animate-rotate-3d and its keyframes removed */
+/* Unused .parallax-bg removed */
 
-.float-card-3d:hover {
-  transform: translateY(-10px) translateZ(20px) rotateX(2deg);
-  box-shadow: 0 20px 30px -10px var(--shadow-color-light),
-    0 40px 60px -20px var(--shadow-color-dark);
-}
-
-.prism-3d {
-  position: relative;
-  transform-style: preserve-3d;
-  transition: transform 1s ease;
-}
-
-.prism-3d:hover {
-  transform: rotateY(180deg) rotateX(10deg);
-}
-
-@keyframes float-3d {
-  0%,
-  100% {
-    transform: translateY(0) translateZ(0) rotateX(0) rotateY(0);
-  }
-  25% {
-    transform: translateY(-10px) translateZ(10px) rotateX(2deg) rotateY(2deg);
-  }
-  50% {
-    transform: translateY(-20px) translateZ(20px) rotateX(4deg) rotateY(4deg);
-  }
-  75% {
-    transform: translateY(-10px) translateZ(10px) rotateX(2deg) rotateY(2deg);
-  }
-}
-
-.animate-float-3d {
-  animation: float-3d 6s ease-in-out infinite;
-}
-
-@keyframes rotate-3d-slow {
-  0% {
-    transform: rotateX(0) rotateY(0) rotateZ(0);
-  }
-  100% {
-    transform: rotateX(360deg) rotateY(180deg) rotateZ(90deg);
-  }
-}
-
-.animate-rotate-3d {
-  animation: rotate-3d-slow 20s linear infinite;
-  transform-style: preserve-3d;
-}
-
-.parallax-bg {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  will-change: transform;
-  transition: transform 0.1s ease-out;
-}
-
+/* Used by: src/components/AboutMe.tsx */
 .transform-3d-hover {
   transition: transform 0.3s ease;
 }
 
 .transform-3d-hover:hover {
-  transform: perspective(1000px) rotateX(5deg) rotateY(5deg)
+  transform: perspective(1000px) rotateX(5deg) rotateY(5deg) /* Uses hardcoded 1000px, not var(--perspective-value) */
     scale3d(1.05, 1.05, 1.05);
 }
 
-.perspective-500 {
-  perspective: 500px;
-}
-.perspective-1000 {
-  perspective: 1000px;
-}
-.perspective-1500 {
-  perspective: 1500px;
-}
-.perspective-2000 {
-  perspective: 2000px;
-}
-
-.glass-3d {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
-  transform-style: preserve-3d;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.glass-3d:hover {
-  transform: translateZ(20px);
-  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.dark .glass-3d {
-  background: rgba(20, 20, 40, 0.2);
-  border: 1px solid rgba(100, 100, 150, 0.2);
-}
-
-.dark .glass-3d:hover {
-  border: 1px solid rgba(100, 100, 150, 0.3);
-}
-
-.reflection-3d {
-  position: relative;
-  overflow: hidden;
-}
-
-.reflection-3d::after {
-  content: "";
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.2) 0%,
-    rgba(255, 255, 255, 0.05) 50%,
-    transparent 100%
-  );
-  transform: rotateZ(-45deg) translateY(-100%);
-  transition: transform 0.5s ease;
-}
-
-.reflection-3d:hover::after {
-  transform: rotateZ(-45deg) translateY(100%);
-}
-
-@keyframes rotateZ3D {
-  0% {
-    transform: rotateZ(0);
-  }
-  100% {
-    transform: rotateZ(360deg);
-  }
-}
-
-.rotate-z-3d {
-  animation: rotateZ3D 15s linear infinite;
-  transform-style: preserve-3d;
-}
-
-.shine-3d {
-  position: relative;
-  overflow: hidden;
-}
-
-.shine-3d::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
-  transform: skewX(-25deg);
-  transition: left 0.7s ease;
-}
-
-.shine-3d:hover::before {
-  left: 150%;
-}
-
-.neon-3d {
-  position: relative;
-  transition: all 0.3s ease;
-}
-
-.neon-3d::before {
-  content: "";
-  position: absolute;
-  inset: -2px;
-  background: linear-gradient(45deg, #ff00cc, #3333ff, #00ccff, #ff00cc);
-  background-size: 400% 400%;
-  border-radius: inherit;
-  z-index: -1;
-  animation: neonGradient 10s ease infinite;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  filter: blur(8px);
-}
-
-.neon-3d:hover::before {
-  opacity: 1;
-}
-
-@keyframes neonGradient {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
+/* Unused .perspective-<value> classes removed */
+/* Unused .glass-3d styles removed */
+/* Unused .reflection-3d styles removed */
+/* Unused .rotate-z-3d and its keyframes removed */
+/* Unused .shine-3d styles removed */
+/* Unused .neon-3d and its keyframes removed */
 
 @media (max-width: 768px) {
   :root {
     --perspective-value: 800px;
   }
 
+  /* For .card-3d, used by: src/components/AboutMe.tsx */
   .card-3d:hover {
     transform: translateZ(10px) rotateX(2deg) rotateY(2deg);
   }
 
-  .animate-float-3d {
-    animation-duration: 4s;
-  }
-
-  .layer-1 {
-    transform: translateZ(5px);
-  }
-  .layer-2 {
-    transform: translateZ(10px);
-  }
-  .layer-3 {
-    transform: translateZ(15px);
-  }
-  .layer-4 {
-    transform: translateZ(20px);
-  }
+  /* Unused .animate-float-3d media query styles removed */
+  /* Unused .layer-* media query styles removed */
 }
 
-.cube-3d {
-  position: relative;
-  width: 100px;
-  height: 100px;
-  transform-style: preserve-3d;
-  transition: transform 1s ease;
-}
-
-.cube-3d:hover {
-  transform: rotateX(90deg) rotateY(90deg);
-}
-
-.cube-3d__face {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  backface-visibility: hidden;
-}
-
-.cube-3d__face--front {
-  transform: translateZ(50px);
-}
-.cube-3d__face--back {
-  transform: rotateY(180deg) translateZ(50px);
-}
-.cube-3d__face--right {
-  transform: rotateY(90deg) translateZ(50px);
-}
-.cube-3d__face--left {
-  transform: rotateY(-90deg) translateZ(50px);
-}
-.cube-3d__face--top {
-  transform: rotateX(90deg) translateZ(50px);
-}
-.cube-3d__face--bottom {
-  transform: rotateX(-90deg) translateZ(50px);
-}
-
-.light-3d {
-  position: relative;
-}
-
-.light-3d::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    circle at 30% 30%,
-    rgba(255, 255, 255, 0.2) 0%,
-    transparent 60%
-  );
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.light-3d:hover::after {
-  opacity: 1;
-}
-
-.grain-3d {
-  position: relative;
-}
-
-.grain-3d::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  opacity: 0.05;
-  mix-blend-mode: overlay;
-  transform: translateZ(-1px);
-}
-
-@keyframes depth-oscillate {
-  0%,
-  100% {
-    transform: translateZ(0px);
-  }
-  50% {
-    transform: translateZ(20px);
-  }
-}
-
-.depth-oscillate {
-  animation: depth-oscillate 4s ease-in-out infinite;
-  transform-style: preserve-3d;
-}
+/* Unused .cube-3d styles removed */
+/* Unused .light-3d styles removed */
+/* Unused .grain-3d styles removed */
+/* Unused .depth-oscillate and its keyframes removed */

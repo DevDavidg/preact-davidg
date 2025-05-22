@@ -93,17 +93,24 @@ dev-davidg/
 ├── src/
 │   ├── assets/         # Imágenes y otros activos
 │   ├── components/     # Componentes reutilizables
-│   │   └── PerformancePanel.tsx  # Panel visual de rendimiento
 │   ├── config/         # Configuración de la aplicación
+│   ├── features/
+│   │   └── performance-monitoring/
+│   │       ├── components/
+│   │       │   └── PerformancePanel.tsx
+│   │       ├── hooks/
+│   │       ├── styles/
+│   │       │   └── PerformancePanel.css # Moved from src/styles
+│   │       └── utils/
+│   │           ├── PerformanceMonitor.ts
+│   │           ├── diagnosePerfIssues.ts
+│   │           └── ComponentProfiler.tsx
 │   ├── hooks/          # Hooks personalizados
 │   ├── pages/          # Páginas/rutas de la aplicación
 │   ├── styles/         # Estilos globales
 │   ├── types/          # Definiciones de tipos TypeScript
 │   ├── utils/          # Funciones utilitarias
-│   │   ├── PerformanceMonitor.ts       # Monitor de rendimiento
-│   │   ├── PerformanceOptimizer.tsx    # Optimizador automático
-│   │   ├── diagnosePerfIssues.ts       # Diagnóstico de problemas
-│   │   └── ComponentProfiler.tsx       # Perfilador de componentes
+│   │   ├── PerformanceOptimizer.tsx    # Optimizador automático (remains here)
 │   ├── app.tsx         # Componente principal de la aplicación
 │   ├── index.css       # Punto de entrada CSS
 │   └── main.tsx        # Punto de entrada
@@ -147,7 +154,7 @@ El sistema de monitoreo de rendimiento proporciona:
 ### Perfilando componentes específicos
 
 ```tsx
-import { withProfiling } from "../utils/ComponentProfiler";
+import { withProfiling } from "./features/performance-monitoring/utils/ComponentProfiler";
 
 // Componente normal
 const MyComponent = (props) => {
@@ -161,7 +168,7 @@ export default withProfiling(MyComponent, "MyComponentName");
 O usar el componente `ComponentProfiler` directamente:
 
 ```tsx
-import ComponentProfiler from "../utils/ComponentProfiler";
+import ComponentProfiler from "./features/performance-monitoring/utils/ComponentProfiler";
 
 const MyComponent = () => {
   return (

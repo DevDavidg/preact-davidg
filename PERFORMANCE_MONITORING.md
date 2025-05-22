@@ -127,7 +127,7 @@ document.documentElement.setAttribute("data-perf-mode", "low");
 
 ### Ajustando los Umbrales
 
-Puedes personalizar los umbrales en `src/utils/PerformanceMonitor.ts`:
+Puedes personalizar los umbrales en `src/features/performance-monitoring/utils/PerformanceMonitor.ts`:
 
 ```typescript
 export const PERFORMANCE_CONFIG = {
@@ -163,7 +163,7 @@ type PanelProps = Readonly<{
 Para medir el rendimiento de un componente específico:
 
 ```tsx
-import ComponentProfiler from "../utils/ComponentProfiler";
+import ComponentProfiler from "../features/performance-monitoring/utils/ComponentProfiler";
 
 const MyComponent = () => {
   return (
@@ -179,7 +179,7 @@ const MyComponent = () => {
 Para un enfoque más detallado, puedes usar el método directo:
 
 ```tsx
-import PerformanceMonitor from "../utils/PerformanceMonitor";
+import PerformanceMonitor from "../features/performance-monitoring/utils/PerformanceMonitor";
 
 const MyComponent = () => {
   // Dentro del componente, antes de cualquier renderizado costoso

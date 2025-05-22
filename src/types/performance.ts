@@ -31,47 +31,10 @@ export interface PerformanceReport {
   logs: PerformanceLog[];
   stats: PerformanceStats;
 }
-
-export class PerformanceMonitor {
-  private static instance: PerformanceMonitor;
-  private logs: PerformanceLog[] = [];
-  private metrics: PerformanceMetrics = {
-    fps: 0,
-    frameTime: 0,
-    memoryUsage: 0,
-    activeAnimations: 0,
-  };
-
-  private constructor() {}
-
-  public static getInstance(): PerformanceMonitor {
-    if (!PerformanceMonitor.instance) {
-      PerformanceMonitor.instance = new PerformanceMonitor();
-    }
-    return PerformanceMonitor.instance;
-  }
-
-  public getMetrics(): PerformanceMetrics {
-    return this.metrics;
-  }
-
-  public getLogs(): PerformanceLog[] {
-    return this.logs;
-  }
-
-  public logEvent(event: string): void {
-    this.logs.push({
-      timestamp: Date.now(),
-      fps: this.metrics.fps,
-      frameTime: this.metrics.frameTime,
-      memoryUsage: this.metrics.memoryUsage,
-      animationCount: this.metrics.activeAnimations,
-      renderCount: 0,
-      event,
-    });
-  }
-
-  public updateMetrics(newMetrics: Partial<PerformanceMetrics>): void {
-    this.metrics = { ...this.metrics, ...newMetrics };
-  }
-}
+// The PerformanceMonitor class definition has been removed from this file.
+// The authoritative PerformanceMonitor class is now located in:
+// src/features/performance-monitoring/utils/PerformanceMonitor.ts
+//
+// The interfaces above (PerformanceLog, PerformanceStats, PerformanceMetrics, PerformanceReport)
+// are kept here for now as they might be used by other parts of the application.
+// Ideally, these types should be co-located or derived from the main PerformanceMonitor implementation.
