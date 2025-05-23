@@ -5,7 +5,7 @@ import {
   useMemo,
   useCallback,
 } from "preact/hooks";
-import { memo } from "preact/compat";
+import { Fragment, JSX } from "preact";
 import {
   MotionDiv,
   MotionP,
@@ -77,51 +77,52 @@ const mediaUtils = {
   },
 };
 
-const Badge = memo(
-  ({
-    children,
-    active = false,
-    onClick = undefined,
-    index = 0,
-  }: {
-    children: React.ReactNode;
-    active?: boolean;
-    onClick?: () => void;
-    index?: number;
-  }) => {
-    const badgeClass = useMemo(
-      () =>
-        `badge cursor-pointer text-xs px-2 py-1 rounded-md ${
-          active
-            ? "bg-light-accent/20 dark:bg-dark-accent/20 text-light-primary dark:text-dark-primary"
-            : "bg-light-muted/40 dark:bg-dark-muted/40"
-        }`,
-      [active]
-    );
+interface BadgeProps {
+  children: JSX.Element | string;
+  active?: boolean;
+  onClick?: () => void;
+  index?: number;
+  key?: string | number;
+}
 
-    return (
-      <MotionDiv
-        className={badgeClass}
-        onClick={onClick}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{
-          delay: index * 0.05,
-          duration: 0.4,
-        }}
-        whileHover={{
-          y: -3,
-          scale: 1.05,
-        }}
-        whileTap={{ scale: 0.95 }}
-      >
-        {children}
-      </MotionDiv>
-    );
-  }
-);
+const Badge = ({
+  children,
+  active = false,
+  onClick,
+  index = 0,
+}: BadgeProps) => {
+  const badgeClass = useMemo(
+    () =>
+      `badge cursor-pointer text-xs px-2 py-1 rounded-md ${
+        active
+          ? "bg-light-accent/20 dark:bg-dark-accent/20 text-light-primary dark:text-dark-primary"
+          : "bg-light-muted/40 dark:bg-dark-muted/40"
+      }`,
+    [active]
+  );
 
-const PlayIcon = memo(() => (
+  return (
+    <MotionDiv
+      className={badgeClass}
+      onClick={onClick}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        delay: index * 0.05,
+        duration: 0.4,
+      }}
+      whileHover={{
+        y: -3,
+        scale: 1.05,
+      }}
+      whileTap={{ scale: 0.95 }}
+    >
+      {children}
+    </MotionDiv>
+  );
+};
+
+const PlayIcon = () => (
   <MotionDiv
     className="absolute inset-0 flex items-center justify-center z-10"
     initial={{ opacity: 0, scale: 0.8 }}
@@ -142,402 +143,381 @@ const PlayIcon = memo(() => (
       <MotionPath d="M8 5v14l11-7z" fill="currentColor" />
     </MotionSvg>
   </MotionDiv>
-));
+);
 
-const VideoMedia = memo(
-  ({
-    url,
-    hovered,
-  }: {
-    url: string;
-    title: string;
-    hovered: boolean;
-    mediaTransition: any;
-  }) => {
-    const videoRef = useRef<HTMLVideoElement>(null);
+const VideoMedia = ({
+  url,
+  hovered,
+}: {
+  url: string;
+  title: string;
+  hovered: boolean;
+  mediaTransition: any;
+}) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-    useEffect(() => {
-      let timerId: number;
-      if (!videoRef.current) return;
+  useEffect(() => {
+    let timerId: number;
+    if (!videoRef.current) return;
 
-      if (hovered) {
-        timerId = window.setTimeout(() => {
-          if (videoRef.current?.paused) {
-            const playPromise = videoRef.current.play();
+    if (hovered) {
+      timerId = window.setTimeout(() => {
+        if (videoRef.current?.paused) {
+          const playPromise = videoRef.current.play();
 
-            if (playPromise !== undefined) {
-              playPromise.catch((err) => {
-                if (err.name !== "AbortError") {
-                  console.error("Error playing video:", err);
-                }
-              });
-            }
+          if (playPromise !== undefined) {
+            playPromise.catch((err) => {
+              if (err.name !== "AbortError") {
+                console.error("Error playing video:", err);
+              }
+            });
           }
-        }, 100);
-      } else {
-        const video = videoRef.current;
-        if (video && !video.paused) {
-          video.pause();
-          video.currentTime = 0;
         }
+      }, 100);
+    } else {
+      const video = videoRef.current;
+      if (video && !video.paused) {
+        video.pause();
+        video.currentTime = 0;
       }
+    }
 
-      return () => clearTimeout(timerId);
-    }, [hovered]);
+    return () => clearTimeout(timerId);
+  }, [hovered]);
 
-    return (
-      <MotionDiv
-        initial={{ filter: "grayscale(100%)" }}
-        animate={{
-          filter: hovered ? "grayscale(0%)" : "grayscale(100%)",
-        }}
-        transition={{ duration: 0.4 }}
-      >
-        <video
-          ref={videoRef}
-          src={url}
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          className="w-full h-full object-cover"
-        />
-      </MotionDiv>
-    );
-  }
-);
+  return (
+    <MotionDiv
+      initial={{ filter: "grayscale(100%)" }}
+      animate={{
+        filter: hovered ? "grayscale(0%)" : "grayscale(100%)",
+      }}
+      transition={{ duration: 0.4 }}
+    >
+      <video
+        ref={videoRef}
+        src={url}
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        className="w-full h-full object-cover"
+      />
+    </MotionDiv>
+  );
+};
 
-const GifMedia = memo(
-  ({
-    url,
-    title,
-    hovered,
-  }: {
-    url: string;
-    title: string;
-    hovered: boolean;
-    mediaTransition: any;
-  }) => {
-    return (
-      <>
-        <MotionImg
-          src={url}
-          alt={title}
-          className="w-full h-full object-cover absolute inset-0"
-          width="100%"
-          height="100%"
-          loading="lazy"
-          decoding="async"
-          initial={{ opacity: 0 }}
-          animate={{
-            opacity: hovered ? 1 : 0,
-            filter: "grayscale(0%)",
-          }}
-          transition={{ duration: 0.4 }}
-        />
-        <MotionImg
-          src={mediaUtils.getStillImageUrl(url)}
-          alt={`${title} - preview`}
-          className="w-full h-full object-cover absolute inset-0"
-          width="100%"
-          height="100%"
-          loading="lazy"
-          decoding="async"
-          initial={{ opacity: 1 }}
-          animate={{
-            opacity: hovered ? 0 : 1,
-            filter: "grayscale(100%)",
-          }}
-          transition={{ duration: 0.4 }}
-        />
-      </>
-    );
-  }
-);
-
-const StaticMedia = memo(
-  ({
-    url,
-    title,
-    hovered,
-  }: {
-    url: string;
-    title: string;
-    hovered: boolean;
-    mediaTransition: any;
-  }) => {
-    return (
+const GifMedia = ({
+  url,
+  title,
+  hovered,
+}: {
+  url: string;
+  title: string;
+  hovered: boolean;
+  mediaTransition: any;
+}) => {
+  return (
+    <Fragment>
       <MotionImg
         src={url}
         alt={title}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-cover absolute inset-0"
         width="100%"
         height="100%"
         loading="lazy"
         decoding="async"
-        initial={{ filter: "grayscale(100%)" }}
+        initial={{ opacity: 0 }}
         animate={{
-          filter: hovered ? "grayscale(0%)" : "grayscale(100%)",
+          opacity: hovered ? 1 : 0,
+          filter: "grayscale(0%)",
         }}
         transition={{ duration: 0.4 }}
       />
-    );
-  }
-);
+      <MotionImg
+        src={mediaUtils.getStillImageUrl(url)}
+        alt={`${title} - preview`}
+        className="w-full h-full object-cover absolute inset-0"
+        width="100%"
+        height="100%"
+        loading="lazy"
+        decoding="async"
+        initial={{ opacity: 1 }}
+        animate={{
+          opacity: hovered ? 0 : 1,
+          filter: "grayscale(100%)",
+        }}
+        transition={{ duration: 0.4 }}
+      />
+    </Fragment>
+  );
+};
 
-const ProjectMedia = memo(
-  ({
-    url,
-    title,
-    hovered,
-  }: {
-    url: string;
-    title: string;
-    hovered: boolean;
-  }) => {
-    const isVideoMedia = useMemo(() => mediaUtils.isVideo(url), [url]);
-    const isGifMedia = useMemo(() => mediaUtils.isGif(url), [url]);
+const StaticMedia = ({
+  url,
+  title,
+  hovered,
+}: {
+  url: string;
+  title: string;
+  hovered: boolean;
+  mediaTransition: any;
+}) => {
+  return (
+    <MotionImg
+      src={url}
+      alt={title}
+      className="w-full h-full object-cover"
+      width="100%"
+      height="100%"
+      loading="lazy"
+      decoding="async"
+      initial={{ filter: "grayscale(100%)" }}
+      animate={{
+        filter: hovered ? "grayscale(0%)" : "grayscale(100%)",
+      }}
+      transition={{ duration: 0.4 }}
+    />
+  );
+};
 
-    const renderMediaContent = () => {
-      if (isVideoMedia) {
-        return (
-          <VideoMedia
-            url={url}
-            title={title}
-            hovered={hovered}
-            mediaTransition={null}
-          />
-        );
-      }
+const ProjectMedia = ({
+  url,
+  title,
+  hovered,
+}: {
+  url: string;
+  title: string;
+  hovered: boolean;
+}) => {
+  const isVideoMedia = useMemo(() => mediaUtils.isVideo(url), [url]);
+  const isGifMedia = useMemo(() => mediaUtils.isGif(url), [url]);
 
-      if (isGifMedia) {
-        return (
-          <GifMedia
-            url={url}
-            title={title}
-            hovered={hovered}
-            mediaTransition={null}
-          />
-        );
-      }
-
+  const renderMediaContent = () => {
+    if (isVideoMedia) {
       return (
-        <StaticMedia
+        <VideoMedia
           url={url}
           title={title}
           hovered={hovered}
           mediaTransition={null}
         />
       );
-    };
+    }
+
+    if (isGifMedia) {
+      return (
+        <GifMedia
+          url={url}
+          title={title}
+          hovered={hovered}
+          mediaTransition={null}
+        />
+      );
+    }
 
     return (
-      <div
-        className="w-full h-full relative overflow-hidden rounded-t-xl"
-        style={{ contain: "paint layout" }}
-      >
-        {renderMediaContent()}
-
-        {!hovered && (isVideoMedia || isGifMedia) && <PlayIcon />}
-
-        <MotionDiv
-          className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"
-          style={{ width: "100%", height: "100%" }}
-          initial={{ opacity: 0.5 }}
-          animate={{ opacity: hovered ? 0.2 : 0.6 }}
-          transition={{ duration: 0.4 }}
-        />
-      </div>
+      <StaticMedia
+        url={url}
+        title={title}
+        hovered={hovered}
+        mediaTransition={null}
+      />
     );
-  }
+  };
+
+  return (
+    <div
+      className="w-full h-full relative overflow-hidden rounded-t-xl"
+      style={{ contain: "paint layout" }}
+    >
+      {renderMediaContent()}
+
+      {!hovered && (isVideoMedia || isGifMedia) && <PlayIcon />}
+
+      <MotionDiv
+        className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"
+        style={{ width: "100%", height: "100%" }}
+        initial={{ opacity: 0.5 }}
+        animate={{ opacity: hovered ? 0.2 : 0.6 }}
+        transition={{ duration: 0.4 }}
+      />
+    </div>
+  );
+};
+
+interface ProjectLinkProps {
+  href: string;
+  isPrimary?: boolean;
+  children: JSX.Element | string;
+}
+
+const ProjectLink = ({
+  href,
+  isPrimary = false,
+  children,
+}: ProjectLinkProps) => (
+  <MotionA
+    href={href}
+    target="_blank"
+    rel="noopener noreferrer"
+    className={`${
+      isPrimary ? "btn-gradient" : "btn-outline"
+    } text-sm flex-1 text-center rounded-lg py-2 font-medium`}
+    whileHover={{
+      scale: 1.05,
+      translateY: -3,
+    }}
+    whileTap={{ scale: 0.95 }}
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5 }}
+  >
+    {children}
+  </MotionA>
 );
 
-const ProjectLink = memo(
-  ({
-    href,
-    isPrimary = false,
-    children,
-  }: {
-    href: string;
-    isPrimary?: boolean;
-    children: React.ReactNode;
-  }) => (
-    <MotionA
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={`${
-        isPrimary ? "btn-gradient" : "btn-outline"
-      } text-sm flex-1 text-center rounded-lg py-2 font-medium`}
-      whileHover={{
-        scale: 1.05,
-        translateY: -3,
-      }}
+interface ProjectCardProps {
+  project: ProjectCard;
+  index: number;
+  key?: number;
+}
+
+const ProjectCard = ({ project, index }: ProjectCardProps) => {
+  const [hovered, setHovered] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!cardRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setTimeout(() => {
+            setIsVisible(true);
+          }, Math.min(index * 100, 300));
+        } else {
+          setIsVisible(false);
+        }
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -100px 0px" }
+    );
+
+    observer.observe(cardRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [index]);
+
+  const techs = useMemo(() => parseStringArray(project.icons), [project.icons]);
+  const isAnimated = useMemo(
+    () => mediaUtils.isAnimated(project.gif),
+    [project.gif]
+  );
+  const mediaType = useMemo(
+    () => (mediaUtils.isVideo(project.gif) ? "Video" : "Animado"),
+    [project.gif]
+  );
+
+  const cardStyles = {
+    opacity: isVisible ? 1 : 0,
+    transform: isVisible ? "translateY(0)" : "translateY(50px)",
+    transition: isVisible
+      ? "opacity 0.5s ease, transform 0.7s cubic-bezier(0.2, 0.8, 0.4, 1)"
+      : "none",
+  };
+
+  return (
+    <div ref={cardRef} style={{ minHeight: "100px" }}>
+      <article
+        className="glass-card overflow-hidden rounded-xl flex flex-col h-full relative shadow-lg"
+        style={cardStyles}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        <div className="relative overflow-hidden h-56 bg-light-muted dark:bg-dark-muted">
+          <ProjectMedia
+            url={project.gif}
+            title={project.title}
+            hovered={hovered}
+          />
+
+          <div className="absolute top-3 right-3 flex gap-2 z-10">
+            {project.isDesign && <Badge children={<div>Diseño</div>} />}
+            {isAnimated && <Badge children={<div>{mediaType}</div>} />}
+          </div>
+
+          <div className="absolute bottom-0 left-0 right-0 p-4">
+            <p className="text-xl font-bold mb-1 text-white drop-shadow-lg">
+              {project.title}
+            </p>
+          </div>
+        </div>
+
+        <div className="p-6 relative z-10 flex flex-col flex-1">
+          <div className="flex-1">
+            <p className="text-light-secondary dark:text-dark-secondary mb-4 line-clamp-3">
+              {project.description}
+            </p>
+
+            <div className="flex flex-wrap gap-2 mb-4">
+              {techs.slice(0, 4).map((tech, techIndex) => (
+                <Badge key={tech} index={techIndex} children={tech} />
+              ))}
+              {techs.length > 4 && (
+                <Badge children={<div>+{techs.length - 4} más</div>} />
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-3 mt-auto pt-4">
+            {project.demoUrl && (
+              <ProjectLink
+                href={project.demoUrl}
+                isPrimary
+                children="Ver Demo"
+              />
+            )}
+
+            {project.github && (
+              <ProjectLink href={project.github} children="Código" />
+            )}
+          </div>
+        </div>
+      </article>
+    </div>
+  );
+};
+
+interface CategoryButtonProps {
+  active: boolean;
+  onClick: () => void;
+  children: JSX.Element | string;
+}
+
+const CategoryButton = ({ active, onClick, children }: CategoryButtonProps) => {
+  return (
+    <MotionButton
+      className={`btn-outline relative px-5 py-2 rounded-lg overflow-hidden ${
+        active ? "bg-light-primary/10 dark:bg-dark-primary/10" : ""
+      }`}
+      onClick={onClick}
+      whileHover={{ y: -3 }}
       whileTap={{ scale: 0.95 }}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
     >
       {children}
-    </MotionA>
-  )
-);
-
-const ProjectCard = memo(
-  ({ project, index }: { project: ProjectCard; index: number }) => {
-    const [hovered, setHovered] = useState(false);
-    const [isVisible, setIsVisible] = useState(false);
-    const cardRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-      if (!cardRef.current) return;
-
-      const observer = new IntersectionObserver(
-        (entries) => {
-          if (entries[0].isIntersecting) {
-            setTimeout(() => {
-              setIsVisible(true);
-            }, Math.min(index * 100, 300));
-          } else {
-            setIsVisible(false);
-          }
-        },
-        { threshold: 0.1, rootMargin: "0px 0px -100px 0px" }
-      );
-
-      observer.observe(cardRef.current);
-
-      return () => {
-        observer.disconnect();
-      };
-    }, [index]);
-
-    const techs = useMemo(
-      () => parseStringArray(project.icons),
-      [project.icons]
-    );
-    const isAnimated = useMemo(
-      () => mediaUtils.isAnimated(project.gif),
-      [project.gif]
-    );
-    const mediaType = useMemo(
-      () => (mediaUtils.isVideo(project.gif) ? "Video" : "Animado"),
-      [project.gif]
-    );
-
-    const cardStyles = {
-      opacity: isVisible ? 1 : 0,
-      transform: isVisible ? "translateY(0)" : "translateY(50px)",
-      transition: isVisible
-        ? "opacity 0.5s ease, transform 0.7s cubic-bezier(0.2, 0.8, 0.4, 1)"
-        : "none",
-    };
-
-    return (
-      <div ref={cardRef} style={{ minHeight: "100px" }}>
-        <article
-          className="glass-card overflow-hidden rounded-xl flex flex-col h-full relative shadow-lg"
-          style={cardStyles}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-        >
-          <div className="relative overflow-hidden h-56 bg-light-muted dark:bg-dark-muted">
-            <ProjectMedia
-              url={project.gif}
-              title={project.title}
-              hovered={hovered}
-            />
-
-            <div className="absolute top-3 right-3 flex gap-2 z-10">
-              {project.isDesign && (
-                <Badge>
-                  <div>Diseño</div>
-                </Badge>
-              )}
-              {isAnimated && (
-                <Badge>
-                  <div>{mediaType}</div>
-                </Badge>
-              )}
-            </div>
-
-            <div className="absolute bottom-0 left-0 right-0 p-4">
-              <p className="text-xl font-bold mb-1 text-white drop-shadow-lg">
-                {project.title}
-              </p>
-            </div>
-          </div>
-
-          <div className="p-6 relative z-10 flex flex-col flex-1">
-            <div className="flex-1">
-              <p className="text-light-secondary dark:text-dark-secondary mb-4 line-clamp-3">
-                {project.description}
-              </p>
-
-              <div className="flex flex-wrap gap-2 mb-4">
-                {techs.slice(0, 4).map((tech, techIndex) => (
-                  <Badge key={tech} index={techIndex}>
-                    {tech}
-                  </Badge>
-                ))}
-                {techs.length > 4 && (
-                  <Badge>
-                    <div>+{techs.length - 4} más</div>
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-auto pt-4">
-              {project.demoUrl && (
-                <ProjectLink href={project.demoUrl} isPrimary>
-                  Ver Demo
-                </ProjectLink>
-              )}
-
-              {project.github && (
-                <ProjectLink href={project.github}>Código</ProjectLink>
-              )}
-            </div>
-          </div>
-        </article>
-      </div>
-    );
-  }
-);
-
-const CategoryButton = memo(
-  ({
-    active,
-    onClick,
-    children,
-  }: {
-    active: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-  }) => {
-    return (
-      <MotionButton
-        className={`btn-outline relative px-5 py-2 rounded-lg overflow-hidden ${
-          active ? "bg-light-primary/10 dark:bg-dark-primary/10" : ""
-        }`}
-        onClick={onClick}
-        whileHover={{ y: -3 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        {children}
-        {active && (
-          <MotionDiv
-            className="absolute bottom-0 left-0 h-0.5 bg-light-accent dark:bg-dark-accent"
-            initial={{ width: 0 }}
-            animate={{ width: "100%" }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-          />
-        )}
-      </MotionButton>
-    );
-  }
-);
+      {active && (
+        <MotionDiv
+          className="absolute bottom-0 left-0 h-0.5 bg-light-accent dark:bg-dark-accent"
+          initial={{ width: 0 }}
+          animate={{ width: "100%" }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+        />
+      )}
+    </MotionButton>
+  );
+};
 
 const LoadingSpinner = () => (
   <MotionDiv
@@ -788,29 +768,28 @@ const Projects = () => {
           <CategoryButton
             active={activeCategory === "all"}
             onClick={() => setActiveFilterCategory("all")}
-          >
-            Todos
-          </CategoryButton>
+            children="Todos"
+          />
 
           <CategoryButton
             active={activeCategory === "dev"}
             onClick={() => setActiveFilterCategory("dev")}
-          >
-            Desarrollo
-          </CategoryButton>
+            children="Desarrollo"
+          />
 
           <CategoryButton
             active={activeCategory === "design"}
             onClick={() => setActiveFilterCategory("design")}
-          >
-            Diseño
-          </CategoryButton>
+            children="Diseño"
+          />
         </div>
 
         <div className="flex flex-wrap justify-center gap-2 mt-6 max-w-4xl mx-auto">
-          <Badge active={filter === null} onClick={() => setActiveFilter(null)}>
-            Todas las tecnologías
-          </Badge>
+          <Badge
+            active={filter === null}
+            onClick={() => setActiveFilter(null)}
+            children="Todas las tecnologías"
+          />
 
           {allTags.map((tag, index) => (
             <Badge
@@ -818,9 +797,8 @@ const Projects = () => {
               active={filter === tag}
               onClick={() => setActiveFilter(tag)}
               index={index}
-            >
-              {tag}
-            </Badge>
+              children={tag}
+            />
           ))}
         </div>
       </div>

@@ -12,6 +12,24 @@ import {
   MotionP,
 } from "../utils/motion-components";
 
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      canvas: any;
+      div: any;
+      span: any;
+      h2: any;
+      h3: any;
+      h4: any;
+      p: any;
+      a: any;
+      label: any;
+      svg: any;
+      path: any;
+    }
+  }
+}
+
 interface Vector2D {
   x: number;
   y: number;
@@ -236,7 +254,6 @@ class ParticleEntity {
   follow(flowfield: FlowField) {
     const x = Math.floor(this.position.x / flowfield.resolution);
     const y = Math.floor(this.position.y / flowfield.resolution);
-    const index = x + y * flowfield.cols;
 
     if (x >= 0 && x < flowfield.cols && y >= 0 && y < flowfield.rows) {
       const angle = flowfield.field[y][x];
@@ -432,7 +449,7 @@ class ParticleEntity {
     }
   }
 
-  updateColor(themeColors: ThemeColors, isDarkTheme: boolean) {
+  updateColor(themeColors: ThemeColors) {
     let color = "";
     let alpha = this.colorAlpha;
 
@@ -538,405 +555,6 @@ interface ThemeColors {
   secondary: string;
   accent: string;
   muted: string;
-}
-
-class Entity {
-  id: number;
-  position: Vector2D;
-  velocity: Vector2D;
-  acceleration: Vector2D;
-  lifespan: number;
-  maxLifespan: number;
-  size: number;
-  color: string;
-  type: string;
-  shape: string;
-  isCaptured: boolean;
-  captureForce: number;
-  followMouse: boolean;
-  shouldFlee: boolean;
-  fleeDistance: number;
-  amplitude: number;
-  frequency: number;
-  phase: number;
-  trail: Vector2D[];
-  trailLength: number;
-  mode: string;
-  targetPosition: Vector2D | null;
-  repelForce: number;
-  attractForce: number;
-  noiseOffset: Vector2D;
-  noiseScale: number;
-  noiseStrength: number;
-  glow: boolean;
-  glowStrength: number;
-  rotationAngle: number;
-  rotationSpeed: number;
-  patternType: string;
-  patternScale: number;
-  targetEntity: Entity | null;
-  colorVariant: "primary" | "secondary" | "accent";
-  colorAlpha: number;
-  originalAlpha: number;
-
-  constructor(
-    id: number,
-    x: number,
-    y: number,
-    colorVariant: "primary" | "secondary" | "accent" = "primary"
-  ) {
-    this.id = id;
-    this.position = { x, y };
-    this.velocity = {
-      x: Math.random() * 2 - 1,
-      y: Math.random() * 2 - 1,
-    };
-    this.acceleration = { x: 0, y: 0 };
-    this.maxLifespan = Math.random() * 400 + 200;
-    this.lifespan = this.maxLifespan;
-    this.size = Math.random() * 8 + 2;
-    this.colorVariant = colorVariant;
-    this.colorAlpha = 0;
-    this.originalAlpha = Math.random() * 0.3 + 0.1;
-    this.type = Math.random() > 0.7 ? "special" : "normal";
-    this.shape =
-      Math.random() > 0.8
-        ? Math.random() > 0.5
-          ? "square"
-          : "triangle"
-        : "circle";
-    this.isCaptured = false;
-    this.captureForce = 0;
-    this.followMouse = Math.random() > 0.6;
-    this.shouldFlee = Math.random() > 0.7;
-    this.fleeDistance = 100 + Math.random() * 100;
-    this.amplitude = Math.random() * 2 + 0.5;
-    this.frequency = Math.random() * 0.05 + 0.01;
-    this.phase = Math.random() * Math.PI * 2;
-    this.trail = [];
-    this.trailLength = Math.floor(Math.random() * 10) + 5;
-    this.mode = Math.random() > 0.7 ? "attract" : "repel";
-    this.targetPosition = null;
-    this.repelForce = Math.random() * 0.5 + 0.1;
-    this.attractForce = Math.random() * 0.1 + 0.05;
-    this.noiseOffset = {
-      x: Math.random() * 1000,
-      y: Math.random() * 1000,
-    };
-    this.noiseScale = 0.003 + Math.random() * 0.005;
-    this.noiseStrength = Math.random() * 0.5 + 0.1;
-    this.glow = Math.random() > 0.7;
-    this.glowStrength = Math.random() * 15 + 5;
-    this.rotationAngle = Math.random() * Math.PI * 2;
-    this.rotationSpeed =
-      (Math.random() * 0.02 + 0.01) * (Math.random() > 0.5 ? 1 : -1);
-    this.patternType = ["wave", "spiral", "orbit", "noise"][
-      Math.floor(Math.random() * 4)
-    ];
-    this.patternScale = Math.random() * 0.1 + 0.05;
-    this.targetEntity = null;
-    this.color = "";
-  }
-
-  applyForce(force: Vector2D) {
-    this.acceleration.x += force.x;
-    this.acceleration.y += force.y;
-  }
-
-  follow(flowfield: FlowField) {
-    const x = Math.floor(this.position.x / flowfield.resolution);
-    const y = Math.floor(this.position.y / flowfield.resolution);
-    const index = x + y * flowfield.cols;
-
-    if (x >= 0 && x < flowfield.cols && y >= 0 && y < flowfield.rows) {
-      const angle = flowfield.field[y][x];
-      const force = {
-        x: Math.cos(angle) * this.noiseStrength,
-        y: Math.sin(angle) * this.noiseStrength,
-      };
-      this.applyForce(force);
-    }
-  }
-
-  behaviors(mouse: { x: number | null; y: number | null }, entities: Entity[]) {
-    if (mouse.x !== null && mouse.y !== null) {
-      const distToMouse = Math.hypot(
-        this.position.x - mouse.x,
-        this.position.y - mouse.y
-      );
-
-      if (distToMouse < 150) {
-        if (this.shouldFlee && distToMouse < this.fleeDistance) {
-          const fleeForce = {
-            x: ((this.position.x - mouse.x) / distToMouse) * 0.2,
-            y: ((this.position.y - mouse.y) / distToMouse) * 0.2,
-          };
-          this.applyForce(fleeForce);
-        } else if (this.followMouse) {
-          const followForce = {
-            x: ((mouse.x - this.position.x) / distToMouse) * 0.05,
-            y: ((mouse.y - this.position.y) / distToMouse) * 0.05,
-          };
-          this.applyForce(followForce);
-        }
-
-        if (distToMouse < 50) {
-          this.isCaptured = true;
-          this.captureForce = 1 - distToMouse / 50;
-          this.colorAlpha = this.originalAlpha + this.captureForce * 0.6;
-        } else {
-          this.isCaptured = false;
-          this.captureForce = 0;
-        }
-      }
-    }
-
-    switch (this.patternType) {
-      case "wave":
-        this.applyForce({
-          x:
-            Math.sin(
-              this.position.y * this.patternScale + performance.now() * 0.001
-            ) * 0.01,
-          y:
-            Math.cos(
-              this.position.x * this.patternScale + performance.now() * 0.001
-            ) * 0.01,
-        });
-        break;
-      case "spiral":
-        const angle = Math.atan2(
-          this.position.y - window.innerHeight / 2,
-          this.position.x - window.innerWidth / 2
-        );
-        const dist = Math.hypot(
-          this.position.x - window.innerWidth / 2,
-          this.position.y - window.innerHeight / 2
-        );
-        this.applyForce({
-          x: Math.cos(angle + dist * 0.01) * 0.01,
-          y: Math.sin(angle + dist * 0.01) * 0.01,
-        });
-        break;
-      case "orbit":
-        const centerX = window.innerWidth / 2;
-        const centerY = window.innerHeight / 2;
-        const distToCenter = Math.hypot(
-          this.position.x - centerX,
-          this.position.y - centerY
-        );
-        if (distToCenter > 100) {
-          this.applyForce({
-            x: ((centerX - this.position.x) / distToCenter) * 0.01,
-            y: ((centerY - this.position.y) / distToCenter) * 0.01,
-          });
-        }
-        break;
-      case "noise":
-        this.noiseOffset.x += 0.01;
-        this.noiseOffset.y += 0.01;
-        const noiseVal = NoiseGenerator.noise(
-          this.position.x * this.noiseScale + this.noiseOffset.x,
-          this.position.y * this.noiseScale + this.noiseOffset.y,
-          performance.now() * 0.0001
-        );
-        const noiseAngle = noiseVal * Math.PI * 2;
-        this.applyForce({
-          x: Math.cos(noiseAngle) * 0.02,
-          y: Math.sin(noiseAngle) * 0.02,
-        });
-        break;
-    }
-
-    if (entities.length > 1) {
-      for (let i = 0; i < Math.min(5, entities.length); i++) {
-        if (this.id === entities[i].id) continue;
-
-        const other = entities[i];
-        const dx = this.position.x - other.position.x;
-        const dy = this.position.y - other.position.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance < 100) {
-          if (this.mode === "attract" && distance > 20) {
-            this.applyForce({
-              x: (dx / distance) * -this.attractForce,
-              y: (dy / distance) * -this.attractForce,
-            });
-          } else if (this.mode === "repel") {
-            this.applyForce({
-              x: (dx / distance) * this.repelForce,
-              y: (dy / distance) * this.repelForce,
-            });
-          }
-        }
-      }
-    }
-  }
-
-  edges() {
-    const margin = 50;
-    const buffer = 0.5;
-
-    if (this.position.x > window.innerWidth - margin) {
-      const force = (this.position.x - (window.innerWidth - margin)) * buffer;
-      this.applyForce({ x: -force * 0.01, y: 0 });
-    }
-
-    if (this.position.x < margin) {
-      const force = (margin - this.position.x) * buffer;
-      this.applyForce({ x: force * 0.01, y: 0 });
-    }
-
-    if (this.position.y > window.innerHeight - margin) {
-      const force = (this.position.y - (window.innerHeight - margin)) * buffer;
-      this.applyForce({ x: 0, y: -force * 0.01 });
-    }
-
-    if (this.position.y < margin) {
-      const force = (margin - this.position.y) * buffer;
-      this.applyForce({ x: 0, y: force * 0.01 });
-    }
-  }
-
-  update(_time: number) {
-    if (this.trail.length > this.trailLength) {
-      this.trail.shift();
-    }
-    this.trail.push({ ...this.position });
-
-    this.velocity.x += this.acceleration.x;
-    this.velocity.y += this.acceleration.y;
-
-    const speed = Math.sqrt(
-      this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y
-    );
-    if (speed > 2) {
-      this.velocity.x = (this.velocity.x / speed) * 2;
-      this.velocity.y = (this.velocity.y / speed) * 2;
-    }
-
-    this.position.x += this.velocity.x;
-    this.position.y += this.velocity.y;
-
-    this.velocity.x *= 0.98;
-    this.velocity.y *= 0.98;
-
-    this.acceleration.x = 0;
-    this.acceleration.y = 0;
-
-    this.lifespan--;
-
-    this.rotationAngle += this.rotationSpeed;
-
-    if (this.lifespan > this.maxLifespan - 60) {
-      this.colorAlpha =
-        (1 - (this.maxLifespan - this.lifespan) / 60) * this.originalAlpha;
-    } else if (this.lifespan < 60) {
-      this.colorAlpha = (this.lifespan / 60) * this.originalAlpha;
-    } else if (!this.isCaptured) {
-      this.colorAlpha = this.originalAlpha;
-    }
-  }
-
-  updateColor(themeColors: ThemeColors, isDarkTheme: boolean) {
-    let color = "";
-    let alpha = this.colorAlpha;
-
-    if (this.isCaptured) {
-      alpha = Math.min(0.9, this.colorAlpha);
-    }
-
-    switch (this.colorVariant) {
-      case "primary":
-        color = themeColors.primary;
-        break;
-      case "secondary":
-        color = themeColors.secondary;
-        break;
-      case "accent":
-        color = themeColors.accent;
-        break;
-    }
-
-    if (color.startsWith("#")) {
-      const r = parseInt(color.slice(1, 3), 16);
-      const g = parseInt(color.slice(3, 5), 16);
-      const b = parseInt(color.slice(5, 7), 16);
-      this.color = `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    } else {
-      this.color = color;
-    }
-  }
-
-  draw(ctx: CanvasRenderingContext2D, _isDarkTheme: boolean) {
-    ctx.save();
-
-    if (this.glow) {
-      ctx.shadowBlur =
-        this.glowStrength + (this.isCaptured ? this.captureForce * 10 : 0);
-      ctx.shadowColor = this.color;
-    }
-
-    ctx.fillStyle = this.color;
-    ctx.strokeStyle = this.color;
-
-    ctx.translate(this.position.x, this.position.y);
-    ctx.rotate(this.rotationAngle);
-
-    switch (this.shape) {
-      case "circle":
-        ctx.beginPath();
-        ctx.arc(0, 0, this.size, 0, Math.PI * 2);
-        ctx.fill();
-        break;
-      case "square":
-        ctx.fillRect(-this.size, -this.size, this.size * 2, this.size * 2);
-        break;
-      case "triangle":
-        ctx.beginPath();
-        ctx.moveTo(0, -this.size);
-        ctx.lineTo(-this.size, this.size);
-        ctx.lineTo(this.size, this.size);
-        ctx.closePath();
-        ctx.fill();
-        break;
-    }
-
-    ctx.restore();
-
-    if (this.trail.length > 1) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(this.trail[0].x, this.trail[0].y);
-
-      for (let i = 1; i < this.trail.length; i++) {
-        ctx.lineTo(this.trail[i].x, this.trail[i].y);
-      }
-
-      if (this.color.startsWith("rgba")) {
-        const rgba = this.color.match(
-          /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([.\d]+))?\)/
-        );
-        if (rgba) {
-          const trailAlpha = parseFloat(rgba[4]) * 0.3;
-          ctx.strokeStyle = `rgba(${rgba[1]}, ${rgba[2]}, ${rgba[3]}, ${trailAlpha})`;
-        } else {
-          ctx.strokeStyle = this.color;
-        }
-      } else {
-        ctx.strokeStyle = this.color;
-      }
-
-      ctx.lineWidth = this.size * 0.5;
-      ctx.stroke();
-      ctx.restore();
-    }
-  }
-
-  isDead(): boolean {
-    return this.lifespan <= 0;
-  }
 }
 
 const ContactCanvas: FunctionComponent = () => {
@@ -1199,7 +817,7 @@ const ContactCanvas: FunctionComponent = () => {
         entity.edges();
         entity.update(timestamp);
 
-        entity.updateColor(themeColorsRef.current, isDarkTheme);
+        entity.updateColor(themeColorsRef.current);
 
         if (entity.isDead()) {
           entitiesRef.current.splice(i, 1);
@@ -1312,10 +930,7 @@ const ContactCanvas: FunctionComponent = () => {
           y: Math.sin(angle) * (2 + Math.random()),
         };
 
-        entity.updateColor(
-          themeColorsRef.current,
-          document.documentElement.classList.contains("dark")
-        );
+        entity.updateColor(themeColorsRef.current);
 
         entitiesRef.current.push(entity);
       }
@@ -1877,23 +1492,6 @@ const Contact: FunctionComponent = () => {
             </MotionDiv>
           </div>
         </MotionDiv>
-
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce hidden sm:block">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6 opacity-50"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M5 10l7-7m0 0l7 7m-7-7v18"
-            />
-          </svg>
-        </div>
       </div>
     </MotionSection>
   );

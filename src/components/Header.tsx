@@ -1,4 +1,4 @@
-import { FunctionComponent } from "preact";
+import { FunctionComponent, JSX } from "preact";
 import { useState, useEffect } from "preact/hooks";
 import clsx from "clsx";
 import { useTheme } from "../hooks/useTheme";
@@ -207,7 +207,7 @@ const Header: FunctionComponent = () => {
           variants={logoVariants}
           whileHover="hover"
           initial="normal"
-          onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+          onClick={(e: JSX.TargetedMouseEvent<HTMLAnchorElement>) => {
             e.preventDefault();
             handleLinkClick("#home");
           }}
@@ -243,7 +243,7 @@ const Header: FunctionComponent = () => {
                     : "text-light-primary dark:text-dark-primary hover:text-light-accent dark:hover:text-dark-accent"
                 )}
                 whileHover="hover"
-                onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                onClick={(e: JSX.TargetedMouseEvent<HTMLAnchorElement>) => {
                   e.preventDefault();
                   handleLinkClick(item.href);
                 }}
@@ -323,7 +323,7 @@ const Header: FunctionComponent = () => {
                     ? "text-light-accent dark:text-dark-accent"
                     : "text-light-primary dark:text-dark-primary"
                 )}
-                onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                onClick={(e: JSX.TargetedMouseEvent<HTMLAnchorElement>) => {
                   e.preventDefault();
                   handleLinkClick(item.href);
                 }}

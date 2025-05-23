@@ -1,19 +1,17 @@
 import { defineConfig } from "vite";
 import preact from "@preact/preset-vite";
-import compression from "vite-plugin-compression2";
+// import viteCompression from "vite-plugin-compression";
 import { visualizer } from "rollup-plugin-visualizer";
 
 export default defineConfig({
   plugins: [
     preact(),
-    compression({
-      algorithm: "gzip",
-      exclude: [/\.(br)$/, /\.(gz)$/],
-    }),
-    compression({
-      algorithm: "brotliCompress",
-      exclude: [/\.(br)$/, /\.(gz)$/],
-    }),
+    // viteCompression({
+    //   algorithm: "gzip",
+    // }),
+    // viteCompression({
+    //   algorithm: "brotliCompress",
+    // }),
     visualizer({
       filename: "stats.html",
       open: false,

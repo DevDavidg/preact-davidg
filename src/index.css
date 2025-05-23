@@ -1,2 +1,2 @@
 @import "./styles/loader.css";
-@import "./styles/PerformancePanel.css";
+@import "./features/performance-monitoring/styles/PerformancePanel.css";

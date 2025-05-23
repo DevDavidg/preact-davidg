@@ -1,14 +1,17 @@
-import { FunctionComponent } from 'preact';
-import { useEffect, useState, useCallback } from 'preact/hooks';
-import { ENV } from '../../config/env';
-import PerformanceMonitor from './utils/PerformanceMonitor';
-import { PerformancePanel } from './components/PerformancePanel';
-import PerformanceNotifier from './components/PerformanceNotifier';
+import { FunctionComponent, Fragment } from "preact";
+import { useEffect, useState, useCallback } from "preact/hooks";
+import { ENV } from "../../config/env";
+import PerformanceMonitor from "./utils/PerformanceMonitor";
+import { PerformancePanel } from "./components/PerformancePanel";
+import PerformanceNotifier from "./components/PerformanceNotifier";
 // Assuming diagnosePerformance is exported from diagnosePerfIssues.ts
 // and it might need the monitor instance or its logs.
 // Let's check the actual export of diagnosePerfIssues.ts later if this is not correct.
-import { installPerformanceDiagnostics, generatePerformanceReport } from './utils/diagnosePerfIssues';
-import './styles/PerformancePanel.css';
+import {
+  installPerformanceDiagnostics,
+  generatePerformanceReport,
+} from "./utils/diagnosePerfIssues";
+import "./styles/PerformancePanel.css";
 
 declare global {
   interface Window {
@@ -17,12 +20,12 @@ declare global {
     exportPerformanceLogs?: () => void;
     diagnosePerformance?: () => any; // Or specific return type
     perfTools?: {
-        start: () => void;
-        stop: () => void;
-        export: () => void;
-        diagnose: () => void;
-        help: () => void;
-    }
+      start: () => void;
+      stop: () => void;
+      export: () => void;
+      diagnose: () => void;
+      help: () => void;
+    };
   }
 }
 
@@ -31,17 +34,17 @@ export const PerformanceTools: FunctionComponent = () => {
 
   const showPerformanceMonitor = useCallback(() => setShowPanel(true), []);
   const hidePerformanceMonitor = useCallback(() => setShowPanel(false), []);
-  
+
   const exportPerformanceLogs = useCallback(() => {
     if (ENV.PERFORMANCE_MONITOR_ENABLED) {
       PerformanceMonitor.getInstance().exportLogs();
-      console.log('Performance logs exported.');
+      console.log("Performance logs exported.");
     }
   }, []);
 
   const runDiagnose = useCallback(() => {
     if (ENV.PERFORMANCE_MONITOR_ENABLED) {
-      console.log('Running performance diagnosis...');
+      console.log("Running performance diagnosis...");
       // The original diagnosePerformance in App.tsx called window.diagnosePerformance()
       // which was set up by installPerformanceDiagnostics.
       // installPerformanceDiagnostics itself calls generatePerformanceReport.
@@ -54,7 +57,9 @@ export const PerformanceTools: FunctionComponent = () => {
         // Fallback or direct call if window.diagnosePerformance is not set up by this point.
         // This depends on whether installPerformanceDiagnostics auto-runs or needs to be called.
         // From its code, it seems to auto-run and set up window.diagnosePerformance.
-        console.warn("window.diagnosePerformance not found. Generating report directly.");
+        console.warn(
+          "window.diagnosePerformance not found. Generating report directly."
+        );
         const report = generatePerformanceReport();
         console.log("Performance Report:", report);
       }
@@ -63,13 +68,6 @@ export const PerformanceTools: FunctionComponent = () => {
 
   useEffect(() => {
     if (ENV.PERFORMANCE_MONITOR_ENABLED) {
-      const monitor = PerformanceMonitor.getInstance();
-      // PerformanceMonitor.getInstance() ensures the monitor is initialized and started
-      // via its constructor if not already running.
-      // Explicit monitor.start() call here is redundant.
-      console.log('Performance Monitor initialized from PerformanceTools.');
-
-      // Setup global tools under perfTools namespace
       window.perfTools = {
         start: showPerformanceMonitor,
         stop: hidePerformanceMonitor,
@@ -94,31 +92,30 @@ export const PerformanceTools: FunctionComponent = () => {
       window.showPerformanceMonitor = showPerformanceMonitor;
       window.hidePerformanceMonitor = hidePerformanceMonitor;
       window.exportPerformanceLogs = exportPerformanceLogs;
-      
+
       // installPerformanceDiagnostics will set up window.diagnosePerformance
-      installPerformanceDiagnostics(); 
-      // If diagnosePerfIssues.ts exports a function that needs the monitor instance, 
+      installPerformanceDiagnostics();
+      // If diagnosePerfIssues.ts exports a function that needs the monitor instance,
       // it should be passed here, e.g., window.diagnosePerformance = () => diagnosePerformance(monitor.getPerformanceReport());
       // However, the current structure of installPerformanceDiagnostics seems to handle this internally.
 
-
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.altKey && e.shiftKey) {
-          if (e.key === 'P' || e.key === 'p') {
+          if (e.key === "P" || e.key === "p") {
             e.preventDefault();
-            setShowPanel(prev => !prev);
+            setShowPanel((prev) => !prev);
           }
-          if (e.key === 'D' || e.key === 'd') {
+          if (e.key === "D" || e.key === "d") {
             e.preventDefault();
             runDiagnose();
           }
         }
       };
-      window.addEventListener('keydown', handleKeyDown);
+      window.addEventListener("keydown", handleKeyDown);
 
       return () => {
         // monitor.stopMonitoring(); // PerformanceMonitor doesn't have a generic stop, but stopMonitoring
-        window.removeEventListener('keydown', handleKeyDown);
+        window.removeEventListener("keydown", handleKeyDown);
         // Clean up global functions
         delete window.perfTools;
         delete window.showPerformanceMonitor;
@@ -129,19 +126,32 @@ export const PerformanceTools: FunctionComponent = () => {
         // If a full cleanup is needed, a reset or dispose method on the singleton might be required.
       };
     }
-  }, [showPerformanceMonitor, hidePerformanceMonitor, exportPerformanceLogs, runDiagnose]); // Dependencies for useCallback references
+  }, [
+    showPerformanceMonitor,
+    hidePerformanceMonitor,
+    exportPerformanceLogs,
+    runDiagnose,
+  ]); // Dependencies for useCallback references
 
   if (!ENV.PERFORMANCE_MONITOR_ENABLED) {
     return null;
   }
 
   return (
-    <>
-      {showPanel && <PerformancePanel position="top-left" visible={showPanel} onClose={hidePerformanceMonitor} />}
+    <Fragment>
+      {showPanel && (
+        <PerformancePanel
+          position="top-left"
+          visible={showPanel}
+          onClose={hidePerformanceMonitor}
+        />
+      )}
       {/* ENV.PERFORMANCE_NOTIFIER_ENABLED allows for separate control over the notifier visibility,
           distinct from the main PERFORMANCE_MONITOR_ENABLED flag. */}
-      {ENV.PERFORMANCE_NOTIFIER_ENABLED && <PerformanceNotifier threshold={30} />} 
-    </>
+      {ENV.PERFORMANCE_NOTIFIER_ENABLED && (
+        <PerformanceNotifier threshold={30} />
+      )}
+    </Fragment>
   );
 };
 

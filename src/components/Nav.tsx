@@ -18,7 +18,7 @@ import {
   slideUp,
   initialSlideUp,
 } from "../hooks/animations";
-import { useTheme } from "../../hooks/useTheme";
+import { useTheme } from "../hooks/useTheme";
 
 const springTransition = {
   type: "spring",
@@ -767,33 +767,29 @@ const Nav: FunctionComponent = () => {
                   isActive={activeLink === "#home"}
                   onClick={handleLinkClick}
                   index={0}
-                >
-                  Inicio
-                </MobileNavLink>
+                  children="Inicio"
+                />
                 <MobileNavLink
                   href="#about"
                   isActive={activeLink === "#about"}
                   onClick={handleLinkClick}
                   index={1}
-                >
-                  Acerca de
-                </MobileNavLink>
+                  children="Acerca de"
+                />
                 <MobileNavLink
                   href="#projects"
                   isActive={activeLink === "#projects"}
                   onClick={handleLinkClick}
                   index={2}
-                >
-                  Proyectos
-                </MobileNavLink>
+                  children="Proyectos"
+                />
                 <MobileNavLink
                   href="#contact"
                   isActive={activeLink === "#contact"}
                   onClick={handleLinkClick}
                   index={3}
-                >
-                  Contacto
-                </MobileNavLink>
+                  children="Contacto"
+                />
               </ul>
             </div>
           </div>

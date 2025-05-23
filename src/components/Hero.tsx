@@ -1,5 +1,5 @@
 import { FunctionComponent } from "preact";
-import { useState, useEffect, useRef } from "preact/hooks";
+import { useState, useEffect, useRef, useLayoutEffect } from "preact/hooks";
 import {
   MotionDiv,
   MotionH1,
@@ -119,6 +119,22 @@ const scrollIndicatorVariants = {
   },
 };
 
+const shape3DVariants = {
+  hidden: { opacity: 0, scale: 0.8, rotateX: 45, rotateY: 45 },
+  visible: (delay: number) => ({
+    opacity: 0.15,
+    scale: 1,
+    rotateX: 0,
+    rotateY: 0,
+    transition: {
+      delay: delay,
+      duration: 0.6,
+      type: "spring",
+      damping: 15,
+    },
+  }),
+};
+
 const ParticleCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -203,11 +219,17 @@ const AnimatedTitle: FunctionComponent<{
   text: string;
   className: string;
   specialWords: string[];
-}> = ({ text, className, specialWords }) => {
+  isVisible: boolean;
+}> = ({ text, className, specialWords, isVisible }) => {
   const words = text.split(" ");
 
   return (
-    <MotionH1 variants={titleVariants} className={className}>
+    <MotionH1
+      variants={titleVariants}
+      initial="hidden"
+      animate={isVisible ? "visible" : "hidden"}
+      className={className}
+    >
       {words.map((word, wordIndex) => (
         <MotionSpan
           key={`word-${word}-${wordIndex}`}
@@ -240,8 +262,12 @@ const Hero = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  const refElementsAssigned = useRef(false);
+  useLayoutEffect(() => {
+    setIsInitialized(true);
+    setIsInView(true);
+  }, []);
 
   useEffect(() => {
     cardRefs.current = Array(5).fill(null);
@@ -251,28 +277,41 @@ const Hero = () => {
     };
 
     checkDarkMode();
-    window
-      .matchMedia("(prefers-color-scheme: dark)")
-      .addEventListener("change", checkDarkMode);
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = () => checkDarkMode();
+    mediaQuery.addEventListener("change", handleChange);
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setIsInView(entry.isIntersecting);
+        if (entry.isIntersecting) {
+          setIsInView(true);
+        }
       },
-      { threshold: 0.1 }
+      {
+        threshold: 0.01,
+        rootMargin: "50px",
+      }
     );
 
-    if (heroRef.current) {
-      observer.observe(heroRef.current);
+    const heroElement = heroRef.current;
+    if (heroElement) {
+      observer.observe(heroElement);
     }
 
+    const timer = setTimeout(() => {
+      if (!isInView) {
+        setIsInView(true);
+      }
+    }, 100);
+
     return () => {
-      window
-        .matchMedia("(prefers-color-scheme: dark)")
-        .removeEventListener("change", checkDarkMode);
-      if (heroRef.current) observer.disconnect();
+      mediaQuery.removeEventListener("change", handleChange);
+      if (heroElement) observer.unobserve(heroElement);
+      observer.disconnect();
+      clearTimeout(timer);
     };
-  }, []);
+  }, [isInView]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -296,10 +335,7 @@ const Hero = () => {
         y: e.clientY - rect.top,
       };
       setMousePosition(newPosition);
-
-      if (refElementsAssigned.current) {
-        applyTiltEffectToElements(newPosition, rect);
-      }
+      applyTiltEffectToElements(newPosition, rect);
     };
 
     const currentRef = heroRef.current;
@@ -316,10 +352,9 @@ const Hero = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrollY(window.scrollY);
-      if (refElementsAssigned.current) {
-        applyScrollParallax();
-      }
+      const newScrollY = window.scrollY;
+      setScrollY(newScrollY);
+      applyScrollParallax(newScrollY);
     };
 
     window.addEventListener("scroll", handleScroll);
@@ -336,9 +371,8 @@ const Hero = () => {
     const normalizedX = (mousePos.x - centerX) / centerX;
     const normalizedY = (mousePos.y - centerY) / centerY;
 
-    for (let index = 0; index < cardRefs.current.length; index++) {
-      const ref = cardRefs.current[index];
-      if (!ref?.style) continue;
+    cardRefs.current.forEach((ref, index) => {
+      if (!ref?.style) return;
 
       try {
         const sensitivityX = 5 - index * 0.5;
@@ -353,7 +387,7 @@ const Hero = () => {
           scale3d(1, 1, 1)
         `;
       } catch (e) {}
-    }
+    });
 
     if (contentRef.current?.style) {
       try {
@@ -361,14 +395,15 @@ const Hero = () => {
           perspective(1500px) 
           rotateX(${normalizedY * 1}deg) 
           rotateY(${-normalizedX * 1}deg)
-          translateZ(10px)        `;
+          translateZ(10px)
+        `;
       } catch (e) {}
     }
   };
 
   const resetTiltEffect = () => {
-    for (const ref of cardRefs.current) {
-      if (!ref?.style) continue;
+    cardRefs.current.forEach((ref) => {
+      if (!ref?.style) return;
 
       try {
         ref.style.transform = `
@@ -378,7 +413,7 @@ const Hero = () => {
           scale3d(1, 1, 1)
         `;
       } catch (e) {}
-    }
+    });
 
     if (contentRef.current?.style) {
       try {
@@ -392,21 +427,20 @@ const Hero = () => {
     }
   };
 
-  const applyScrollParallax = () => {
-    const scrollFactor = window.scrollY * 0.003;
+  const applyScrollParallax = (currentScrollY: number) => {
+    const scrollFactor = currentScrollY * 0.003;
 
-    for (let index = 0; index < cardRefs.current.length; index++) {
-      const ref = cardRefs.current[index];
-      if (!ref?.style) continue;
+    cardRefs.current.forEach((ref, index) => {
+      if (!ref?.style) return;
 
       try {
         const speed = 0.1 * (index + 1);
-        const yOffset = window.scrollY * speed;
+        const yOffset = currentScrollY * speed;
         const rotate = Math.sin(scrollFactor) * (index + 1) * 2;
 
         ref.style.transform = `translateY(${-yOffset}px) rotate(${rotate}deg)`;
       } catch (e) {}
-    }
+    });
   };
 
   const calculateMouseParallax = (strength = 0.02, inverted = false) => {
@@ -490,6 +524,8 @@ const Hero = () => {
     },
   ];
 
+  const animationState = isInitialized && isInView ? "visible" : "hidden";
+
   return (
     <section
       id="home"
@@ -540,20 +576,11 @@ const Hero = () => {
       <div className="absolute inset-0 z-0 overflow-hidden">
         {shapes3D.map((shape, shapeIndex) => (
           <MotionDiv
-            key={shape.id}
-            initial={{ opacity: 0, scale: 0.8, rotateX: 45, rotateY: 45 }}
-            animate={{
-              opacity: shape.style.opacity || 0.15,
-              scale: 1,
-              rotateX: 0,
-              rotateY: 0,
-            }}
-            transition={{
-              delay: 0.2 + shapeIndex * 0.1,
-              duration: 0.6,
-              type: "spring",
-              damping: 15,
-            }}
+            key={shape.id || shapeIndex}
+            variants={shape3DVariants}
+            initial="hidden"
+            animate={animationState}
+            custom={0.2 + shapeIndex * 0.1}
             className={shape.className}
             style={{
               ...shape.style,
@@ -577,14 +604,6 @@ const Hero = () => {
             ref={(el: HTMLDivElement | null) => {
               if (el && shapeIndex < cardRefs.current.length) {
                 cardRefs.current[shapeIndex] = el;
-                if (!refElementsAssigned.current) {
-                  const allAssigned = cardRefs.current.every(
-                    (ref, i) => i >= 2 || ref !== null
-                  );
-                  if (allAssigned && contentRef.current) {
-                    refElementsAssigned.current = true;
-                  }
-                }
               }
             }}
           >
@@ -621,14 +640,6 @@ const Hero = () => {
           ref={(el: HTMLDivElement | null) => {
             if (el) {
               cardRefs.current[3] = el;
-              if (!refElementsAssigned.current) {
-                const allAssigned = cardRefs.current.every(
-                  (ref, i) => i >= 4 || ref !== null
-                );
-                if (allAssigned && contentRef.current) {
-                  refElementsAssigned.current = true;
-                }
-              }
             }
           }}
         >
@@ -664,14 +675,6 @@ const Hero = () => {
           ref={(el: HTMLDivElement | null) => {
             if (el) {
               cardRefs.current[4] = el;
-              if (!refElementsAssigned.current) {
-                const allAssigned = cardRefs.current.every(
-                  (ref) => ref !== null
-                );
-                if (allAssigned && contentRef.current) {
-                  refElementsAssigned.current = true;
-                }
-              }
             }
           }}
         >
@@ -761,25 +764,17 @@ const Hero = () => {
 
       <div className="container relative z-10 px-4 md:px-6">
         <MotionDiv
-          ref={(el: HTMLDivElement | null) => {
-            contentRef.current = el;
-            if (el && !refElementsAssigned.current) {
-              const allAssigned = cardRefs.current.every(
-                (ref, i) => i >= 3 || ref !== null
-              );
-              if (allAssigned) {
-                refElementsAssigned.current = true;
-              }
-            }
-          }}
+          ref={contentRef}
           variants={containerVariants}
           initial="hidden"
-          animate={isInView ? "visible" : "hidden"}
+          animate={animationState}
           className="max-w-4xl mx-auto perspective preserve-3d"
           style={{ transition: "transform 0.3s ease-out" }}
         >
           <MotionDiv
             variants={slideUpVariants}
+            initial="hidden"
+            animate={animationState}
             custom={0.1}
             className="mb-4 md:mb-6"
           >
@@ -797,10 +792,13 @@ const Hero = () => {
             text={titleText}
             className="text-3xl sm:text-4xl md:text-7xl font-bold mb-4 md:mb-6 tracking-tighter leading-tight perspective preserve-3d"
             specialWords={specialWords}
+            isVisible={isInView}
           />
 
           <MotionP
             variants={slideUpVariants}
+            initial="hidden"
+            animate={animationState}
             custom={0.3}
             className="text-lg sm:text-xl md:text-2xl text-light-secondary dark:text-dark-secondary mb-8 md:mb-10 max-w-2xl perspective preserve-3d"
             style={{ textShadow: "0 1px 2px rgba(0,0,0,0.05)" }}
@@ -837,16 +835,22 @@ const Hero = () => {
 
           <MotionDiv
             variants={slideUpVariants}
+            initial="hidden"
+            animate={animationState}
             custom={0.4}
             className="flex flex-col sm:flex-row gap-4 mb-12 md:mb-16 perspective"
           >
             <MotionA
               href="#projects"
               variants={buttonVariants}
+              initial="hidden"
+              animate={animationState}
               custom={0}
               whileHover="hover"
               whileTap="tap"
-              onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+              onClick={(
+                e: preact.JSX.TargetedMouseEvent<HTMLAnchorElement>
+              ) => {
                 e.preventDefault();
                 document
                   .querySelector("#projects")
@@ -904,10 +908,14 @@ const Hero = () => {
             <MotionA
               href="#contact"
               variants={buttonVariants}
+              initial="hidden"
+              animate={animationState}
               custom={1}
               whileHover="hover"
               whileTap="tap"
-              onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+              onClick={(
+                e: preact.JSX.TargetedMouseEvent<HTMLAnchorElement>
+              ) => {
                 e.preventDefault();
                 document
                   .querySelector("#contact")

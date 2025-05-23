@@ -1,4 +1,4 @@
-import { FunctionComponent, JSX } from "preact";
+import { FunctionComponent, JSX, Fragment } from "preact";
 import {
   useState,
   useEffect,
@@ -6,7 +6,6 @@ import {
   useCallback,
   useMemo,
 } from "preact/hooks";
-import { memo } from "preact/compat";
 import {
   MotionDiv,
   MotionH2,
@@ -137,20 +136,7 @@ const floatingShapeVariants = {
   }),
 };
 
-const SkillTag = memo(({ skill }: { skill: Skill }) => (
-  <div
-    className="px-3 py-1 rounded-lg bg-light-primary/10 dark:bg-dark-primary/10 text-light-primary dark:text-dark-primary text-sm relative overflow-hidden hover:scale-105 transition-transform"
-    aria-label={`${skill.name}: Nivel ${skill.level} de 5`}
-  >
-    <span className="relative z-10">{skill.name}</span>
-    <div
-      className="absolute bottom-0 left-0 h-1 bg-light-accent dark:bg-dark-accent"
-      style={{ width: `${skill.level * 20}%` }}
-    />
-  </div>
-));
-
-const ExperienceCard = memo(({ experience }: { experience: Experience }) => (
+const ExperienceCard = ({ experience }: { experience: Experience }) => (
   <MotionDiv
     variants={cardVariants}
     whileHover="hover"
@@ -234,9 +220,9 @@ const ExperienceCard = memo(({ experience }: { experience: Experience }) => (
       ))}
     </MotionDiv>
   </MotionDiv>
-));
+);
 
-const EducationCard = memo(({ item }: { item: Education }) => (
+const EducationCard: FunctionComponent<{ item: Education }> = ({ item }) => (
   <MotionDiv
     variants={cardVariants}
     whileHover="hover"
@@ -283,13 +269,13 @@ const EducationCard = memo(({ item }: { item: Education }) => (
       </MotionP>
     )}
   </MotionDiv>
-));
+);
 
-const CourseCard = memo(({ course }: { course: Course }) => (
+const CourseCard: FunctionComponent<{ course: Course }> = ({ course }) => (
   <MotionDiv
     variants={cardVariants}
     whileHover="hover"
-    className="glass-card overflow-hidden p-5 relative depth-effect card-3d mb-5"
+    className="glass-card overflow-hidden p-6 relative depth-effect card-3d mb-6"
     custom={Math.random() * 0.3}
     data-animate="true"
   >
@@ -332,58 +318,51 @@ const CourseCard = memo(({ course }: { course: Course }) => (
       ))}
     </MotionDiv>
   </MotionDiv>
-));
+);
 
-const TabButton = memo(
-  ({
-    tab,
-    activeTab,
-    setActiveTab,
-    label,
-    icon,
-    count,
-  }: Readonly<{
-    tab: TabType;
-    activeTab: TabType;
-    setActiveTab: (tab: TabType) => void;
-    label: string;
-    icon: JSX.Element;
-    count?: number;
-  }>) => (
-    <MotionDiv
-      className={`relative px-4 py-3 cursor-pointer transition-all duration-300 rounded-lg ${
-        activeTab === tab
-          ? "bg-light-primary/10 dark:bg-dark-primary/10"
-          : "hover:bg-light-muted/30 dark:hover:bg-dark-muted/30"
-      }`}
-      onClick={() => setActiveTab(tab)}
-      whileHover={{ y: -2 }}
-      whileTap={{ scale: 0.98 }}
-      role="tab"
-      aria-selected={activeTab === tab}
-      aria-controls={`${tab}-panel`}
-    >
-      <div className="flex items-center">
-        <span className="mr-2">{icon}</span>
-        <span className={activeTab === tab ? "font-semibold" : ""}>
-          {label}
+const TabButton = ({
+  tab,
+  activeTab,
+  onClick,
+  label,
+  icon,
+  count,
+}: {
+  tab: TabType;
+  activeTab: TabType;
+  onClick: () => void;
+  label: string;
+  icon: JSX.Element;
+  count?: number;
+}) => (
+  <MotionDiv
+    className={`relative px-4 py-3 cursor-pointer transition-all duration-300 rounded-lg ${
+      activeTab === tab
+        ? "bg-light-primary/10 dark:bg-dark-primary/10"
+        : "hover:bg-light-muted/30 dark:hover:bg-dark-muted/30"
+    }`}
+    onClick={onClick}
+    whileHover={{ y: -2 }}
+    whileTap={{ scale: 0.98 }}
+  >
+    <div className="flex items-center">
+      <span className="mr-2">{icon}</span>
+      <span className={activeTab === tab ? "font-semibold" : ""}>{label}</span>
+      {count !== undefined && (
+        <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-light-accent/20 dark:bg-dark-accent/20">
+          {count}
         </span>
-        {count !== undefined && (
-          <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-light-accent/20 dark:bg-dark-accent/20">
-            {count}
-          </span>
-        )}
-      </div>
-      {activeTab === tab && (
-        <MotionDiv
-          className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-light-accent to-light-primary dark:from-dark-accent dark:to-dark-primary"
-          initial={{ width: 0 }}
-          animate={{ width: "100%" }}
-          transition={{ duration: 0.3 }}
-        />
       )}
-    </MotionDiv>
-  )
+    </div>
+    {activeTab === tab && (
+      <MotionDiv
+        className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-light-accent to-light-primary dark:from-dark-accent dark:to-dark-primary"
+        initial={{ width: 0 }}
+        animate={{ width: "100%" }}
+        transition={{ duration: 0.3 }}
+      />
+    )}
+  </MotionDiv>
 );
 
 function FilterButton<T extends string>({
@@ -423,7 +402,7 @@ function FilterButton<T extends string>({
   );
 }
 
-const ParticleEffect = memo(() => {
+const ParticleEffect = () => {
   const particles = [];
   const count = 25;
 
@@ -465,121 +444,119 @@ const ParticleEffect = memo(() => {
   return (
     <div className="absolute inset-0 overflow-hidden -z-10">{particles}</div>
   );
-});
+};
 
-const BackgroundElements = memo(
-  ({
-    isMobile,
-    mousePosition,
-  }: {
-    isMobile: boolean;
-    mousePosition: { x: number; y: number };
-  }) => (
-    <div
-      className="absolute inset-0 overflow-hidden pointer-events-none"
-      data-animate="true"
-    >
-      {!isMobile && (
-        <>
-          <MotionDiv
-            className="absolute -top-20 right-0 md:-right-64 md:-top-64 w-96 h-96 rounded-full bg-gradient-to-bl from-light-accent/15 dark:from-dark-accent/20 to-transparent blur-3xl -z-10"
+const BackgroundElements = ({
+  isMobile,
+  mousePosition,
+}: {
+  isMobile: boolean;
+  mousePosition: { x: number; y: number };
+}) => (
+  <div
+    className="absolute inset-0 overflow-hidden pointer-events-none"
+    data-animate="true"
+  >
+    {!isMobile && (
+      <>
+        <MotionDiv
+          className="absolute -top-20 right-0 md:-right-64 md:-top-64 w-96 h-96 rounded-full bg-gradient-to-bl from-light-accent/15 dark:from-dark-accent/20 to-transparent blur-3xl -z-10"
+          style={{
+            transform: `translate3d(${(mousePosition.x - 500) * 0.02}px, ${
+              (mousePosition.y - 300) * 0.02
+            }px, 0)`,
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.7 }}
+          transition={{ duration: 1 }}
+        />
+
+        <MotionDiv
+          className="absolute -bottom-32 -left-32 md:-left-64 md:-bottom-64 w-96 h-96 rounded-full bg-gradient-to-tr from-light-primary/15 dark:from-dark-primary/20 to-transparent blur-3xl -z-10"
+          style={{
+            transform: `translate3d(${(mousePosition.x - 500) * -0.01}px, ${
+              (mousePosition.y - 300) * -0.01
+            }px, 0)`,
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.7 }}
+          transition={{ duration: 1.2 }}
+        />
+
+        <MotionDiv
+          className="absolute inset-0 opacity-5 -z-10 pointer-events-none"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.05 }}
+          transition={{ duration: 1 }}
+        >
+          <div className="absolute inset-0 bg-dots" />
+        </MotionDiv>
+
+        <MotionDiv
+          className="absolute top-20 md:top-40 right-10 md:right-32 w-32 h-32 opacity-20 dark:opacity-30 -z-10"
+          initial="initial"
+          animate="animate"
+          custom={5}
+          variants={floatingShapeVariants}
+          style={{
+            transform: `translate3d(${(mousePosition.x - 500) * 0.01}px, ${
+              (mousePosition.y - 300) * 0.01
+            }px, 0)`,
+          }}
+        >
+          <div className="w-full h-full rounded-md bg-light-accent/40 dark:bg-dark-accent/40 backdrop-blur-md transform rotate-45" />
+        </MotionDiv>
+
+        <MotionDiv
+          className="absolute top-1/2 right-1/4 w-40 h-40 opacity-10 dark:opacity-20 -z-10"
+          initial="initial"
+          animate="animate"
+          custom={10}
+          variants={floatingShapeVariants}
+          style={{
+            transform: `translate3d(${(mousePosition.x - 500) * 0.02}px, ${
+              (mousePosition.y - 300) * 0.02
+            }px, 0)`,
+          }}
+        >
+          <div
+            className="w-full h-full"
             style={{
-              transform: `translate3d(${(mousePosition.x - 500) * 0.02}px, ${
-                (mousePosition.y - 300) * 0.02
-              }px, 0)`,
-            }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.7 }}
-            transition={{ duration: 1 }}
-          />
-
-          <MotionDiv
-            className="absolute -bottom-32 -left-32 md:-left-64 md:-bottom-64 w-96 h-96 rounded-full bg-gradient-to-tr from-light-primary/15 dark:from-dark-primary/20 to-transparent blur-3xl -z-10"
-            style={{
-              transform: `translate3d(${(mousePosition.x - 500) * -0.01}px, ${
-                (mousePosition.y - 300) * -0.01
-              }px, 0)`,
-            }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.7 }}
-            transition={{ duration: 1.2 }}
-          />
-
-          <MotionDiv
-            className="absolute inset-0 opacity-5 -z-10 pointer-events-none"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.05 }}
-            transition={{ duration: 1 }}
-          >
-            <div className="absolute inset-0 bg-dots" />
-          </MotionDiv>
-
-          <MotionDiv
-            className="absolute top-20 md:top-40 right-10 md:right-32 w-32 h-32 opacity-20 dark:opacity-30 -z-10"
-            initial="initial"
-            animate="animate"
-            custom={5}
-            variants={floatingShapeVariants}
-            style={{
-              transform: `translate3d(${(mousePosition.x - 500) * 0.01}px, ${
-                (mousePosition.y - 300) * 0.01
-              }px, 0)`,
-            }}
-          >
-            <div className="w-full h-full rounded-md bg-light-accent/40 dark:bg-dark-accent/40 backdrop-blur-md transform rotate-45" />
-          </MotionDiv>
-
-          <MotionDiv
-            className="absolute top-1/2 right-1/4 w-40 h-40 opacity-10 dark:opacity-20 -z-10"
-            initial="initial"
-            animate="animate"
-            custom={10}
-            variants={floatingShapeVariants}
-            style={{
-              transform: `translate3d(${(mousePosition.x - 500) * 0.02}px, ${
-                (mousePosition.y - 300) * 0.02
-              }px, 0)`,
-            }}
-          >
-            <div
-              className="w-full h-full"
-              style={{
-                clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)",
-                background:
-                  "linear-gradient(to right, var(--color-accent), var(--color-primary))",
-                opacity: 0.4,
-              }}
-            />
-          </MotionDiv>
-
-          <ParticleEffect />
-
-          <MotionDiv
-            className="absolute inset-0 bg-grid opacity-10 dark:opacity-20 -z-10"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.1 }}
-            transition={{ duration: 1.5 }}
-          />
-
-          <MotionDiv
-            className="grain-overlay absolute inset-0 pointer-events-none z-20"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.08 }}
-            transition={{ duration: 1 }}
-            style={{
-              backgroundImage: "url('/assets/grain-texture.png')",
-              backgroundRepeat: "repeat",
-              opacity: "var(--grain-opacity)",
-              mixBlendMode: "overlay",
+              clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)",
+              background:
+                "linear-gradient(to right, var(--color-accent), var(--color-primary))",
+              opacity: 0.4,
             }}
           />
-        </>
-      )}
-    </div>
-  )
+        </MotionDiv>
+
+        <ParticleEffect />
+
+        <MotionDiv
+          className="absolute inset-0 bg-grid opacity-10 dark:opacity-20 -z-10"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.1 }}
+          transition={{ duration: 1.5 }}
+        />
+
+        <MotionDiv
+          className="grain-overlay absolute inset-0 pointer-events-none z-20"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.08 }}
+          transition={{ duration: 1 }}
+          style={{
+            backgroundImage: "url('/assets/grain-texture.png')",
+            backgroundRepeat: "repeat",
+            opacity: "var(--grain-opacity)",
+            mixBlendMode: "overlay",
+          }}
+        />
+      </>
+    )}
+  </div>
 );
 
-const ContactInfo = memo(({ personalInfo }: { personalInfo: PersonalInfo }) => (
+const ContactInfo = ({ personalInfo }: { personalInfo: PersonalInfo }) => (
   <MotionDiv
     className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-16"
     variants={itemVariants}
@@ -773,9 +750,9 @@ const ContactInfo = memo(({ personalInfo }: { personalInfo: PersonalInfo }) => (
       />
     </MotionDiv>
   </MotionDiv>
-));
+);
 
-const BioIntro = memo(({ personalInfo }: { personalInfo: PersonalInfo }) => (
+const BioIntro = ({ personalInfo }: { personalInfo: PersonalInfo }) => (
   <MotionDiv className="text-center mb-16 max-w-3xl mx-auto relative">
     <MotionH2
       className="text-3xl md:text-5xl font-bold mb-6 text-gradient relative inline-block"
@@ -902,236 +879,235 @@ const BioIntro = memo(({ personalInfo }: { personalInfo: PersonalInfo }) => (
       </MotionA>
     </MotionDiv>
   </MotionDiv>
-));
+);
 
-const SkillsChart = memo(
-  ({ skills, filter }: { skills: Skill[]; filter: SkillFilterType }) => {
-    const filteredSkills = skills.filter(
-      (skill) => filter === "all" || skill.category === filter
-    );
+const SkillsChart = ({
+  skills,
+  filter,
+}: {
+  skills: Skill[];
+  filter: SkillFilterType;
+}) => {
+  const filteredSkills = skills.filter(
+    (skill) => filter === "all" || skill.category === filter
+  );
 
-    const skillsByLevel = [5, 4, 3, 2, 1].map((level) => ({
-      level,
-      skills: filteredSkills.filter((s) => s.level === level),
-    }));
+  const skillsByLevel = [5, 4, 3, 2, 1].map((level) => ({
+    level,
+    skills: filteredSkills.filter((s) => s.level === level),
+  }));
 
-    if (filteredSkills.length === 0) {
-      return (
-        <MotionP
-          className="text-center py-12 text-light-secondary dark:text-dark-secondary"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          No se encontraron habilidades para esta categoría.
-        </MotionP>
-      );
-    }
-
+  if (filteredSkills.length === 0) {
     return (
-      <div className="glass-card p-6 rounded-xl shadow-lg relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid opacity-10"></div>
+      <MotionP
+        className="text-center py-12 text-light-secondary dark:text-dark-secondary"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
+        No se encontraron habilidades para esta categoría.
+      </MotionP>
+    );
+  }
 
-        <h3 className="text-xl font-bold mb-6 text-gradient">
-          Nivel de habilidades
-        </h3>
+  return (
+    <div className="glass-card p-6 rounded-xl shadow-lg relative overflow-hidden">
+      <div className="absolute inset-0 bg-grid opacity-10"></div>
 
-        <div className="space-y-8">
-          {skillsByLevel.map(
-            ({ level, skills: levelSkills }) =>
-              levelSkills.length > 0 && (
-                <div key={`level-${level}`} className="relative">
-                  <div className="flex items-center mb-2">
-                    <span className="text-lg font-semibold mr-2">{level}</span>
-                    <div className="flex-1 h-0.5 bg-light-muted/30 dark:bg-dark-muted/30 rounded-full overflow-hidden">
+      <h3 className="text-xl font-bold mb-6 text-gradient">
+        Nivel de habilidades
+      </h3>
+
+      <div className="space-y-8">
+        {skillsByLevel.map(
+          ({ level, skills: levelSkills }) =>
+            levelSkills.length > 0 && (
+              <div key={`level-${level}`} className="relative">
+                <div className="flex items-center mb-2">
+                  <span className="text-lg font-semibold mr-2">{level}</span>
+                  <div className="flex-1 h-0.5 bg-light-muted/30 dark:bg-dark-muted/30 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-light-accent dark:bg-dark-accent"
+                      style={{ width: "100%" }}
+                    />
+                  </div>
+                  <span className="ml-2 text-light-secondary dark:text-dark-secondary text-sm">
+                    {level === 5
+                      ? "Experto"
+                      : level === 4
+                      ? "Avanzado"
+                      : level === 3
+                      ? "Intermedio"
+                      : level === 2
+                      ? "Básico"
+                      : "Principiante"}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2 ml-8">
+                  {levelSkills.map((skill) => (
+                    <div
+                      key={`skill-${skill.name}`}
+                      className="px-3 py-1 rounded-lg bg-light-primary/10 dark:bg-dark-primary/10 text-light-primary dark:text-dark-primary text-sm relative overflow-hidden hover:scale-105 transition-transform"
+                      aria-label={`${skill.name}: Nivel ${skill.level} de 5`}
+                    >
+                      <span className="relative z-10">{skill.name}</span>
                       <div
-                        className="h-full bg-light-accent dark:bg-dark-accent"
-                        style={{ width: "100%" }}
+                        className="absolute bottom-0 left-0 h-1 bg-light-accent dark:bg-dark-accent"
+                        style={{ width: `${skill.level * 20}%` }}
                       />
                     </div>
-                    <span className="ml-2 text-light-secondary dark:text-dark-secondary text-sm">
-                      {level === 5
-                        ? "Experto"
-                        : level === 4
-                        ? "Avanzado"
-                        : level === 3
-                        ? "Intermedio"
-                        : level === 2
-                        ? "Básico"
-                        : "Principiante"}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-2 ml-8">
-                    {levelSkills.map((skill) => (
-                      <div
-                        key={`skill-${skill.name}`}
-                        className="px-3 py-1 rounded-lg bg-light-primary/10 dark:bg-dark-primary/10 text-light-primary dark:text-dark-primary text-sm relative overflow-hidden hover:scale-105 transition-transform"
-                        aria-label={`${skill.name}: Nivel ${skill.level} de 5`}
-                      >
-                        <span className="relative z-10">{skill.name}</span>
-                        <div
-                          className="absolute bottom-0 left-0 h-1 bg-light-accent dark:bg-dark-accent"
-                          style={{ width: `${skill.level * 20}%` }}
-                        />
-                      </div>
-                    ))}
-                  </div>
+                  ))}
                 </div>
-              )
-          )}
-        </div>
+              </div>
+            )
+        )}
       </div>
-    );
-  }
+    </div>
+  );
+};
+
+const SoftSkillsSection = ({ softSkills }: { softSkills: SoftSkill[] }) => (
+  <MotionDiv className="mt-12" variants={itemVariants}>
+    <MotionH3 className="text-xl font-bold mb-6 text-gradient">
+      Habilidades blandas
+    </MotionH3>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {softSkills.map((skill) => (
+        <MotionDiv
+          key={`soft-skill-${skill.title}`}
+          className="glass-card p-5 hover-float shadow-3d-hover relative overflow-hidden group"
+          whileHover={{ y: -5, scale: 1.02 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{
+            opacity: 1,
+            y: 0,
+            transition: { delay: 0.2 },
+          }}
+        >
+          <div className="flex items-center mb-3">
+            <div className="w-10 h-10 rounded-full bg-light-primary/10 dark:bg-dark-primary/10 flex items-center justify-center text-light-accent dark:text-dark-accent mr-3 group-hover:bg-light-accent/20 dark:group-hover:bg-dark-accent/20 transition-all duration-300">
+              {skill.icon}
+            </div>
+            <h4 className="font-semibold">{skill.title}</h4>
+          </div>
+          <p className="text-sm text-light-secondary dark:text-dark-secondary">
+            {skill.description}
+          </p>
+
+          <MotionDiv
+            className="absolute -bottom-2 -right-2 w-20 h-20 rounded-full bg-light-accent/5 dark:bg-dark-accent/5 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.3, 0.5, 0.3],
+            }}
+            transition={{
+              duration: 3,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+        </MotionDiv>
+      ))}
+    </div>
+  </MotionDiv>
 );
 
-const SoftSkillsSection = memo(
-  ({ softSkills }: { softSkills: SoftSkill[] }) => (
-    <MotionDiv className="mt-12" variants={itemVariants}>
-      <MotionH3 className="text-xl font-bold mb-6 text-gradient">
-        Habilidades blandas
-      </MotionH3>
+const ExperienceTimeline = ({
+  experiences,
+  filter,
+}: {
+  experiences: Experience[];
+  filter: ExperienceFilterType;
+}) => {
+  const filteredExperiences = useMemo(
+    () => experiences.filter((exp) => filter === "all" || exp.type === filter),
+    [experiences, filter]
+  );
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {softSkills.map((skill) => (
-          <MotionDiv
-            key={`soft-skill-${skill.title}`}
-            className="glass-card p-5 hover-float shadow-3d-hover relative overflow-hidden group"
-            whileHover={{ y: -5, scale: 1.02 }}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{
-              opacity: 1,
-              y: 0,
-              transition: { delay: 0.2 },
-            }}
-          >
-            <div className="flex items-center mb-3">
-              <div className="w-10 h-10 rounded-full bg-light-primary/10 dark:bg-dark-primary/10 flex items-center justify-center text-light-accent dark:text-dark-accent mr-3 group-hover:bg-light-accent/20 dark:group-hover:bg-dark-accent/20 transition-all duration-300">
-                {skill.icon}
-              </div>
-              <h4 className="font-semibold">{skill.title}</h4>
-            </div>
-            <p className="text-sm text-light-secondary dark:text-dark-secondary">
-              {skill.description}
-            </p>
+  const experiencesByYear = useMemo(() => {
+    const groupedByYear: Record<string, Experience[]> = {};
 
+    filteredExperiences.forEach((exp) => {
+      const year = exp.period.split(" ").pop() ?? "Desconocido";
+      if (!groupedByYear[year]) {
+        groupedByYear[year] = [];
+      }
+      groupedByYear[year].push(exp);
+    });
+
+    return Object.entries(groupedByYear).sort((a, b) => {
+      return parseInt(b[0]) - parseInt(a[0]);
+    });
+  }, [filteredExperiences]);
+
+  return (
+    <div className="relative">
+      <MotionDiv
+        className="absolute left-0 md:left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-light-accent via-light-primary to-light-muted dark:from-dark-accent dark:via-dark-primary dark:to-dark-muted"
+        style={{ transform: "translateX(-50%)" }}
+        initial={{ height: 0 }}
+        animate={{ height: "100%" }}
+        transition={{ duration: 1.5, ease: "easeOut" }}
+      />
+
+      <div className="relative z-10">
+        {experiencesByYear.map(([year, exps], yearIndex) => (
+          <div key={year} className="mb-12">
             <MotionDiv
-              className="absolute -bottom-2 -right-2 w-20 h-20 rounded-full bg-light-accent/5 dark:bg-dark-accent/5 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-              animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.3, 0.5, 0.3],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-          </MotionDiv>
+              className="relative mb-8 md:left-1/2 md:w-auto md:transform md:-translate-x-1/2 bg-light-bg dark:bg-dark-bg px-4 py-2 rounded-full shadow-md inline-block"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: yearIndex * 0.2, duration: 0.5 }}
+            >
+              <h3 className="text-xl font-bold text-gradient text-center">
+                {year}
+              </h3>
+            </MotionDiv>
+
+            <div className="space-y-6">
+              {exps.map((exp, expIndex) => (
+                <MotionDiv
+                  key={`${exp.company}-${exp.role}`}
+                  className="relative md:grid md:grid-cols-2 md:gap-8"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    delay: yearIndex * 0.2 + expIndex * 0.1,
+                    duration: 0.5,
+                  }}
+                >
+                  <MotionDiv
+                    className="hidden md:block absolute left-1/2 w-4 h-4 bg-light-accent dark:bg-dark-accent rounded-full"
+                    style={{ transform: "translate(-50%, 2rem)" }}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{
+                      delay: yearIndex * 0.2 + expIndex * 0.1 + 0.3,
+                      duration: 0.3,
+                      type: "spring",
+                    }}
+                  />
+
+                  <div className="md:col-span-2 md:hidden">
+                    <ExperienceCard experience={exp} />
+                  </div>
+
+                  <div
+                    className={`hidden md:block ${
+                      expIndex % 2 === 0 ? "md:col-start-1" : "md:col-start-2"
+                    }`}
+                  >
+                    <ExperienceCard experience={exp} />
+                  </div>
+                </MotionDiv>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
-    </MotionDiv>
-  )
-);
-
-const ExperienceTimeline = memo(
-  ({
-    experiences,
-    filter,
-  }: {
-    experiences: Experience[];
-    filter: ExperienceFilterType;
-  }) => {
-    const filteredExperiences = useMemo(
-      () =>
-        experiences.filter((exp) => filter === "all" || exp.type === filter),
-      [experiences, filter]
-    );
-
-    const experiencesByYear = useMemo(() => {
-      const groupedByYear: Record<string, Experience[]> = {};
-
-      filteredExperiences.forEach((exp) => {
-        const year = exp.period.split(" ").pop() ?? "Desconocido";
-        if (!groupedByYear[year]) {
-          groupedByYear[year] = [];
-        }
-        groupedByYear[year].push(exp);
-      });
-
-      return Object.entries(groupedByYear).sort((a, b) => {
-        return parseInt(b[0]) - parseInt(a[0]);
-      });
-    }, [filteredExperiences]);
-
-    return (
-      <div className="relative">
-        <MotionDiv
-          className="absolute left-0 md:left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-light-accent via-light-primary to-light-muted dark:from-dark-accent dark:via-dark-primary dark:to-dark-muted"
-          style={{ transform: "translateX(-50%)" }}
-          initial={{ height: 0 }}
-          animate={{ height: "100%" }}
-          transition={{ duration: 1.5, ease: "easeOut" }}
-        />
-
-        <div className="relative z-10">
-          {experiencesByYear.map(([year, exps], yearIndex) => (
-            <div key={year} className="mb-12">
-              <MotionDiv
-                className="relative mb-8 md:left-1/2 md:w-auto md:transform md:-translate-x-1/2 bg-light-bg dark:bg-dark-bg px-4 py-2 rounded-full shadow-md inline-block"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: yearIndex * 0.2, duration: 0.5 }}
-              >
-                <h3 className="text-xl font-bold text-gradient text-center">
-                  {year}
-                </h3>
-              </MotionDiv>
-
-              <div className="space-y-6">
-                {exps.map((exp, expIndex) => (
-                  <MotionDiv
-                    key={`${exp.company}-${exp.role}`}
-                    className="relative md:grid md:grid-cols-2 md:gap-8"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                      delay: yearIndex * 0.2 + expIndex * 0.1,
-                      duration: 0.5,
-                    }}
-                  >
-                    <MotionDiv
-                      className="hidden md:block absolute left-1/2 w-4 h-4 bg-light-accent dark:bg-dark-accent rounded-full"
-                      style={{ transform: "translate(-50%, 2rem)" }}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{
-                        delay: yearIndex * 0.2 + expIndex * 0.1 + 0.3,
-                        duration: 0.3,
-                        type: "spring",
-                      }}
-                    />
-
-                    <div className="md:col-span-2 md:hidden">
-                      <ExperienceCard experience={exp} />
-                    </div>
-
-                    <div
-                      className={`hidden md:block ${
-                        expIndex % 2 === 0 ? "md:col-start-1" : "md:col-start-2"
-                      }`}
-                    >
-                      <ExperienceCard experience={exp} />
-                    </div>
-                  </MotionDiv>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-);
+    </div>
+  );
+};
 
 const AboutMe: FunctionComponent = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -1546,7 +1522,7 @@ const AboutMe: FunctionComponent = () => {
           <TabButton
             tab="experience"
             activeTab={activeTab}
-            setActiveTab={handleSetActiveTab}
+            onClick={() => handleSetActiveTab("experience")}
             label="Experiencia"
             count={experiences.length}
             icon={
@@ -1571,7 +1547,7 @@ const AboutMe: FunctionComponent = () => {
           <TabButton
             tab="education"
             activeTab={activeTab}
-            setActiveTab={handleSetActiveTab}
+            onClick={() => handleSetActiveTab("education")}
             label="Educación"
             count={education.length + courses.length}
             icon={
@@ -1597,7 +1573,7 @@ const AboutMe: FunctionComponent = () => {
           <TabButton
             tab="skills"
             activeTab={activeTab}
-            setActiveTab={handleSetActiveTab}
+            onClick={() => handleSetActiveTab("skills")}
             label="Habilidades"
             count={skills.length}
             icon={
