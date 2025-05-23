@@ -1,5 +1,5 @@
-import { FunctionComponent, Fragment } from "preact";
-import { useEffect, useState, useCallback } from "preact/hooks";
+import { FunctionComponent } from "preact";
+import { useEffect, useState, useCallback, useRef } from "preact/hooks";
 import { ENV } from "../../config/env";
 import PerformanceMonitor from "./utils/PerformanceMonitor";
 import { PerformancePanel } from "./components/PerformancePanel";
@@ -31,9 +31,15 @@ declare global {
 
 export const PerformanceTools: FunctionComponent = () => {
   const [showPanel, setShowPanel] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const showPerformanceMonitor = useCallback(() => setShowPanel(true), []);
-  const hidePerformanceMonitor = useCallback(() => setShowPanel(false), []);
+  const showPerformanceMonitor = useCallback(() => {
+    setShowPanel(true);
+  }, []);
+
+  const hidePerformanceMonitor = useCallback(() => {
+    setShowPanel(false);
+  }, []);
 
   const exportPerformanceLogs = useCallback(() => {
     if (ENV.PERFORMANCE_MONITOR_ENABLED) {
@@ -66,92 +72,105 @@ export const PerformanceTools: FunctionComponent = () => {
     }
   }, []);
 
+  // Initialize global functions immediately
   useEffect(() => {
-    if (ENV.PERFORMANCE_MONITOR_ENABLED) {
-      window.perfTools = {
-        start: showPerformanceMonitor,
-        stop: hidePerformanceMonitor,
-        export: exportPerformanceLogs,
-        diagnose: runDiagnose,
-        help: () => {
-          console.log(`
-            🚀 Herramientas de Rendimiento (desde PerformanceTools):
-            perfTools.start()    - Mostrar monitor de rendimiento
-            perfTools.stop()     - Ocultar monitor de rendimiento
-            perfTools.export()   - Exportar logs de rendimiento
-            perfTools.diagnose() - Ejecutar diagnóstico completo
-            Atajos de teclado:
-            Alt+Shift+P - Mostrar/ocultar monitor
-            Alt+Shift+D - Ejecutar diagnóstico
-          `);
-        },
-      };
+    window.perfTools = {
+      start: showPerformanceMonitor,
+      stop: hidePerformanceMonitor,
+      export: exportPerformanceLogs,
+      diagnose: runDiagnose,
+      help: () => {
+        console.log(`
+          🚀 Herramientas de Rendimiento:
+          perfTools.start()    - Mostrar monitor de rendimiento
+          perfTools.stop()     - Ocultar monitor de rendimiento
+          perfTools.export()   - Exportar logs de rendimiento
+          perfTools.diagnose() - Ejecutar diagnóstico completo
+          Atajos de teclado:
+          Alt+Shift+P - Mostrar/ocultar monitor
+          Alt+Shift+D - Ejecutar diagnóstico
+        `);
+      },
+    };
 
-      // Setup window functions for direct access if still needed by App.tsx or other legacy parts initially
-      // These were used in App.tsx, so we ensure they are available.
-      window.showPerformanceMonitor = showPerformanceMonitor;
-      window.hidePerformanceMonitor = hidePerformanceMonitor;
-      window.exportPerformanceLogs = exportPerformanceLogs;
+    window.showPerformanceMonitor = showPerformanceMonitor;
+    window.hidePerformanceMonitor = hidePerformanceMonitor;
+    window.exportPerformanceLogs = exportPerformanceLogs;
 
-      // installPerformanceDiagnostics will set up window.diagnosePerformance
-      installPerformanceDiagnostics();
-      // If diagnosePerfIssues.ts exports a function that needs the monitor instance,
-      // it should be passed here, e.g., window.diagnosePerformance = () => diagnosePerformance(monitor.getPerformanceReport());
-      // However, the current structure of installPerformanceDiagnostics seems to handle this internally.
-
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.altKey && e.shiftKey) {
-          if (e.key === "P" || e.key === "p") {
-            e.preventDefault();
-            setShowPanel((prev) => !prev);
-          }
-          if (e.key === "D" || e.key === "d") {
-            e.preventDefault();
-            runDiagnose();
-          }
-        }
-      };
-      window.addEventListener("keydown", handleKeyDown);
-
-      return () => {
-        // monitor.stopMonitoring(); // PerformanceMonitor doesn't have a generic stop, but stopMonitoring
-        window.removeEventListener("keydown", handleKeyDown);
-        // Clean up global functions
-        delete window.perfTools;
-        delete window.showPerformanceMonitor;
-        delete window.hidePerformanceMonitor;
-        delete window.exportPerformanceLogs;
-        delete window.diagnosePerformance; // Clean up the one set by installPerformanceDiagnostics
-        // Note: PerformanceMonitor is a singleton and might continue running.
-        // If a full cleanup is needed, a reset or dispose method on the singleton might be required.
-      };
-    }
+    return () => {
+      delete window.perfTools;
+      delete window.showPerformanceMonitor;
+      delete window.hidePerformanceMonitor;
+      delete window.exportPerformanceLogs;
+      delete window.diagnosePerformance;
+    };
   }, [
     showPerformanceMonitor,
     hidePerformanceMonitor,
     exportPerformanceLogs,
     runDiagnose,
-  ]); // Dependencies for useCallback references
+  ]);
+
+  // Setup keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && e.shiftKey) {
+        if (e.key === "P" || e.key === "p") {
+          e.preventDefault();
+          setShowPanel((prev) => !prev);
+        }
+        if (e.key === "D" || e.key === "d") {
+          e.preventDefault();
+          runDiagnose();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [runDiagnose]);
+
+  // Initialize performance diagnostics
+  useEffect(() => {
+    if (ENV.PERFORMANCE_MONITOR_ENABLED) {
+      installPerformanceDiagnostics();
+    }
+  }, []);
 
   if (!ENV.PERFORMANCE_MONITOR_ENABLED) {
     return null;
   }
 
   return (
-    <Fragment>
+    <div
+      ref={containerRef}
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        pointerEvents: "none",
+        zIndex: 9999,
+      }}
+    >
       {showPanel && (
-        <PerformancePanel
-          position="top-left"
-          visible={showPanel}
-          onClose={hidePerformanceMonitor}
-        />
+        <div style={{ pointerEvents: "auto" }}>
+          <PerformancePanel
+            position="top-left"
+            visible={showPanel}
+            onClose={hidePerformanceMonitor}
+          />
+        </div>
       )}
       {/* ENV.PERFORMANCE_NOTIFIER_ENABLED allows for separate control over the notifier visibility,
           distinct from the main PERFORMANCE_MONITOR_ENABLED flag. */}
       {ENV.PERFORMANCE_NOTIFIER_ENABLED && (
-        <PerformanceNotifier threshold={30} />
+        <div style={{ pointerEvents: "auto" }}>
+          <PerformanceNotifier threshold={30} />
+        </div>
       )}
-    </Fragment>
+    </div>
   );
 };
 

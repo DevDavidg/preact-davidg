@@ -27,7 +27,8 @@ export function PerformancePanel(props: PanelProps) {
     fpsStability: 0,
   });
   const [expanded, setExpanded] = useState(false);
-  const [showNotification, setShowNotification] = useState(false);
+  const [, setShowNotification] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const updateTimeoutRef = useRef<number | null>(null);
   const lastUpdateRef = useRef<number>(0);
@@ -171,7 +172,7 @@ export function PerformancePanel(props: PanelProps) {
       }
     };
 
-    if (visible) {
+    if (visible && panelRef.current) {
       setupMonitoring();
     }
 
@@ -283,200 +284,169 @@ export function PerformancePanel(props: PanelProps) {
   };
 
   return (
-    <>
-      <button
-        className={`fixed ${getPositionClass()} z-50 p-1 bg-black/90 backdrop-blur-sm 
-          text-white font-mono text-xs rounded-md border border-slate-700 shadow-lg
-          transition-all duration-300 select-none text-left block w-auto`}
-        style={{
-          minWidth: "130px",
-          maxWidth: expanded ? "250px" : "130px",
-          cursor: "pointer",
-          appearance: "none",
-        }}
-        onClick={handlePanelClick}
-        tabIndex={0}
-        aria-expanded={expanded}
-        aria-label="Panel de rendimiento"
-      >
-        <div className="flex justify-between items-center px-2 py-1">
-          <span className="font-bold">
-            FPS:{" "}
-            <span className={getFpsColor()}>{Math.round(perfData.fps)}</span>
-          </span>
-          <div className="flex items-center space-x-1">
-            {onClose && (
-              <button
-                className="close-button hover:text-red-400 px-1"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClose();
-                }}
-              >
-                ×
-              </button>
-            )}
-            <span>{expanded ? "▲" : "▼"}</span>
-          </div>
+    <div
+      ref={panelRef}
+      className={`fixed ${getPositionClass()} z-50 p-1 bg-black/90 backdrop-blur-sm 
+        text-white font-mono text-xs rounded-md border border-slate-700 shadow-lg
+        transition-all duration-300 select-none text-left block w-auto`}
+      style={{
+        minWidth: "130px",
+        maxWidth: expanded ? "250px" : "130px",
+        cursor: "pointer",
+        appearance: "none",
+      }}
+      onClick={handlePanelClick}
+      tabIndex={0}
+      aria-expanded={expanded}
+      aria-label="Panel de rendimiento"
+    >
+      <div className="flex justify-between items-center px-2 py-1">
+        <span className="font-bold">
+          FPS: <span className={getFpsColor()}>{Math.round(perfData.fps)}</span>
+        </span>
+        <div className="flex items-center space-x-1">
+          {onClose && (
+            <button
+              className="close-button hover:text-red-400 px-1"
+              onClick={(
+                e: preact.JSX.TargetedMouseEvent<HTMLButtonElement>
+              ) => {
+                e.stopPropagation();
+                onClose();
+              }}
+            >
+              ×
+            </button>
+          )}
+          <span>{expanded ? "▲" : "▼"}</span>
         </div>
+      </div>
 
-        {expanded && (
-          <div className="mt-1 border-t border-slate-700 pt-1">
-            <table className="w-full">
-              <tbody>
-                <tr>
-                  <th
-                    scope="row"
-                    className="px-2 py-0.5 text-slate-300 text-left"
-                  >
-                    Frame
-                  </th>
-                  <td
-                    className={`px-2 py-0.5 text-right ${getFrameTimeColor()}`}
-                  >
-                    {perfData.frameTime.toFixed(1)}ms
-                  </td>
-                </tr>
-                <tr>
-                  <th
-                    scope="row"
-                    className="px-2 py-0.5 text-slate-300 text-left"
-                  >
-                    Promedio FPS
-                  </th>
-                  <td className="px-2 py-0.5 text-right">
-                    {perfData.avgFps || 0}
-                  </td>
-                </tr>
-                <tr>
-                  <th
-                    scope="row"
-                    className="px-2 py-0.5 text-slate-300 text-left"
-                  >
-                    Estabilidad
-                  </th>
-                  <td className="px-2 py-0.5 text-right">
-                    {perfData.fpsStability || 0}%
-                  </td>
-                </tr>
-                <tr>
-                  <th
-                    scope="row"
-                    className="px-2 py-0.5 text-slate-300 text-left"
-                  >
-                    Memoria
-                  </th>
-                  <td className="px-2 py-0.5 text-right">
-                    {perfData.memoryUsage.toFixed(1)}MB
-                  </td>
-                </tr>
-                <tr>
-                  <th
-                    scope="row"
-                    className="px-2 py-0.5 text-slate-300 text-left"
-                  >
-                    Renders
-                  </th>
-                  <td className="px-2 py-0.5 text-right">
-                    {perfData.renderCount}
-                  </td>
-                </tr>
-                <tr>
-                  <th
-                    scope="row"
-                    className="px-2 py-0.5 text-slate-300 text-left"
-                  >
-                    Animaciones
-                  </th>
-                  <td className="px-2 py-0.5 text-right">
-                    {perfData.animationCount}
-                  </td>
-                </tr>
-                <tr>
-                  <th
-                    scope="row"
-                    className="px-2 py-0.5 text-slate-300 text-left"
-                  >
-                    Lags
-                  </th>
-                  <td
-                    className={`px-2 py-0.5 text-right ${
-                      perfData.longFrames > 5
-                        ? "text-red-500"
-                        : "text-green-500"
-                    }`}
-                  >
-                    {perfData.longFrames}
-                  </td>
-                </tr>
-                <tr>
-                  <th
-                    scope="row"
-                    className="px-2 py-0.5 text-slate-300 text-left"
-                  >
-                    Dispositivo
-                  </th>
-                  <td className="px-2 py-0.5 text-right">
-                    {perfData.deviceClass}
-                  </td>
-                </tr>
-                <tr>
-                  <th
-                    scope="row"
-                    className="px-2 py-0.5 text-slate-300 text-left"
-                  >
-                    CPU
-                  </th>
-                  <td className="px-2 py-0.5 text-right">
-                    {perfData.cpuCores} núcleos
-                  </td>
-                </tr>
-                <tr>
-                  <th
-                    scope="row"
-                    className="px-2 py-0.5 text-slate-300 text-left"
-                  >
-                    RAM
-                  </th>
-                  <td className="px-2 py-0.5 text-right">
-                    {perfData.deviceMemory}GB
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <div className="text-center text-xs text-slate-400 mt-1 pt-1 border-t border-slate-700">
-              Alt+Shift+P: Mostrar/ocultar
-            </div>
+      {expanded && (
+        <div className="mt-1 border-t border-slate-700 pt-1">
+          <table className="w-full">
+            <tbody>
+              <tr>
+                <th
+                  scope="row"
+                  className="px-2 py-0.5 text-slate-300 text-left"
+                >
+                  Frame
+                </th>
+                <td className={`px-2 py-0.5 text-right ${getFrameTimeColor()}`}>
+                  {perfData.frameTime.toFixed(1)}ms
+                </td>
+              </tr>
+              <tr>
+                <th
+                  scope="row"
+                  className="px-2 py-0.5 text-slate-300 text-left"
+                >
+                  Promedio FPS
+                </th>
+                <td className="px-2 py-0.5 text-right">
+                  {perfData.avgFps || 0}
+                </td>
+              </tr>
+              <tr>
+                <th
+                  scope="row"
+                  className="px-2 py-0.5 text-slate-300 text-left"
+                >
+                  Estabilidad
+                </th>
+                <td className="px-2 py-0.5 text-right">
+                  {perfData.fpsStability || 0}%
+                </td>
+              </tr>
+              <tr>
+                <th
+                  scope="row"
+                  className="px-2 py-0.5 text-slate-300 text-left"
+                >
+                  Memoria
+                </th>
+                <td className="px-2 py-0.5 text-right">
+                  {perfData.memoryUsage.toFixed(1)}MB
+                </td>
+              </tr>
+              <tr>
+                <th
+                  scope="row"
+                  className="px-2 py-0.5 text-slate-300 text-left"
+                >
+                  Renders
+                </th>
+                <td className="px-2 py-0.5 text-right">
+                  {perfData.renderCount}
+                </td>
+              </tr>
+              <tr>
+                <th
+                  scope="row"
+                  className="px-2 py-0.5 text-slate-300 text-left"
+                >
+                  Animaciones
+                </th>
+                <td className="px-2 py-0.5 text-right">
+                  {perfData.animationCount}
+                </td>
+              </tr>
+              <tr>
+                <th
+                  scope="row"
+                  className="px-2 py-0.5 text-slate-300 text-left"
+                >
+                  Lags
+                </th>
+                <td
+                  className={`px-2 py-0.5 text-right ${
+                    perfData.longFrames > 5 ? "text-red-500" : "text-green-500"
+                  }`}
+                >
+                  {perfData.longFrames}
+                </td>
+              </tr>
+              <tr>
+                <th
+                  scope="row"
+                  className="px-2 py-0.5 text-slate-300 text-left"
+                >
+                  Dispositivo
+                </th>
+                <td className="px-2 py-0.5 text-right">
+                  {perfData.deviceClass}
+                </td>
+              </tr>
+              <tr>
+                <th
+                  scope="row"
+                  className="px-2 py-0.5 text-slate-300 text-left"
+                >
+                  CPU
+                </th>
+                <td className="px-2 py-0.5 text-right">
+                  {perfData.cpuCores} núcleos
+                </td>
+              </tr>
+              <tr>
+                <th
+                  scope="row"
+                  className="px-2 py-0.5 text-slate-300 text-left"
+                >
+                  RAM
+                </th>
+                <td className="px-2 py-0.5 text-right">
+                  {perfData.deviceMemory}GB
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div className="text-center text-xs text-slate-400 mt-1 pt-1 border-t border-slate-700">
+            Alt+Shift+P: Mostrar/ocultar
           </div>
-        )}
-      </button>
-
-      {showNotification && (
-        <div
-          className="fixed bottom-4 left-4 bg-yellow-700/90 text-white p-3 rounded-md shadow-lg backdrop-blur-sm z-50 max-w-xs animate-fade-in"
-          style={{
-            position: "fixed",
-            bottom: "1rem",
-            left: "1rem",
-            zIndex: 50,
-          }}
-        >
-          <div className="font-bold mb-1">
-            ⚠️ Problemas de rendimiento detectados
-          </div>
-          <div className="text-sm">
-            FPS bajo ({perfData.fps}) o tiempo de frame alto (
-            {perfData.frameTime.toFixed(1)}ms). Considere cerrar aplicaciones en
-            segundo plano.
-          </div>
-          <button
-            className="mt-2 text-xs bg-yellow-600 hover:bg-yellow-500 px-2 py-1 rounded"
-            onClick={() => setShowNotification(false)}
-          >
-            Entendido
-          </button>
         </div>
       )}
-    </>
+    </div>
   );
 }

@@ -3,6 +3,7 @@ import {
   FunctionComponent,
   ComponentChild,
   ComponentChildren,
+  Fragment,
 } from "preact";
 import { useRef, useEffect } from "preact/hooks";
 import PerformanceMonitor from "./PerformanceMonitor";
@@ -38,7 +39,7 @@ const ComponentProfiler: FunctionComponent<ComponentProfilerProps> = ({
     };
   });
 
-  return <>{children}</>;
+  return <Fragment>{children}</Fragment>;
 };
 
 /**
@@ -56,9 +57,10 @@ export function withProfiling<P extends object>(
 
   const ProfilingComponent: FunctionComponent<P> = (props: P) => {
     return (
-      <ComponentProfiler id={displayName}>
-        <Component {...props} />
-      </ComponentProfiler>
+      <ComponentProfiler
+        id={displayName}
+        children={<Component {...props} />}
+      ></ComponentProfiler>
     );
   };
 
