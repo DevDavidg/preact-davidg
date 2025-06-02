@@ -6,7 +6,7 @@ import {
   useCallback,
   useMemo,
 } from "preact/hooks";
-import { memo } from "preact/compat";
+import React, { memo } from "preact/compat";
 import {
   MotionDiv,
   MotionH2,
@@ -73,265 +73,253 @@ interface PersonalInfo {
   portfolio: string;
 }
 
-const sectionVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      when: "beforeChildren",
-      staggerChildren: 0.08,
-      duration: 0.4,
+interface FilterButtonProps<T extends string> {
+  readonly current: T;
+  readonly value: T;
+  readonly onChange: (value: T) => void;
+  readonly label: string;
+  readonly count?: number;
+}
+
+const animations = {
+  section: {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        when: "beforeChildren",
+        staggerChildren: 0.08,
+        duration: 0.4,
+      },
     },
   },
-};
-
-const itemVariants = {
-  hidden: { y: 30, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: {
-      type: "spring",
-      damping: 15,
-      stiffness: 70,
+  item: {
+    hidden: { y: 30, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: "spring", damping: 15, stiffness: 70 },
     },
   },
-};
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 20, scale: 0.95 },
-  visible: (delay = 0) => ({
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: {
-      type: "spring",
-      damping: 15,
-      stiffness: 70,
-      delay,
-    },
-  }),
-  hover: {
-    y: -8,
-    scale: 1.02,
-    boxShadow: "0 20px 40px rgba(0, 0, 0, 0.1)",
-    transition: {
-      type: "spring",
-      damping: 12,
-      stiffness: 100,
+  card: {
+    hidden: { opacity: 0, y: 20, scale: 0.95 },
+    visible: (delay = 0) => ({
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { type: "spring", damping: 15, stiffness: 70, delay },
+    }),
+    hover: {
+      y: -8,
+      scale: 1.02,
+      boxShadow: "0 20px 40px rgba(0, 0, 0, 0.1)",
+      transition: { type: "spring", damping: 12, stiffness: 100 },
     },
   },
-};
-
-const floatingShapeVariants = {
-  initial: { opacity: 0, scale: 0.8 },
-  animate: (custom: number) => ({
-    opacity: [0.1, 0.2, 0.1],
-    scale: [1, 1.05, 1],
-    rotate: [0, custom > 0 ? custom : 0, 0],
-    transition: {
-      duration: 8 + Math.abs(custom) * 2,
-      repeat: Infinity,
-      ease: "easeInOut",
-    },
-  }),
-};
-
-const SkillTag = memo(({ skill }: { skill: Skill }) => (
-  <div
-    className="px-3 py-1 rounded-lg bg-light-primary/10 dark:bg-dark-primary/10 text-light-primary dark:text-dark-primary text-sm relative overflow-hidden hover:scale-105 transition-transform"
-    aria-label={`${skill.name}: Nivel ${skill.level} de 5`}
-  >
-    <span className="relative z-10">{skill.name}</span>
-    <div
-      className="absolute bottom-0 left-0 h-1 bg-light-accent dark:bg-dark-accent"
-      style={{ width: `${skill.level * 20}%` }}
-    />
-  </div>
-));
-
-const ExperienceCard = memo(({ experience }: { experience: Experience }) => (
-  <MotionDiv
-    variants={cardVariants}
-    whileHover="hover"
-    className="glass-card overflow-hidden p-6 relative depth-effect card-3d mb-6"
-    custom={Math.random() * 0.3}
-    data-animate="true"
-  >
-    <MotionDiv
-      className="absolute -bottom-12 -right-12 w-40 h-40 rounded-full bg-gradient-to-r from-light-accent/10 to-transparent dark:from-dark-accent/10 dark:to-transparent blur-xl"
-      initial={{ opacity: 0 }}
-      animate={{
-        opacity: [0.3, 0.6, 0.3],
-        scale: [1, 1.1, 1],
-        y: [0, -5, 0],
-      }}
-      transition={{
-        duration: 5,
+  floatingShape: {
+    initial: { opacity: 0, scale: 0.8 },
+    animate: (custom: number) => ({
+      opacity: [0.1, 0.2, 0.1],
+      scale: [1, 1.05, 1],
+      rotate: [0, custom > 0 ? custom : 0, 0],
+      transition: {
+        duration: 8 + Math.abs(custom) * 2,
         repeat: Infinity,
         ease: "easeInOut",
-      }}
-    />
+      },
+    }),
+  },
+};
 
+function getLevelLabel(level: number): string {
+  switch (level) {
+    case 5:
+      return "Experto";
+    case 4:
+      return "Avanzado";
+    case 3:
+      return "Intermedio";
+    case 2:
+      return "Básico";
+    default:
+      return "Principiante";
+  }
+}
+
+const GradientBlob = memo(
+  ({
+    position = "bottom-right",
+    color = "accent",
+  }: {
+    position: string;
+    color?: string;
+  }) => {
+    const positions: Record<string, string> = {
+      "bottom-right": "-bottom-12 -right-12 w-40 h-40",
+      "top-right": "-top-10 -right-10 w-32 h-32",
+      "bottom-left": "-bottom-8 -left-8 w-24 h-24",
+    };
+
+    return (
+      <MotionDiv
+        className={`absolute ${positions[position]} rounded-full bg-gradient-to-r from-light-${color}/10 to-transparent dark:from-dark-${color}/10 dark:to-transparent blur-xl`}
+        initial={{ opacity: 0 }}
+        animate={{
+          opacity: [0.3, 0.6, 0.3],
+          scale: [1, 1.1, 1],
+          y: [0, -5, 0],
+        }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+      />
+    );
+  }
+);
+
+const GradientBorder = memo(({ position = "left" }: { position?: string }) => {
+  const positionClasses: Record<string, string> = {
+    left: "top-0 left-0 w-1 h-full bg-gradient-to-b",
+    bottom: "bottom-0 left-0 w-full h-1 bg-gradient-to-r",
+  };
+
+  return (
     <MotionDiv
-      className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-light-accent dark:from-dark-accent to-transparent"
+      className={`absolute ${positionClasses[position]} from-light-accent dark:from-dark-accent to-transparent`}
       initial={{ scaleY: 0 }}
       animate={{ scaleY: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
     />
+  );
+});
 
-    <MotionDiv
-      className={`absolute top-3 right-3 badge ${
-        experience.type === "job"
-          ? "bg-light-primary/10 dark:bg-dark-primary/10"
-          : "bg-light-accent/10 dark:bg-dark-accent/10"
-      }`}
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3 }}
-    >
-      {experience.type === "job" ? "Empresa" : "Freelance"}
-    </MotionDiv>
-
-    <MotionH3 className="text-xl font-bold mb-2 flex items-center">
-      {experience.company}
-    </MotionH3>
-
-    <MotionDiv className="flex justify-between flex-wrap mb-3">
-      <MotionP className="text-light-accent dark:text-dark-accent font-medium">
-        {experience.role}
-      </MotionP>
-      <MotionSpan className="text-sm text-light-secondary dark:text-dark-secondary">
-        {experience.period}
-      </MotionSpan>
-    </MotionDiv>
-
-    <MotionP className="mb-4 text-light-secondary dark:text-dark-secondary">
-      {experience.description}
-    </MotionP>
-
-    <MotionDiv className="flex flex-wrap gap-2 mt-3">
-      {experience.technologies.map((tech) => (
-        <MotionSpan
-          key={tech}
-          className="px-2.5 py-1 text-xs rounded-full bg-light-muted/40 dark:bg-dark-muted/40 text-light-primary dark:text-dark-primary relative overflow-hidden group"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 + Math.random() * 0.3 }}
-          whileHover={{
-            y: -2,
-            scale: 1.05,
-          }}
-        >
-          <span className="relative z-10">{tech}</span>
-          <MotionSpan
-            className="absolute inset-0 bg-light-accent/20 dark:bg-dark-accent/20"
-            initial={{ x: "-100%" }}
-            whileHover={{ x: "0" }}
-            transition={{ duration: 0.3 }}
-          />
-        </MotionSpan>
-      ))}
-    </MotionDiv>
+const Badge = memo(({ type, text }: { type: string; text: string }) => (
+  <MotionDiv
+    className={`absolute top-3 right-3 badge ${
+      type === "primary"
+        ? "bg-light-primary/10 dark:bg-dark-primary/10"
+        : "bg-light-accent/10 dark:bg-dark-accent/10"
+    }`}
+    initial={{ opacity: 0, y: -10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: 0.3 }}
+  >
+    {text}
   </MotionDiv>
+));
+
+const Tag = memo(({ text }: { text: string }) => (
+  <MotionSpan
+    key={text}
+    className="px-2.5 py-1 text-xs rounded-full bg-light-muted/40 dark:bg-dark-muted/40 text-light-primary dark:text-dark-primary relative overflow-hidden group"
+    initial={{ opacity: 0, scale: 0.8 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ delay: 0.2 + Math.random() * 0.3 }}
+    whileHover={{ y: -2, scale: 1.05 }}
+  >
+    <span className="relative z-10">{text}</span>
+    <MotionSpan
+      className="absolute inset-0 bg-light-accent/20 dark:bg-dark-accent/20"
+      initial={{ x: "-100%" }}
+      whileHover={{ x: "0" }}
+      transition={{ duration: 0.3 }}
+    />
+  </MotionSpan>
+));
+
+const TagsList = memo(({ tags }: { tags: string[] }) => (
+  <MotionDiv className="flex flex-wrap gap-2 mt-3">
+    {tags.map((tag) => (
+      <Tag key={tag} text={tag} />
+    ))}
+  </MotionDiv>
+));
+
+const BaseCard = memo(
+  ({
+    title,
+    subtitle,
+    period,
+    description,
+    tags,
+    badge,
+    children,
+  }: {
+    title: string;
+    subtitle: string;
+    period?: string;
+    description?: string;
+    tags?: string[];
+    badge?: { text: string; type: string };
+    children?: JSX.Element | null;
+  }) => (
+    <MotionDiv
+      variants={animations.card}
+      whileHover="hover"
+      className="glass-card overflow-hidden p-6 relative depth-effect card-3d mb-6"
+      custom={Math.random() * 0.3}
+      data-animate="true"
+    >
+      <GradientBlob position="bottom-right" />
+      <GradientBorder position="left" />
+
+      {badge && <Badge type={badge.type} text={badge.text} />}
+
+      <MotionH3 className="text-xl font-bold mb-2 flex items-center">
+        {title}
+      </MotionH3>
+
+      <MotionDiv className="flex justify-between flex-wrap mb-3">
+        <MotionP className="text-light-accent dark:text-dark-accent font-medium">
+          {subtitle}
+        </MotionP>
+        {period && (
+          <MotionSpan className="text-sm text-light-secondary dark:text-dark-secondary">
+            {period}
+          </MotionSpan>
+        )}
+      </MotionDiv>
+
+      {description && (
+        <MotionP className="mb-4 text-light-secondary dark:text-dark-secondary">
+          {description}
+        </MotionP>
+      )}
+
+      {tags && tags.length > 0 && <TagsList tags={tags} />}
+
+      {children}
+    </MotionDiv>
+  )
+);
+
+const ExperienceCard = memo(({ experience }: { experience: Experience }) => (
+  <BaseCard
+    title={experience.company}
+    subtitle={experience.role}
+    period={experience.period}
+    description={experience.description}
+    tags={experience.technologies}
+    badge={{
+      text: experience.type === "job" ? "Empresa" : "Freelance",
+      type: experience.type === "job" ? "primary" : "accent",
+    }}
+  />
 ));
 
 const EducationCard = memo(({ item }: { item: Education }) => (
-  <MotionDiv
-    variants={cardVariants}
-    whileHover="hover"
-    className="glass-card overflow-hidden p-6 relative depth-effect card-3d mb-6"
-    custom={Math.random() * 0.3}
-    data-animate="true"
-  >
-    <MotionDiv
-      className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-light-accent dark:from-dark-accent to-light-primary/0 dark:to-dark-primary/0"
-      initial={{ scaleY: 0 }}
-      animate={{ scaleY: 1 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-    />
-
-    <MotionDiv
-      className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-r from-light-primary/10 to-transparent dark:from-dark-primary/10 dark:to-transparent blur-xl"
-      initial={{ opacity: 0 }}
-      animate={{
-        opacity: [0.2, 0.4, 0.2],
-        scale: [1, 1.1, 1],
-        y: [0, -5, 0],
-      }}
-      transition={{
-        duration: 4,
-        repeat: Infinity,
-        ease: "easeInOut",
-      }}
-    />
-
-    <MotionH3 className="text-xl font-bold mb-1">{item.institution}</MotionH3>
-
-    <MotionDiv className="flex justify-between flex-wrap mb-3">
-      <MotionP className="text-light-accent dark:text-dark-accent font-medium">
-        {item.degree}
-      </MotionP>
-      <MotionSpan className="text-sm text-light-secondary dark:text-dark-secondary">
-        {item.period}
-      </MotionSpan>
-    </MotionDiv>
-
-    {item.description && (
-      <MotionP className="text-light-secondary dark:text-dark-secondary">
-        {item.description}
-      </MotionP>
-    )}
-  </MotionDiv>
+  <BaseCard
+    title={item.institution}
+    subtitle={item.degree}
+    period={item.period}
+    description={item.description}
+  />
 ));
 
 const CourseCard = memo(({ course }: { course: Course }) => (
-  <MotionDiv
-    variants={cardVariants}
-    whileHover="hover"
-    className="glass-card overflow-hidden p-5 relative depth-effect card-3d mb-5"
-    custom={Math.random() * 0.3}
-    data-animate="true"
-  >
-    <MotionDiv
-      className="absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-gradient-to-r from-light-accent/10 to-transparent dark:from-dark-accent/10 dark:to-transparent blur-xl"
-      initial={{ opacity: 0 }}
-      animate={{
-        opacity: [0.3, 0.5, 0.3],
-        scale: [1, 1.1, 1],
-        y: [0, -5, 0],
-      }}
-      transition={{
-        duration: 4,
-        repeat: Infinity,
-        ease: "easeInOut",
-      }}
-    />
-
-    <MotionH3 className="text-lg font-bold mb-1">{course.provider}</MotionH3>
-
-    <MotionP className="text-light-accent dark:text-dark-accent font-medium mb-2">
-      {course.name}
-    </MotionP>
-
-    <MotionDiv className="flex flex-wrap gap-1.5">
-      {course.topics.map((topic) => (
-        <MotionSpan
-          key={topic}
-          className="px-2 py-0.5 text-xs rounded-full bg-light-muted/30 dark:bg-dark-muted/30 text-light-primary dark:text-dark-primary relative overflow-hidden group"
-          whileHover={{ y: -1 }}
-        >
-          <span className="relative z-10">{topic}</span>
-          <MotionSpan
-            className="absolute inset-0 bg-light-accent/10 dark:bg-dark-accent/10"
-            initial={{ x: "-100%" }}
-            whileHover={{ x: "0" }}
-            transition={{ duration: 0.3 }}
-          />
-        </MotionSpan>
-      ))}
-    </MotionDiv>
-  </MotionDiv>
+  <BaseCard
+    title={course.provider}
+    subtitle={course.name}
+    tags={course.topics}
+  />
 ));
 
 const TabButton = memo(
@@ -342,14 +330,14 @@ const TabButton = memo(
     label,
     icon,
     count,
-  }: Readonly<{
+  }: {
     tab: TabType;
     activeTab: TabType;
     setActiveTab: (tab: TabType) => void;
     label: string;
     icon: JSX.Element;
     count?: number;
-  }>) => (
+  }) => (
     <MotionDiv
       className={`relative px-4 py-3 cursor-pointer transition-all duration-300 rounded-lg ${
         activeTab === tab
@@ -392,34 +380,33 @@ function FilterButton<T extends string>({
   onChange,
   label,
   count,
-}: {
-  current: T;
-  value: T;
-  onChange: (value: T) => void;
-  label: string;
-  count?: number;
-}): JSX.Element {
+}: FilterButtonProps<T>): JSX.Element {
+  const isActive = current === value;
+
   return (
-    <div
-      className={`px-3 py-1.5 text-sm rounded-full cursor-pointer transition-all duration-300 ${
-        current === value
-          ? "bg-light-accent/20 dark:bg-dark-accent/20 text-light-primary dark:text-dark-primary shadow-md"
-          : "bg-light-muted/40 dark:bg-dark-muted/40 hover:bg-light-muted/60 dark:hover:bg-dark-muted/60"
-      }`}
+    <button
+      type="button"
+      className={`
+        px-3 py-1.5 text-sm rounded-full transition-all duration-300
+        ${
+          isActive
+            ? "bg-light-accent/20 dark:bg-dark-accent/20 text-light-primary dark:text-dark-primary shadow-md"
+            : "bg-light-muted/40 dark:bg-dark-muted/40 hover:bg-light-muted/60 dark:hover:bg-dark-muted/60"
+        }
+        cursor-pointer
+      `}
       onClick={() => onChange(value)}
-      role="button"
-      aria-pressed={current === value}
-      tabIndex={0}
+      aria-pressed={isActive}
     >
       <span className="flex items-center">
         {label}
-        {count !== undefined && (
+        {count != null && (
           <span className="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-light-primary/10 dark:bg-dark-primary/10">
             {count}
           </span>
         )}
       </span>
-    </div>
+    </button>
   );
 }
 
@@ -519,7 +506,7 @@ const BackgroundElements = memo(
             initial="initial"
             animate="animate"
             custom={5}
-            variants={floatingShapeVariants}
+            variants={animations.floatingShape}
             style={{
               transform: `translate3d(${(mousePosition.x - 500) * 0.01}px, ${
                 (mousePosition.y - 300) * 0.01
@@ -534,7 +521,7 @@ const BackgroundElements = memo(
             initial="initial"
             animate="animate"
             custom={10}
-            variants={floatingShapeVariants}
+            variants={animations.floatingShape}
             style={{
               transform: `translate3d(${(mousePosition.x - 500) * 0.02}px, ${
                 (mousePosition.y - 300) * 0.02
@@ -579,199 +566,150 @@ const BackgroundElements = memo(
   )
 );
 
+const ContactItem = memo(
+  ({
+    icon,
+    label,
+    value,
+    href,
+    gradient = "accent",
+  }: {
+    icon: JSX.Element;
+    label: string;
+    value: string;
+    href: string;
+    gradient?: string;
+  }) => (
+    <MotionDiv
+      className="glass-card p-4 flex items-center shadow-3d-hover hover-float relative overflow-hidden group"
+      whileHover={{ y: -5, boxShadow: "0px 15px 30px rgba(0,0,0,0.1)" }}
+    >
+      <div className="w-10 h-10 rounded-full bg-light-accent/10 dark:bg-dark-accent/10 flex items-center justify-center mr-3 group-hover:bg-light-accent/20 dark:group-hover:bg-dark-accent/20 transition-colors duration-300">
+        {React.cloneElement(icon, {
+          className:
+            "text-light-accent dark:text-dark-accent group-hover:scale-110 transition-transform duration-300",
+          width: 18,
+          height: 18,
+        })}
+      </div>
+      <div>
+        <div className="text-xs text-light-secondary dark:text-dark-secondary mb-1">
+          {label}
+        </div>
+        <a
+          href={href}
+          target={href.startsWith("http") ? "_blank" : undefined}
+          rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+          className="font-medium text-sm hover:text-light-accent dark:hover:text-dark-accent transition-colors"
+        >
+          {value}
+        </a>
+      </div>
+      <MotionDiv
+        className={`absolute -bottom-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-tr from-light-${gradient}/10 to-transparent dark:from-dark-${gradient}/10 dark:to-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-300`}
+        animate={{
+          scale: [1, 1.1, 1],
+          rotate: [0, gradient === "accent" ? 10 : -10, 0],
+        }}
+        transition={{
+          duration: 6,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+    </MotionDiv>
+  )
+);
+
 const ContactInfo = memo(({ personalInfo }: { personalInfo: PersonalInfo }) => (
   <MotionDiv
     className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-16"
-    variants={itemVariants}
+    variants={animations.item}
   >
-    <MotionDiv
-      className="glass-card p-4 flex items-center shadow-3d-hover hover-float relative overflow-hidden group"
-      whileHover={{ y: -5, boxShadow: "0px 15px 30px rgba(0,0,0,0.1)" }}
-    >
-      <div className="w-10 h-10 rounded-full bg-light-accent/10 dark:bg-dark-accent/10 flex items-center justify-center mr-3 group-hover:bg-light-accent/20 dark:group-hover:bg-dark-accent/20 transition-colors duration-300">
-        <MotionSvg
+    <ContactItem
+      icon={
+        <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="18"
-          height="18"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="text-light-accent dark:text-dark-accent group-hover:scale-110 transition-transform duration-300"
         >
           <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-        </MotionSvg>
-      </div>
-      <div>
-        <div className="text-xs text-light-secondary dark:text-dark-secondary mb-1">
-          Teléfono
-        </div>
-        <a
-          href={`tel:${personalInfo.phone}`}
-          className="font-medium text-sm hover:text-light-accent dark:hover:text-dark-accent transition-colors"
-        >
-          {personalInfo.phone}
-        </a>
-      </div>
-      <MotionDiv
-        className="absolute -bottom-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-tr from-light-accent/10 to-transparent dark:from-dark-accent/10 dark:to-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-300"
-        animate={{
-          scale: [1, 1.1, 1],
-          rotate: [0, 10, 0],
-        }}
-        transition={{
-          duration: 6,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-      />
-    </MotionDiv>
+        </svg>
+      }
+      label="Teléfono"
+      value={personalInfo.phone}
+      href={`tel:${personalInfo.phone}`}
+      gradient="accent"
+    />
 
-    <MotionDiv
-      className="glass-card p-4 flex items-center shadow-3d-hover hover-float relative overflow-hidden group"
-      whileHover={{ y: -5, boxShadow: "0px 15px 30px rgba(0,0,0,0.1)" }}
-    >
-      <div className="w-10 h-10 rounded-full bg-light-accent/10 dark:bg-dark-accent/10 flex items-center justify-center mr-3 group-hover:bg-light-accent/20 dark:group-hover:bg-dark-accent/20 transition-colors duration-300">
-        <MotionSvg
+    <ContactItem
+      icon={
+        <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="18"
-          height="18"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="text-light-accent dark:text-dark-accent group-hover:scale-110 transition-transform duration-300"
         >
           <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
           <polyline points="22,6 12,13 2,6" />
-        </MotionSvg>
-      </div>
-      <div>
-        <div className="text-xs text-light-secondary dark:text-dark-secondary mb-1">
-          Email
-        </div>
-        <a
-          href={`mailto:${personalInfo.email}`}
-          className="font-medium text-sm hover:text-light-accent dark:hover:text-dark-accent transition-colors"
-        >
-          {personalInfo.email}
-        </a>
-      </div>
-      <MotionDiv
-        className="absolute -bottom-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-tr from-light-primary/10 to-transparent dark:from-dark-primary/10 dark:to-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-300"
-        animate={{
-          scale: [1, 1.1, 1],
-          rotate: [0, -10, 0],
-        }}
-        transition={{
-          duration: 6,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-      />
-    </MotionDiv>
+        </svg>
+      }
+      label="Email"
+      value={personalInfo.email}
+      href={`mailto:${personalInfo.email}`}
+      gradient="primary"
+    />
 
-    <MotionDiv
-      className="glass-card p-4 flex items-center shadow-3d-hover hover-float relative overflow-hidden group"
-      whileHover={{ y: -5, boxShadow: "0px 15px 30px rgba(0,0,0,0.1)" }}
-    >
-      <div className="w-10 h-10 rounded-full bg-light-accent/10 dark:bg-dark-accent/10 flex items-center justify-center mr-3 group-hover:bg-light-accent/20 dark:group-hover:bg-dark-accent/20 transition-colors duration-300">
-        <MotionSvg
+    <ContactItem
+      icon={
+        <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="18"
-          height="18"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="text-light-accent dark:text-dark-accent group-hover:scale-110 transition-transform duration-300"
         >
           <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
           <rect x="2" y="9" width="4" height="12" />
           <circle cx="4" cy="4" r="2" />
-        </MotionSvg>
-      </div>
-      <div>
-        <div className="text-xs text-light-secondary dark:text-dark-secondary mb-1">
-          LinkedIn
-        </div>
-        <a
-          href={personalInfo.linkedin}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-medium text-sm truncate hover:text-light-accent dark:hover:text-dark-accent transition-colors"
-        >
-          {personalInfo.linkedin.replace("https://linkedin.com/in/", "@")}
-        </a>
-      </div>
-      <MotionDiv
-        className="absolute -bottom-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-tr from-light-accent/10 to-transparent dark:from-dark-accent/10 dark:to-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-300"
-        animate={{
-          scale: [1, 1.1, 1],
-          rotate: [0, 10, 0],
-        }}
-        transition={{
-          duration: 6,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-      />
-    </MotionDiv>
+        </svg>
+      }
+      label="LinkedIn"
+      value={personalInfo.linkedin.replace("https://linkedin.com/in/", "@")}
+      href={personalInfo.linkedin}
+      gradient="accent"
+    />
 
-    <MotionDiv
-      className="glass-card p-4 flex items-center shadow-3d-hover hover-float relative overflow-hidden group"
-      whileHover={{ y: -5, boxShadow: "0px 15px 30px rgba(0,0,0,0.1)" }}
-    >
-      <div className="w-10 h-10 rounded-full bg-light-accent/10 dark:bg-dark-accent/10 flex items-center justify-center mr-3 group-hover:bg-light-accent/20 dark:group-hover:bg-dark-accent/20 transition-colors duration-300">
-        <MotionSvg
+    <ContactItem
+      icon={
+        <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="18"
-          height="18"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="text-light-accent dark:text-dark-accent group-hover:scale-110 transition-transform duration-300"
         >
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
           <circle cx="8.5" cy="8.5" r="1.5" />
           <polyline points="21 15 16 10 5 21" />
-        </MotionSvg>
-      </div>
-      <div>
-        <div className="text-xs text-light-secondary dark:text-dark-secondary mb-1">
-          Portfolio
-        </div>
-        <a
-          href={personalInfo.portfolio}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-medium text-sm truncate hover:text-light-accent dark:hover:text-dark-accent transition-colors"
-        >
-          {personalInfo.portfolio.replace("https://", "")}
-        </a>
-      </div>
-      <MotionDiv
-        className="absolute -bottom-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-tr from-light-primary/10 to-transparent dark:from-dark-primary/10 dark:to-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-300"
-        animate={{
-          scale: [1, 1.1, 1],
-          rotate: [0, -10, 0],
-        }}
-        transition={{
-          duration: 6,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-      />
-    </MotionDiv>
+        </svg>
+      }
+      label="Portfolio"
+      value={personalInfo.portfolio.replace("https://", "")}
+      href={personalInfo.portfolio}
+      gradient="primary"
+    />
   </MotionDiv>
 ));
 
@@ -779,7 +717,7 @@ const BioIntro = memo(({ personalInfo }: { personalInfo: PersonalInfo }) => (
   <MotionDiv className="text-center mb-16 max-w-3xl mx-auto relative">
     <MotionH2
       className="text-3xl md:text-5xl font-bold mb-6 text-gradient relative inline-block"
-      variants={itemVariants}
+      variants={animations.item}
     >
       Acerca de mí
       <MotionDiv
@@ -792,7 +730,7 @@ const BioIntro = memo(({ personalInfo }: { personalInfo: PersonalInfo }) => (
 
     <MotionDiv
       className="rounded-xl overflow-hidden md:float-right md:ml-8 mb-6 md:mb-0 w-32 h-32 md:w-40 md:h-40 mx-auto md:mx-0 relative shadow-lg card-3d transform-3d-hover"
-      variants={itemVariants}
+      variants={animations.item}
     >
       <div className="absolute inset-0 bg-gradient-to-tr from-light-accent/30 dark:from-dark-accent/30 to-light-primary/30 dark:to-dark-primary/30" />
       <div className="absolute inset-1 bg-light-bg dark:bg-dark-bg rounded-lg flex items-center justify-center text-4xl font-bold text-light-accent dark:text-dark-accent">
@@ -806,7 +744,7 @@ const BioIntro = memo(({ personalInfo }: { personalInfo: PersonalInfo }) => (
 
     <MotionP
       className="text-lg md:text-xl mb-6 text-light-secondary dark:text-dark-secondary leading-relaxed text-left"
-      variants={itemVariants}
+      variants={animations.item}
     >
       Mi nombre es{" "}
       <span className="text-light-accent dark:text-dark-accent font-semibold">
@@ -820,7 +758,7 @@ const BioIntro = memo(({ personalInfo }: { personalInfo: PersonalInfo }) => (
 
     <MotionP
       className="text-lg md:text-xl mb-8 text-light-secondary dark:text-dark-secondary leading-relaxed text-left"
-      variants={itemVariants}
+      variants={animations.item}
     >
       Me especializo en el desarrollo frontend con React, TypeScript y
       frameworks modernos. Tengo amplia experiencia en UX/UI, diseño responsivo
@@ -831,7 +769,7 @@ const BioIntro = memo(({ personalInfo }: { personalInfo: PersonalInfo }) => (
 
     <MotionDiv
       className="flex justify-center gap-4 flex-wrap mt-8"
-      variants={itemVariants}
+      variants={animations.item}
     >
       <MotionA
         href={`mailto:${personalInfo.email}`}
@@ -929,104 +867,102 @@ const SkillsChart = memo(
 
     return (
       <div className="glass-card p-6 rounded-xl shadow-lg relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid opacity-10"></div>
+        <div className="absolute inset-0 bg-grid opacity-10" />
 
         <h3 className="text-xl font-bold mb-6 text-gradient">
           Nivel de habilidades
         </h3>
 
         <div className="space-y-8">
-          {skillsByLevel.map(
-            ({ level, skills: levelSkills }) =>
-              levelSkills.length > 0 && (
-                <div key={`level-${level}`} className="relative">
-                  <div className="flex items-center mb-2">
-                    <span className="text-lg font-semibold mr-2">{level}</span>
-                    <div className="flex-1 h-0.5 bg-light-muted/30 dark:bg-dark-muted/30 rounded-full overflow-hidden">
+          {skillsByLevel.map(({ level, skills: levelSkills }) => {
+            if (levelSkills.length === 0) return null;
+
+            const levelLabel = getLevelLabel(level);
+
+            return (
+              <div key={`level-${level}`} className="relative">
+                <div className="flex items-center mb-2">
+                  <span className="text-lg font-semibold mr-2">{level}</span>
+                  <div className="flex-1 h-0.5 bg-light-muted/30 dark:bg-dark-muted/30 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-light-accent dark:bg-dark-accent"
+                      style={{ width: "100%" }}
+                    />
+                  </div>
+                  <span className="ml-2 text-light-secondary dark:text-dark-secondary text-sm">
+                    {levelLabel}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2 ml-8">
+                  {levelSkills.map((skill) => (
+                    <div
+                      key={`skill-${skill.name}`}
+                      className="px-3 py-1 rounded-lg bg-light-primary/10 dark:bg-dark-primary/10 text-light-primary dark:text-dark-primary text-sm relative overflow-hidden hover:scale-105 transition-transform"
+                      aria-label={`${skill.name}: Nivel ${skill.level} de 5`}
+                    >
+                      <span className="relative z-10">{skill.name}</span>
                       <div
-                        className="h-full bg-light-accent dark:bg-dark-accent"
-                        style={{ width: "100%" }}
+                        className="absolute bottom-0 left-0 h-1 bg-light-accent dark:bg-dark-accent"
+                        style={{ width: `${skill.level * 20}%` }}
                       />
                     </div>
-                    <span className="ml-2 text-light-secondary dark:text-dark-secondary text-sm">
-                      {level === 5
-                        ? "Experto"
-                        : level === 4
-                        ? "Avanzado"
-                        : level === 3
-                        ? "Intermedio"
-                        : level === 2
-                        ? "Básico"
-                        : "Principiante"}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-2 ml-8">
-                    {levelSkills.map((skill) => (
-                      <div
-                        key={`skill-${skill.name}`}
-                        className="px-3 py-1 rounded-lg bg-light-primary/10 dark:bg-dark-primary/10 text-light-primary dark:text-dark-primary text-sm relative overflow-hidden hover:scale-105 transition-transform"
-                        aria-label={`${skill.name}: Nivel ${skill.level} de 5`}
-                      >
-                        <span className="relative z-10">{skill.name}</span>
-                        <div
-                          className="absolute bottom-0 left-0 h-1 bg-light-accent dark:bg-dark-accent"
-                          style={{ width: `${skill.level * 20}%` }}
-                        />
-                      </div>
-                    ))}
-                  </div>
+                  ))}
                 </div>
-              )
-          )}
+              </div>
+            );
+          })}
         </div>
       </div>
     );
   }
 );
 
+const SoftSkillCard = memo(({ skill }: { skill: SoftSkill }) => (
+  <MotionDiv
+    className="glass-card p-5 hover-float shadow-3d-hover relative overflow-hidden group"
+    whileHover={{ y: -5, scale: 1.02 }}
+    initial={{ opacity: 0, y: 20 }}
+    animate={{
+      opacity: 1,
+      y: 0,
+      transition: { delay: 0.2 },
+    }}
+  >
+    <div className="flex items-center mb-3">
+      <div className="w-10 h-10 rounded-full bg-light-primary/10 dark:bg-dark-primary/10 flex items-center justify-center text-light-accent dark:text-dark-accent mr-3 group-hover:bg-light-accent/20 dark:group-hover:bg-dark-accent/20 transition-all duration-300">
+        {skill.icon}
+      </div>
+      <h4 className="font-semibold">{skill.title}</h4>
+    </div>
+    <p className="text-sm text-light-secondary dark:text-dark-secondary">
+      {skill.description}
+    </p>
+
+    <MotionDiv
+      className="absolute -bottom-2 -right-2 w-20 h-20 rounded-full bg-light-accent/5 dark:bg-dark-accent/5 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+      animate={{
+        scale: [1, 1.2, 1],
+        opacity: [0.3, 0.5, 0.3],
+      }}
+      transition={{
+        duration: 3,
+        repeat: Infinity,
+        ease: "easeInOut",
+      }}
+    />
+  </MotionDiv>
+));
+
 const SoftSkillsSection = memo(
   ({ softSkills }: { softSkills: SoftSkill[] }) => (
-    <MotionDiv className="mt-12" variants={itemVariants}>
+    <MotionDiv className="mt-12" variants={animations.item}>
       <MotionH3 className="text-xl font-bold mb-6 text-gradient">
         Habilidades blandas
       </MotionH3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {softSkills.map((skill) => (
-          <MotionDiv
-            key={`soft-skill-${skill.title}`}
-            className="glass-card p-5 hover-float shadow-3d-hover relative overflow-hidden group"
-            whileHover={{ y: -5, scale: 1.02 }}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{
-              opacity: 1,
-              y: 0,
-              transition: { delay: 0.2 },
-            }}
-          >
-            <div className="flex items-center mb-3">
-              <div className="w-10 h-10 rounded-full bg-light-primary/10 dark:bg-dark-primary/10 flex items-center justify-center text-light-accent dark:text-dark-accent mr-3 group-hover:bg-light-accent/20 dark:group-hover:bg-dark-accent/20 transition-all duration-300">
-                {skill.icon}
-              </div>
-              <h4 className="font-semibold">{skill.title}</h4>
-            </div>
-            <p className="text-sm text-light-secondary dark:text-dark-secondary">
-              {skill.description}
-            </p>
-
-            <MotionDiv
-              className="absolute -bottom-2 -right-2 w-20 h-20 rounded-full bg-light-accent/5 dark:bg-dark-accent/5 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-              animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.3, 0.5, 0.3],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-          </MotionDiv>
+          <SoftSkillCard key={`soft-skill-${skill.title}`} skill={skill} />
         ))}
       </div>
     </MotionDiv>
@@ -1481,7 +1417,7 @@ const AboutMe: FunctionComponent = () => {
           y: e.clientY - rect.top,
         });
       } catch (error) {
-        console.debug("Mouse tracking disabled");
+        console.error("Mouse tracking error:", error);
       }
     };
 
@@ -1530,7 +1466,7 @@ const AboutMe: FunctionComponent = () => {
 
       <MotionDiv
         className="w-full h-full"
-        variants={sectionVariants}
+        variants={animations.section}
         initial="hidden"
         animate={isVisible ? "visible" : "hidden"}
       >
@@ -1540,7 +1476,7 @@ const AboutMe: FunctionComponent = () => {
 
         <MotionDiv
           className="flex justify-center space-x-2 md:space-x-8 mb-8 overflow-x-auto py-2 px-4"
-          variants={itemVariants}
+          variants={animations.item}
           role="tablist"
         >
           <TabButton
@@ -1560,7 +1496,6 @@ const AboutMe: FunctionComponent = () => {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                role="presentation"
               >
                 <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
                 <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
@@ -1575,22 +1510,20 @@ const AboutMe: FunctionComponent = () => {
             label="Educación"
             count={education.length + courses.length}
             icon={
-              <span className="mr-2" aria-hidden="true">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-                  <path d="M6 12v5c3 3 9 3 12 0v-5" />
-                </svg>
-              </span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                <path d="M6 12v5c3 3 9 3 12 0v-5" />
+              </svg>
             }
           />
 
@@ -1601,28 +1534,26 @@ const AboutMe: FunctionComponent = () => {
             label="Habilidades"
             count={skills.length}
             icon={
-              <span className="mr-2" aria-hidden="true">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-                </svg>
-              </span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+              </svg>
             }
           />
         </MotionDiv>
 
         <MotionDiv
           className="relative mb-12 perspective preserve-3d"
-          variants={itemVariants}
+          variants={animations.item}
           key={activeTab}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1700,110 +1631,55 @@ const AboutMe: FunctionComponent = () => {
             <>
               <div className="skills-filter-container mb-6">
                 <div className="flex justify-center flex-wrap gap-2 mb-6">
-                  <button
-                    type="button"
-                    onClick={() => setSkillFilter("all")}
-                    className={`px-3 py-1.5 text-sm rounded-full ${
-                      skillFilter === "all"
-                        ? "bg-light-accent/20 dark:bg-dark-accent/20 text-light-primary dark:text-dark-primary shadow-md"
-                        : "bg-light-muted/40 dark:bg-dark-muted/40 hover:bg-light-muted/60 dark:hover:bg-dark-muted/60"
-                    }`}
-                  >
-                    Todas{" "}
-                    <span className="ml-1.5 inline-block px-1.5 py-0.5 text-xs rounded-full bg-light-primary/10 dark:bg-dark-primary/10">
-                      {skills.length}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSkillFilter("frontend")}
-                    className={`px-3 py-1.5 text-sm rounded-full ${
-                      skillFilter === "frontend"
-                        ? "bg-light-accent/20 dark:bg-dark-accent/20 text-light-primary dark:text-dark-primary shadow-md"
-                        : "bg-light-muted/40 dark:bg-dark-muted/40 hover:bg-light-muted/60 dark:hover:bg-dark-muted/60"
-                    }`}
-                  >
-                    Frontend{" "}
-                    <span className="ml-1.5 inline-block px-1.5 py-0.5 text-xs rounded-full bg-light-primary/10 dark:bg-dark-primary/10">
-                      {skillCategoryCounts.frontend}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSkillFilter("frameworks")}
-                    className={`px-3 py-1.5 text-sm rounded-full ${
-                      skillFilter === "frameworks"
-                        ? "bg-light-accent/20 dark:bg-dark-accent/20 text-light-primary dark:text-dark-primary shadow-md"
-                        : "bg-light-muted/40 dark:bg-dark-muted/40 hover:bg-light-muted/60 dark:hover:bg-dark-muted/60"
-                    }`}
-                  >
-                    Frameworks{" "}
-                    <span className="ml-1.5 inline-block px-1.5 py-0.5 text-xs rounded-full bg-light-primary/10 dark:bg-dark-primary/10">
-                      {skillCategoryCounts.frameworks}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSkillFilter("design")}
-                    className={`px-3 py-1.5 text-sm rounded-full ${
-                      skillFilter === "design"
-                        ? "bg-light-accent/20 dark:bg-dark-accent/20 text-light-primary dark:text-dark-primary shadow-md"
-                        : "bg-light-muted/40 dark:bg-dark-muted/40 hover:bg-light-muted/60 dark:hover:bg-dark-muted/60"
-                    }`}
-                  >
-                    Diseño{" "}
-                    <span className="ml-1.5 inline-block px-1.5 py-0.5 text-xs rounded-full bg-light-primary/10 dark:bg-dark-primary/10">
-                      {skillCategoryCounts.design}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSkillFilter("tools")}
-                    className={`px-3 py-1.5 text-sm rounded-full ${
-                      skillFilter === "tools"
-                        ? "bg-light-accent/20 dark:bg-dark-accent/20 text-light-primary dark:text-dark-primary shadow-md"
-                        : "bg-light-muted/40 dark:bg-dark-muted/40 hover:bg-light-muted/60 dark:hover:bg-dark-muted/60"
-                    }`}
-                  >
-                    Herramientas{" "}
-                    <span className="ml-1.5 inline-block px-1.5 py-0.5 text-xs rounded-full bg-light-primary/10 dark:bg-dark-primary/10">
-                      {skillCategoryCounts.tools}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSkillFilter("languages")}
-                    className={`px-3 py-1.5 text-sm rounded-full ${
-                      skillFilter === "languages"
-                        ? "bg-light-accent/20 dark:bg-dark-accent/20 text-light-primary dark:text-dark-primary shadow-md"
-                        : "bg-light-muted/40 dark:bg-dark-muted/40 hover:bg-light-muted/60 dark:hover:bg-dark-muted/60"
-                    }`}
-                  >
-                    Idiomas{" "}
-                    <span className="ml-1.5 inline-block px-1.5 py-0.5 text-xs rounded-full bg-light-primary/10 dark:bg-dark-primary/10">
-                      {skillCategoryCounts.languages}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSkillFilter("other")}
-                    className={`px-3 py-1.5 text-sm rounded-full ${
-                      skillFilter === "other"
-                        ? "bg-light-accent/20 dark:bg-dark-accent/20 text-light-primary dark:text-dark-primary shadow-md"
-                        : "bg-light-muted/40 dark:bg-dark-muted/40 hover:bg-light-muted/60 dark:hover:bg-dark-muted/60"
-                    }`}
-                  >
-                    Metodologías{" "}
-                    <span className="ml-1.5 inline-block px-1.5 py-0.5 text-xs rounded-full bg-light-primary/10 dark:bg-dark-primary/10">
-                      {skillCategoryCounts.other}
-                    </span>
-                  </button>
+                  <FilterButton
+                    current={skillFilter}
+                    value="all"
+                    onChange={setSkillFilter}
+                    label="Todas"
+                    count={skills.length}
+                  />
+                  <FilterButton
+                    current={skillFilter}
+                    value="frontend"
+                    onChange={setSkillFilter}
+                    label="Frontend"
+                    count={skillCategoryCounts.frontend}
+                  />
+                  <FilterButton
+                    current={skillFilter}
+                    value="frameworks"
+                    onChange={setSkillFilter}
+                    label="Frameworks"
+                    count={skillCategoryCounts.frameworks}
+                  />
+                  <FilterButton
+                    current={skillFilter}
+                    value="design"
+                    onChange={setSkillFilter}
+                    label="Diseño"
+                    count={skillCategoryCounts.design}
+                  />
+                  <FilterButton
+                    current={skillFilter}
+                    value="tools"
+                    onChange={setSkillFilter}
+                    label="Herramientas"
+                    count={skillCategoryCounts.tools}
+                  />
+                  <FilterButton
+                    current={skillFilter}
+                    value="languages"
+                    onChange={setSkillFilter}
+                    label="Idiomas"
+                    count={skillCategoryCounts.languages}
+                  />
+                  <FilterButton
+                    current={skillFilter}
+                    value="other"
+                    onChange={setSkillFilter}
+                    label="Metodologías"
+                    count={skillCategoryCounts.other}
+                  />
                 </div>
               </div>
 

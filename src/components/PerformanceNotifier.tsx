@@ -13,41 +13,69 @@ const PerformanceNotifier: FunctionComponent<PerformanceNotifierProps> = ({
   const [fpsIssue, setFpsIssue] = useState(false);
   const [memoryIssue, setMemoryIssue] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [issueDescription, setIssueDescription] = useState("");
 
   useEffect(() => {
     if (dismissed) return;
 
+    try {
+      const wasDismissed =
+        localStorage.getItem("performance-notifier-dismissed") === "true";
+      if (wasDismissed) {
+        setDismissed(true);
+        return;
+      }
+    } catch (e) {}
+
     const monitor = PerformanceMonitor.getInstance();
 
     const checkInterval = setInterval(() => {
-      const report = monitor.getPerformanceReport();
+      try {
+        const report = monitor.getPerformanceReport();
 
-      if (report.logs.length > 20) {
-        const recentLogs = report.logs.slice(-20);
-        const avgFps =
-          recentLogs.reduce((sum, entry) => sum + (entry.fps || 0), 0) /
-          recentLogs.length;
+        if (report.logs.length > 20) {
+          const recentLogs = report.logs.slice(-20);
+          const avgFps =
+            recentLogs.reduce((sum, entry) => sum + (entry.fps || 0), 0) /
+            recentLogs.length;
 
-        const memoryEntries = recentLogs.filter(
-          (entry) => entry.memoryUsage !== undefined
-        );
-        let memoryGrowth = 0;
+          const memoryEntries = recentLogs.filter(
+            (entry) => entry.memoryUsage !== undefined
+          );
+          let memoryGrowth = 0;
 
-        if (memoryEntries.length > 5) {
-          const firstEntry = memoryEntries[0].memoryUsage || 0;
-          const lastEntry =
-            memoryEntries[memoryEntries.length - 1].memoryUsage || 0;
-          memoryGrowth = ((lastEntry - firstEntry) / firstEntry) * 100;
+          if (memoryEntries.length > 5) {
+            const firstEntry = memoryEntries[0].memoryUsage || 0;
+            const lastEntry =
+              memoryEntries[memoryEntries.length - 1].memoryUsage || 0;
+            memoryGrowth = ((lastEntry - firstEntry) / firstEntry) * 100;
+          }
+
+          const hasFpsIssue = avgFps < threshold;
+          const hasMemoryIssue = memoryGrowth > 15;
+
+          if (hasFpsIssue || hasMemoryIssue) {
+            setFpsIssue(hasFpsIssue);
+            setMemoryIssue(hasMemoryIssue);
+
+            let description = "";
+            if (hasFpsIssue) {
+              description += `Low frame rate detected (${Math.round(
+                avgFps
+              )} FPS). `;
+            }
+            if (hasMemoryIssue) {
+              description += `High memory usage growth (${Math.round(
+                memoryGrowth
+              )}%). `;
+            }
+
+            setIssueDescription(description);
+            setShowNotification(true);
+          }
         }
-
-        const hasFpsIssue = avgFps < threshold;
-        const hasMemoryIssue = memoryGrowth > 15;
-
-        if (hasFpsIssue || hasMemoryIssue) {
-          setFpsIssue(hasFpsIssue);
-          setMemoryIssue(hasMemoryIssue);
-          setShowNotification(true);
-        }
+      } catch (error) {
+        console.error("Error in performance check:", error);
       }
     }, 5000);
 
@@ -96,24 +124,23 @@ const PerformanceNotifier: FunctionComponent<PerformanceNotifierProps> = ({
           </svg>
         </div>
         <div>
-          <h4 className="font-medium mb-1">Rendimiento reducido detectado</h4>
+          <h4 className="font-medium mb-1">Performance Issue Detected</h4>
           <p className="text-xs text-yellow-200 mb-2">
-            {fpsIssue && "Se ha detectado una baja tasa de FPS. "}
-            {memoryIssue && "Uso de memoria elevado. "}
-            Esto podría afectar tu experiencia.
+            {issueDescription}
+            This may affect your experience.
           </p>
           <div className="flex space-x-2">
             <button
               className="text-xs py-1 px-2 bg-yellow-800 hover:bg-yellow-600 rounded"
               onClick={handleShowMonitor}
             >
-              Diagnosticar
+              Diagnose
             </button>
             <button
               className="text-xs py-1 px-2 hover:underline"
               onClick={handleDismiss}
             >
-              Descartar
+              Dismiss
             </button>
           </div>
         </div>

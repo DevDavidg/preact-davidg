@@ -23,15 +23,14 @@ const containerVariants = {
 };
 
 const titleVariants = {
-  hidden: { opacity: 0, y: 30, rotateX: 20 },
+  hidden: { opacity: 0, y: 30 },
   visible: {
     opacity: 1,
     y: 0,
-    rotateX: 0,
     transition: {
       type: "spring",
       damping: 10,
-      stiffness: 120,
+      stiffness: 100,
       when: "beforeChildren",
       staggerChildren: 0.015,
       delayChildren: 0.1,
@@ -39,17 +38,34 @@ const titleVariants = {
   },
 };
 
+const wordVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      when: "beforeChildren",
+      staggerChildren: 0.02,
+    },
+  },
+};
+
 const characterVariants = {
-  hidden: { opacity: 0, y: 10, rotateY: 45 },
+  hidden: {
+    opacity: 0,
+    y: 8,
+    rotateY: 12,
+    scale: 0.9,
+  },
   visible: {
     opacity: 1,
     y: 0,
     rotateY: 0,
+    scale: 1,
     transition: {
       type: "spring",
-      damping: 8,
-      stiffness: 300,
-      duration: 0.2,
+      damping: 15,
+      stiffness: 150,
+      duration: 0.4,
     },
   },
 };
@@ -207,10 +223,16 @@ const AnimatedTitle: FunctionComponent<{
   const words = text.split(" ");
 
   return (
-    <MotionH1 variants={titleVariants} className={className}>
+    <MotionH1
+      initial="hidden"
+      animate="visible"
+      variants={titleVariants}
+      className={className}
+    >
       {words.map((word, wordIndex) => (
         <MotionSpan
           key={`word-${word}-${wordIndex}`}
+          variants={wordVariants}
           className={`inline-block mr-2 md:mr-3 mb-1 md:mb-2 ${
             specialWords.includes(word) ? "text-gradient" : ""
           }`}
@@ -219,8 +241,11 @@ const AnimatedTitle: FunctionComponent<{
             <MotionSpan
               key={`char-${char}-${wordIndex}-${charIndex}`}
               variants={characterVariants}
-              style={{ display: "inline-block", transformOrigin: "bottom" }}
-              custom={(wordIndex + 1) * 0.02 + charIndex * 0.005}
+              style={{
+                display: "inline-block",
+                transformOrigin: "center center",
+                transformStyle: "preserve-3d",
+              }}
             >
               {char}
             </MotionSpan>
@@ -352,7 +377,9 @@ const Hero = () => {
           rotateY(${rotateY}deg)
           scale3d(1, 1, 1)
         `;
-      } catch (e) {}
+      } catch (e) {
+        console.error("Error applying tilt effect to element", e);
+      }
     }
 
     if (contentRef.current?.style) {
@@ -362,7 +389,9 @@ const Hero = () => {
           rotateX(${normalizedY * 1}deg) 
           rotateY(${-normalizedX * 1}deg)
           translateZ(10px)        `;
-      } catch (e) {}
+      } catch (e) {
+        console.error("Error applying tilt effect to content", e);
+      }
     }
   };
 
@@ -377,7 +406,9 @@ const Hero = () => {
           rotateY(0deg)
           scale3d(1, 1, 1)
         `;
-      } catch (e) {}
+      } catch (e) {
+        console.error("Error resetting tilt effect", e);
+      }
     }
 
     if (contentRef.current?.style) {
@@ -388,7 +419,9 @@ const Hero = () => {
           rotateY(0deg)
           translateZ(0)
         `;
-      } catch (e) {}
+      } catch (e) {
+        console.error("Error resetting tilt effect", e);
+      }
     }
   };
 
@@ -405,7 +438,9 @@ const Hero = () => {
         const rotate = Math.sin(scrollFactor) * (index + 1) * 2;
 
         ref.style.transform = `translateY(${-yOffset}px) rotate(${rotate}deg)`;
-      } catch (e) {}
+      } catch (e) {
+        console.error("Error applying scroll parallax", e);
+      }
     }
   };
 
@@ -635,7 +670,7 @@ const Hero = () => {
           <div className="absolute inset-0 overflow-hidden rounded-full opacity-20">
             {Array.from({ length: 12 }).map((_, i) => (
               <div
-                key={`line-${i}`}
+                key={"line-" + i.toString()}
                 className="absolute top-1/2 left-1/2 h-full w-0.5 bg-light-primary dark:bg-dark-primary origin-bottom"
                 style={{
                   transform: `translate(-50%, -50%) rotate(${i * 30}deg)`,

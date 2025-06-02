@@ -9,7 +9,6 @@ import "./styles/decorative-elements.css";
 
 import Projects from "./components/Proyects";
 import AboutMe from "./components/AboutMe";
-import PerformanceOptimizer from "./utils/PerformanceOptimizer";
 import Contact from "./components/Contact";
 import { PerformancePanel } from "./components/PerformancePanel";
 import PerformanceNotifier from "./components/PerformanceNotifier";
@@ -17,7 +16,10 @@ import PerformanceMonitor from "./utils/PerformanceMonitor";
 import Nav from "./components/Nav";
 import { ENV } from "./config/env";
 import { createNoiseTexture } from "./utils/noiseTexture";
-
+import {
+  scanForPerformanceIssues,
+  downloadPerformanceReport,
+} from "./utils/diagnosePerfIssues";
 declare global {
   interface Window {
     removeInitialLoader?: () => void;
@@ -25,6 +27,7 @@ declare global {
     hidePerformanceMonitor?: () => void;
     exportPerformanceLogs?: () => void;
     diagnosePerformance?: () => any;
+    perfReport?: any;
   }
 }
 
@@ -41,15 +44,21 @@ export const App: FunctionComponent = () => {
         const monitor = PerformanceMonitor.getInstance();
         if (typeof monitor.start === "function") {
           monitor.start();
-          console.log("Monitor de rendimiento iniciado correctamente");
+          console.log("Performance monitor started successfully");
         } else {
-          console.warn("El monitor de rendimiento no tiene el método start");
+          console.warn("Performance monitor has no start method");
         }
+
+        window.diagnosePerformance = () => scanForPerformanceIssues();
+
+        window.showPerformanceMonitor = () => setShowPerformancePanel(true);
+        window.hidePerformanceMonitor = () => setShowPerformancePanel(false);
+        window.exportPerformanceLogs = () => monitor.exportLogs();
       } catch (error) {
-        console.error("Error al iniciar el monitor de rendimiento:", error);
+        console.error("Error starting performance monitor:", error);
       }
     } else {
-      console.log("Monitor de rendimiento deshabilitado en la configuración");
+      console.log("Performance monitor disabled in configuration");
     }
   }, []);
 
@@ -94,7 +103,7 @@ export const App: FunctionComponent = () => {
   const updatePanel = () => {
     if (!isInitialized.current) {
       isInitialized.current = true;
-      setShowPerformancePanel(true);
+      setShowPerformancePanel(ENV.PERFORMANCE_MONITOR_ENABLED);
     }
   };
 
@@ -109,11 +118,10 @@ export const App: FunctionComponent = () => {
       {isLoading ? (
         <div className="loader-container">
           <div className="loader"></div>
-          <p>Cargando...</p>
+          <p>Loading...</p>
         </div>
       ) : (
         <div className="content">
-          {ENV.PERFORMANCE_OPTIMIZER_ENABLED && <PerformanceOptimizer />}
           <Nav />
           <main className="flex-grow">
             <Hero />
