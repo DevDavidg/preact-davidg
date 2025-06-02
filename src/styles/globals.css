@@ -15,22 +15,60 @@
     --space-lg: 2rem;
     --space-xl: 4rem;
 
-    --color-bg: #ffffff;
-    --color-primary: #000000;
-    --color-secondary: #444444;
-    --color-accent: #888888;
-    --color-accent-rgb: 136, 136, 136;
-    --color-muted: #f2f2f2;
+    /* Light Mode Colors - Enhanced Palette */
+    --color-bg: #fafafa;
+    --color-bg-secondary: #f1f3f4;
+    --color-bg-tertiary: #e8eaed;
+    --color-primary: #2d3436;
+    --color-secondary: #636e72;
+    --color-tertiary: #b2bec3;
+    --color-accent: #0984e3;
+    --color-accent-secondary: #00b894;
+    --color-accent-tertiary: #e17055;
+    --color-accent-rgb: 9, 132, 227;
+    --color-accent-secondary-rgb: 0, 184, 148;
+    --color-accent-tertiary-rgb: 225, 112, 85;
+    --color-muted: #f8f9fa;
+    --color-border: #ddd;
+    --color-border-light: #e9ecef;
+    --color-success: #00b894;
+    --color-warning: #fdcb6e;
+    --color-error: #e17055;
+    --color-info: #74b9ff;
+
+    /* Surface colors for glass effects */
+    --color-surface: rgba(255, 255, 255, 0.9);
+    --color-surface-hover: rgba(255, 255, 255, 0.95);
+    --color-overlay: rgba(45, 52, 54, 0.1);
   }
 
   .dark {
-    --color-bg: #121212;
-    --color-primary: #ffffff;
-    --color-secondary: #bbbbbb;
-    --color-accent: #666666;
-    --color-accent-rgb: 102, 102, 102;
-    --color-muted: #1e1e1e;
+    /* Dark Mode Colors - User Provided Enhanced */
+    --color-bg: #1d1616;
+    --color-bg-secondary: #2a1f1f;
+    --color-bg-tertiary: #3d2828;
+    --color-primary: #eeeeee;
+    --color-secondary: #c8c8c8;
+    --color-tertiary: #a8a8a8;
+    --color-accent: #d84040;
+    --color-accent-secondary: #8e1616;
+    --color-accent-tertiary: #ff6b6b;
+    --color-accent-rgb: 216, 64, 64;
+    --color-accent-secondary-rgb: 142, 22, 22;
+    --color-accent-tertiary-rgb: 255, 107, 107;
+    --color-muted: #332626;
+    --color-border: #4a3535;
+    --color-border-light: #3d2828;
+    --color-success: #51cf66;
+    --color-warning: #ffd43b;
+    --color-error: #ff6b6b;
+    --color-info: #74c0fc;
     --grain-opacity: 0.1;
+
+    /* Surface colors for glass effects */
+    --color-surface: rgba(29, 22, 22, 0.9);
+    --color-surface-hover: rgba(29, 22, 22, 0.95);
+    --color-overlay: rgba(238, 238, 238, 0.1);
   }
 
   html {
@@ -56,30 +94,45 @@
   }
 
   .btn-primary {
-    @apply px-6 py-3 bg-light-primary text-light-bg dark:bg-dark-primary dark:text-dark-bg 
+    @apply px-6 py-3 bg-light-accent text-white dark:bg-dark-accent dark:text-white 
       transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 
-      focus:ring-light-accent dark:focus:ring-dark-accent;
+      focus:ring-blue-500/50 dark:focus:ring-red-500/50 hover:bg-light-accent-secondary dark:hover:bg-dark-accent-secondary;
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 bg-light-accent-secondary text-white dark:bg-dark-accent-secondary dark:text-white 
+      transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 
+      focus:ring-green-500/50 dark:focus:ring-red-700/50 hover:bg-light-accent dark:hover:bg-dark-accent;
   }
 
   .btn-gradient {
     @apply px-6 py-3 relative overflow-hidden rounded-lg bg-gradient-to-r 
-      from-light-accent to-light-primary dark:from-dark-accent dark:to-dark-primary 
-      text-white font-medium shadow-lg transition-all duration-300;
+      from-light-accent via-light-accent-secondary to-light-accent-tertiary 
+      dark:from-dark-accent dark:via-dark-accent-secondary dark:to-dark-accent-tertiary 
+      text-white font-medium shadow-lg transition-all duration-300 hover:shadow-xl;
   }
 
   .btn-outline {
     @apply px-6 py-3 relative overflow-hidden rounded-lg border-2 
-      border-light-primary dark:border-dark-primary text-light-primary 
-      dark:text-dark-primary font-medium transition-all duration-300;
+      border-light-accent dark:border-dark-accent text-light-accent 
+      dark:text-dark-accent font-medium transition-all duration-300
+      hover:bg-light-accent hover:text-white dark:hover:bg-dark-accent dark:hover:text-white;
+  }
+
+  .btn-ghost {
+    @apply px-6 py-3 relative overflow-hidden rounded-lg 
+      text-light-primary dark:text-dark-primary font-medium transition-all duration-300
+      hover:bg-light-bg-secondary dark:hover:bg-dark-bg-secondary;
   }
 
   .link-hover {
-    @apply relative after:absolute after:bg-light-primary dark:after:bg-dark-primary after:bottom-0 
+    @apply relative after:absolute after:bg-light-accent dark:after:bg-dark-accent after:bottom-0 
       after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:transition-all after:duration-300;
   }
 
   .nav-link {
-    @apply relative text-sm font-medium uppercase tracking-wider transition-colors duration-300;
+    @apply relative text-sm font-medium uppercase tracking-wider transition-colors duration-300
+      text-light-secondary dark:text-dark-secondary hover:text-light-accent dark:hover:text-dark-accent;
   }
 
   .nav-link-active {
@@ -88,29 +141,58 @@
 
   .nav-link-indicator {
     @apply absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-light-accent 
-      to-light-primary dark:from-dark-accent dark:to-dark-primary;
+      to-light-accent-secondary dark:from-dark-accent dark:to-dark-accent-secondary;
   }
 
   .glass-card {
-    @apply bg-white/20 dark:bg-black/20 backdrop-blur-md border 
-      border-white/30 dark:border-black/30 rounded-lg shadow-sm 
-      transition-all duration-300;
+    @apply bg-light-surface dark:bg-dark-surface backdrop-blur-md border 
+      border-light-border-light dark:border-dark-border-light rounded-lg shadow-sm 
+      transition-all duration-300 hover:bg-light-surface-hover dark:hover:bg-dark-surface-hover;
+  }
+
+  .card-elevated {
+    @apply bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border 
+      rounded-lg shadow-md hover:shadow-lg transition-all duration-300
+      hover:border-blue-400 dark:hover:border-red-400;
   }
 
   .highlight-text {
-    @apply inline-block px-2 py-1 rounded bg-gray-200/40 dark:bg-gray-800/40 
-      text-light-primary dark:text-dark-primary font-medium;
+    @apply inline-block px-2 py-1 rounded bg-light-bg-secondary dark:bg-dark-bg-secondary 
+      text-light-primary dark:text-dark-primary font-medium
+      border border-light-border-light dark:border-dark-border-light;
   }
 
   .badge {
-    @apply inline-flex items-center px-3 py-1 rounded-full bg-gray-200/50 
-      dark:bg-gray-800/50 backdrop-blur-md text-light-primary 
-      dark:text-dark-primary text-sm font-medium;
+    @apply inline-flex items-center px-3 py-1 rounded-full bg-light-bg-tertiary 
+      dark:bg-dark-bg-tertiary backdrop-blur-md text-light-primary 
+      dark:text-dark-primary text-sm font-medium
+      border border-light-border-light dark:border-dark-border-light;
+  }
+
+  .badge-success {
+    @apply bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400
+      border-green-200 dark:border-green-700;
+  }
+
+  .badge-warning {
+    @apply bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400
+      border-yellow-200 dark:border-yellow-700;
+  }
+
+  .badge-error {
+    @apply bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400
+      border-red-200 dark:border-red-700;
+  }
+
+  .badge-info {
+    @apply bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400
+      border-blue-200 dark:border-blue-700;
   }
 }
 
 .nav-scrolled {
-  @apply bg-white/80 dark:bg-black/80 backdrop-blur-md shadow-md;
+  @apply bg-light-surface dark:bg-dark-surface backdrop-blur-md shadow-md
+    border-b border-light-border-light dark:border-dark-border-light;
 }
 
 .fixed {
@@ -118,20 +200,26 @@
 }
 
 .text-gradient {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-light-primary via-light-secondary to-light-accent 
-    dark:from-dark-primary dark:via-dark-secondary dark:to-dark-accent;
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-light-accent via-light-accent-secondary to-light-accent-tertiary 
+    dark:from-dark-accent dark:via-dark-accent-secondary dark:to-dark-accent-tertiary;
+}
+
+.text-gradient-subtle {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-light-primary via-light-secondary to-light-tertiary 
+    dark:from-dark-primary dark:via-dark-secondary dark:to-dark-tertiary;
 }
 
 .bg-dots {
   background-image: radial-gradient(circle, currentColor 1px, transparent 1px);
   background-size: 30px 30px;
+  @apply text-gray-400/20 dark:text-gray-600/20;
 }
 
 .bg-grid {
   background-size: 40px 40px;
   background-image: linear-gradient(to right, currentColor 1px, transparent 1px),
     linear-gradient(to bottom, currentColor 1px, transparent 1px);
-  @apply text-gray-200/5 dark:text-gray-700/10;
+  @apply text-gray-400/10 dark:text-gray-600/10;
 }
 
 .bg-gradient-radial {

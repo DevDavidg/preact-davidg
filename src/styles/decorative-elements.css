@@ -14,16 +14,16 @@
   left: 85%;
   width: 120px;
   height: 120px;
-  background-color: #555555;
-  opacity: 0.05;
+  background-color: var(--color-tertiary);
+  opacity: 0.08;
   transform: translateX(-50%) rotate(45deg);
   clip-path: polygon(50% 10%, 10% 90%, 90% 90%);
   transition: opacity 0.3s ease;
 }
 
 .dark .triangle-divider::before {
-  background-color: #aaaaaa;
-  opacity: 0.03;
+  background-color: var(--color-accent);
+  opacity: 0.06;
 }
 
 .wave-divider {
@@ -40,13 +40,13 @@
   position: absolute;
   width: 100%;
   height: 100%;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z' fill='%23333333' opacity='0.08'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z' fill='%230984E3' opacity='0.12'/%3E%3C/svg%3E");
   background-size: cover;
   background-position: center;
 }
 
 .dark .wave-divider::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z' fill='%23999999' opacity='0.05'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z' fill='%23D84040' opacity='0.08'/%3E%3C/svg%3E");
 }
 
 .dot-pattern {
@@ -55,15 +55,15 @@
   height: 300px;
   background-image: radial-gradient(circle, currentColor 1px, transparent 2px);
   background-size: 20px 20px;
-  opacity: 0.05;
+  opacity: 0.08;
   z-index: 1;
   pointer-events: none;
 }
 
 .light-theme .dot-pattern {
-  color: #333333;
+  color: var(--color-accent);
 }
 
 .dark .dot-pattern {
-  color: #999999;
+  color: var(--color-accent-secondary);
 }
