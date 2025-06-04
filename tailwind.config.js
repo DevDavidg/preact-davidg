@@ -80,124 +80,30 @@ export default {
     "border-light-border-light",
     "dark:border-dark-border-light",
 
-    // Ring classes for focus states
-    "focus:ring-light-accent/50",
-    "dark:focus:ring-dark-accent/50",
-    "focus:ring-light-accent-secondary/50",
-    "dark:focus:ring-dark-accent-secondary/50",
-    "focus:ring-light-accent/30",
-    "dark:focus:ring-dark-accent/30",
-    "focus:ring-light-accent-secondary/30",
-    "dark:focus:ring-dark-accent-secondary/30",
-
-    // Hover border classes
-    "hover:border-light-accent/30",
-    "dark:hover:border-dark-accent/30",
-    "hover:border-light-accent/40",
-    "dark:hover:border-dark-accent/40",
-    "hover:border-light-accent/50",
-    "dark:hover:border-dark-accent/50",
-
     // Background variations
-    "bg-light-bg-secondary/10",
-    "dark:bg-dark-bg-secondary/10",
-    "bg-light-bg-secondary/20",
-    "dark:bg-dark-bg-secondary/20",
-    "bg-light-bg-secondary/30",
-    "dark:bg-dark-bg-secondary/30",
-    "bg-light-bg-secondary/40",
-    "dark:bg-dark-bg-secondary/40",
+    // Kept /50 and /70 variants for bg-secondary based on original plan, removed others
     "bg-light-bg-secondary/50",
     "dark:bg-dark-bg-secondary/50",
     "bg-light-bg-secondary/70",
     "dark:bg-dark-bg-secondary/70",
-    "bg-light-bg-secondary/80",
-    "dark:bg-dark-bg-secondary/80",
-    "bg-light-bg-secondary/90",
-    "dark:bg-dark-bg-secondary/90",
 
-    "bg-light-bg-tertiary/10",
-    "dark:bg-dark-bg-tertiary/10",
-    "bg-light-bg-tertiary/20",
-    "dark:bg-dark-bg-tertiary/20",
-    "bg-light-bg-tertiary/30",
-    "dark:bg-dark-bg-tertiary/30",
-    "bg-light-bg-tertiary/40",
-    "dark:bg-dark-bg-tertiary/40",
+    // Kept /50 variant for bg-tertiary, removed others
     "bg-light-bg-tertiary/50",
     "dark:bg-dark-bg-tertiary/50",
 
     // Accent color variations
-    "bg-light-accent/10",
-    "dark:bg-dark-accent/10",
-    "bg-light-accent/20",
-    "dark:bg-dark-accent/20",
-    "bg-light-accent/30",
-    "dark:bg-dark-accent/30",
-    "bg-light-accent/40",
-    "dark:bg-dark-accent/40",
+    // Kept /50 variant for accent colors, removed others
     "bg-light-accent/50",
     "dark:bg-dark-accent/50",
 
-    "bg-light-accent-secondary/10",
-    "dark:bg-dark-accent-secondary/10",
-    "bg-light-accent-secondary/20",
-    "dark:bg-dark-accent-secondary/20",
-    "bg-light-accent-secondary/30",
-    "dark:bg-dark-accent-secondary/30",
-    "bg-light-accent-secondary/40",
-    "dark:bg-dark-accent-secondary/40",
-
-    "bg-light-accent-tertiary/10",
-    "dark:bg-dark-accent-tertiary/10",
-    "bg-light-accent-tertiary/20",
-    "dark:bg-dark-accent-tertiary/20",
-    "bg-light-accent-tertiary/30",
-    "dark:bg-dark-accent-tertiary/30",
-    "bg-light-accent-tertiary/40",
-    "dark:bg-dark-accent-tertiary/40",
-
     // Text color variations
-    "text-light-secondary/50",
-    "dark:text-dark-secondary/50",
-    "text-light-secondary/70",
-    "dark:text-dark-secondary/70",
-    "text-light-secondary/90",
-    "dark:text-dark-secondary/90",
-
-    "text-light-tertiary/50",
-    "dark:text-dark-tertiary/50",
-    "text-light-tertiary/70",
-    "dark:text-dark-tertiary/70",
-    "text-light-tertiary/90",
-    "dark:text-dark-tertiary/90",
+    // Removed all opacity variants for secondary and tertiary text colors as they were not found or assumed not needed.
 
     // Border variations
-    "border-light-accent/20",
-    "dark:border-dark-accent/20",
-    "border-light-accent/30",
-    "dark:border-dark-accent/30",
-    "border-light-accent/40",
-    "dark:border-dark-accent/40",
+    // Removed all border opacity variations as they were not found or covered by hover rules.
 
     // Status colors
-    "bg-light-success/10",
-    "dark:bg-dark-success/10",
-    "bg-light-success/20",
-    "dark:bg-dark-success/20",
-    "bg-light-warning/10",
-    "dark:bg-dark-warning/10",
-    "bg-light-warning/20",
-    "dark:bg-dark-warning/20",
-    "bg-light-error/10",
-    "dark:bg-dark-error/10",
-    "bg-light-error/20",
-    "dark:bg-dark-error/20",
-    "bg-light-info/10",
-    "dark:bg-dark-info/10",
-    "bg-light-info/20",
-    "dark:bg-dark-info/20",
-
+    // Removed background opacity variations for status colors, kept solid text colors.
     "text-light-success",
     "dark:text-dark-success",
     "text-light-warning",

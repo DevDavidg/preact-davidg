@@ -1,3 +1,17 @@
 @import "./styles/globals.css";
 @import "./styles/loader.css";
 @import "./styles/PerformancePanel.css";
+
+.desktop-nav-link {
+  transition: transform 0.15s ease-out;
+}
+.desktop-nav-link:hover {
+  transform: scale(1.1);
+}
+
+.logo-link {
+  transition: transform 0.2s ease-out;
+}
+.logo-link:hover {
+  transform: scale(1.05) rotate(5deg);
+}

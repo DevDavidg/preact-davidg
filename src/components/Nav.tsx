@@ -1,6 +1,7 @@
 import { FunctionComponent, JSX } from "preact";
-import { useState, useEffect, useRef, useCallback } from "preact/hooks";
+import { useState, useEffect, useRef } from "preact/hooks"; // Removed useCallback if not needed later
 import clsx from "clsx";
+import { useTheme } from "../../hooks/useTheme"; // Import useTheme
 import {
   MotionA,
   MotionButton,
@@ -334,10 +335,10 @@ const MobileNavLink: FunctionComponent<{
 );
 
 const Nav: FunctionComponent = () => {
+  const { theme, toggleTheme } = useTheme(); // Use the hook
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeLink, setActiveLink] = useState("#home");
-  const [theme, setTheme] = useState("");
   const [isAnimationReady, setIsAnimationReady] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const prevScrollY = useRef<number>(0);
@@ -347,66 +348,81 @@ const Nav: FunctionComponent = () => {
     const timer = setTimeout(() => {
       setIsAnimationReady(true);
     }, 300);
-
     return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") ?? "dark";
-    setTheme(savedTheme);
-    document.documentElement.classList.toggle("dark", savedTheme === "dark");
+  // useEffect for theme initialization is removed, useTheme handles it.
+  // checkActiveSection is removed. IntersectionObserver will handle activeLink.
 
-    checkActiveSection();
-  }, []);
-
-  const checkActiveSection = useCallback(() => {
-    const sections = document.querySelectorAll("section[id]");
-    const scrollPosition = window.scrollY + 100;
-
-    if (scrollPosition < 100) {
-      setActiveLink("#home");
-      return;
-    }
-
-    sections.forEach((section) => {
-      const sectionTop = section.getBoundingClientRect().top + window.scrollY;
-      const sectionHeight = section.clientHeight;
-      const sectionId = section.getAttribute("id");
-
-      if (
-        sectionId &&
-        scrollPosition >= sectionTop &&
-        scrollPosition < sectionTop + sectionHeight
-      ) {
-        setActiveLink(`#${sectionId}`);
-      }
-    });
-  }, []);
+  const menuItems = [
+    { href: "#home", label: "Inicio" },
+    { href: "#about", label: "Acerca de" },
+    { href: "#projects", label: "Proyectos" },
+    { href: "#contact", label: "Contacto" },
+  ];
 
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-
       if (currentScrollY > prevScrollY.current) {
         setScrollDirection("down");
       } else {
         setScrollDirection("up");
       }
-
       setIsScrolled(currentScrollY > 50);
-
       prevScrollY.current = currentScrollY;
-
-      checkActiveSection();
+      // checkActiveSection() removed
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
+    handleScroll(); // Initial check
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []); // Removed checkActiveSection from dependencies
+
+  useEffect(() => {
+    const sectionIds = menuItems.map(item => item.href.substring(1));
+    const sections = sectionIds.map(id => document.getElementById(id)).filter(el => el !== null) as HTMLElement[];
+
+    if (sections.length === 0) return;
+
+    const observerCallback = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          setActiveLink(`#${entry.target.id}`);
+        }
+      });
+    };
+
+    const observerOptions = {
+      root: null,
+      threshold: 0.5,
+      // rootMargin: '0px 0px -40% 0px' // Example if needed later
+    };
+
+    const observer = new IntersectionObserver(observerCallback, observerOptions);
+    sections.forEach(section => {
+      if (section) observer.observe(section);
+    });
+
+    // Initial check for active section on load
+    const currentActiveSection = sections.find(section => {
+        const rect = section.getBoundingClientRect();
+        return rect.top <= window.innerHeight * 0.5 && rect.bottom >= window.innerHeight * 0.5;
+    });
+    if (currentActiveSection) {
+        setActiveLink(`#${currentActiveSection.id}`);
+    }
+
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
+      sections.forEach(section => {
+        if (section) observer.unobserve(section);
+      });
+      observer.disconnect();
     };
-  }, [checkActiveSection]);
+  }, []); // menuItems is static, so no dependency needed
+
 
   useEffect(() => {
     if (isMenuOpen) {
@@ -420,52 +436,46 @@ const Nav: FunctionComponent = () => {
     };
   }, [isMenuOpen]);
 
-  const handleLinkClick = useCallback(
-    (e: JSX.TargetedMouseEvent<HTMLAnchorElement>) => {
-      e.preventDefault();
-      const href = e.currentTarget.getAttribute("href");
-      if (href) {
-        setActiveLink(href);
-        setIsMenuOpen(false);
+  // Removed useCallback from handleLinkClick, toggleMenu, closeMenu for now,
+  // as their dependencies haven't changed and they are not passed to heavily memoized components
+  // where useCallback would make a significant difference. If performance issues arise,
+  // useCallback can be re-added selectively.
+  // The main toggleTheme is now from useTheme hook.
 
-        if (href.startsWith("#")) {
-          const element = document.querySelector(href);
-          if (element) {
-            setTimeout(() => {
-              element.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              });
-            }, 100);
-          } else {
-            console.log("Elemento no encontrado:", href);
-          }
-        } else if (href === "/") {
-          window.scrollTo({ top: 0, behavior: "smooth" });
+  const handleLinkClick = (e: JSX.TargetedMouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    const href = e.currentTarget.getAttribute("href");
+    if (href) {
+      setActiveLink(href);
+      setIsMenuOpen(false);
+
+      if (href.startsWith("#")) {
+        const element = document.querySelector(href);
+        if (element) {
+          setTimeout(() => {
+            element.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
+          }, 100);
         } else {
-          console.log("Navegación a:", href);
+          console.log("Elemento no encontrado:", href);
         }
+      } else if (href === "/") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        console.log("Navegación a:", href);
       }
-    },
-    []
-  );
+    }
+  };
 
-  const toggleTheme = useCallback(() => {
-    setTheme((prevTheme) => {
-      const newTheme = prevTheme === "dark" ? "light" : "dark";
-      document.documentElement.classList.toggle("dark", newTheme === "dark");
-      localStorage.setItem("theme", newTheme);
-      return newTheme;
-    });
-  }, []);
-
-  const toggleMenu = useCallback(() => {
+  const toggleMenu = () => {
     setIsMenuOpen((prev) => !prev);
-  }, []);
+  };
 
-  const closeMenu = useCallback(() => {
+  const closeMenu = () => {
     setIsMenuOpen(false);
-  }, []);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

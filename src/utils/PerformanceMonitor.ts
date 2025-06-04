@@ -95,7 +95,7 @@ export class PerformanceMonitor {
 
   private readonly componentRenderTimes: Map<string, number[]> = new Map();
   private lastComponentScan = 0;
-  private readonly componentCacheRefreshInterval = 5000;
+  private readonly componentCacheRefreshInterval = 10000; // Increased interval
 
   private constructor() {
     if (!ENV.PERFORMANCE_MONITOR_ENABLED) {
@@ -547,10 +547,10 @@ export class PerformanceMonitor {
         });
       });
 
-      const reactComponents = Array.from(
-        document.querySelectorAll("[data-reactroot], [data-reactid]")
-      );
-      allComponentElements.push(...reactComponents);
+      // const reactComponents = Array.from(
+      //   document.querySelectorAll("[data-reactroot], [data-reactid]")
+      // );
+      // allComponentElements.push(...reactComponents); // Legacy React attributes, likely not used by Preact
 
       if (allComponentElements.length === 0) return;
 

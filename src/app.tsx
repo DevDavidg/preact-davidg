@@ -7,7 +7,7 @@ import "./styles/globals.css";
 import "./styles/3d-effects.css";
 import "./styles/decorative-elements.css";
 
-import Projects from "./components/Proyects";
+import Projects from "./components/Projects";
 import AboutMe from "./components/AboutMe";
 import Contact from "./components/Contact";
 import { PerformancePanel } from "./components/PerformancePanel";
@@ -68,7 +68,7 @@ export const App: FunctionComponent = () => {
 
       if (noiseOverlay.current) {
         noiseOverlay.current.style.transform = "none";
-        noiseOverlay.current.style.willChange = "auto";
+        // noiseOverlay.current.style.willChange = "auto"; // Deemed redundant as transform is static and opacity is handled by transition
         noiseOverlay.current.style.zIndex = "1000";
         document.body.appendChild(noiseOverlay.current);
       }
