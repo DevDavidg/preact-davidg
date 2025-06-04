@@ -1,6 +1,7 @@
 import { FunctionComponent, JSX } from "preact";
 import { useState, useEffect, useRef } from "preact/hooks"; // Removed useCallback if not needed later
 import clsx from "clsx";
+import { useTheme } from "../../hooks/useTheme"; // Import useTheme
 import {
   MotionA,
   MotionButton,
@@ -18,7 +19,6 @@ import {
   slideUp,
   initialSlideUp,
 } from "../hooks/animations";
-import useTheme from "../hooks/useTheme";
 
 const springTransition = {
   type: "spring",
@@ -335,7 +335,7 @@ const MobileNavLink: FunctionComponent<{
 );
 
 const Nav: FunctionComponent = () => {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme(); // Use the hook
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeLink, setActiveLink] = useState("#home");
@@ -381,15 +381,13 @@ const Nav: FunctionComponent = () => {
   }, []); // Removed checkActiveSection from dependencies
 
   useEffect(() => {
-    const sectionIds = menuItems.map((item) => item.href.substring(1));
-    const sections = sectionIds
-      .map((id) => document.getElementById(id))
-      .filter((el) => el !== null) as HTMLElement[];
+    const sectionIds = menuItems.map(item => item.href.substring(1));
+    const sections = sectionIds.map(id => document.getElementById(id)).filter(el => el !== null) as HTMLElement[];
 
     if (sections.length === 0) return;
 
     const observerCallback = (entries: IntersectionObserverEntry[]) => {
-      entries.forEach((entry) => {
+      entries.forEach(entry => {
         if (entry.isIntersecting) {
           setActiveLink(`#${entry.target.id}`);
         }
@@ -402,33 +400,29 @@ const Nav: FunctionComponent = () => {
       // rootMargin: '0px 0px -40% 0px' // Example if needed later
     };
 
-    const observer = new IntersectionObserver(
-      observerCallback,
-      observerOptions
-    );
-    sections.forEach((section) => {
+    const observer = new IntersectionObserver(observerCallback, observerOptions);
+    sections.forEach(section => {
       if (section) observer.observe(section);
     });
 
     // Initial check for active section on load
-    const currentActiveSection = sections.find((section) => {
-      const rect = section.getBoundingClientRect();
-      return (
-        rect.top <= window.innerHeight * 0.5 &&
-        rect.bottom >= window.innerHeight * 0.5
-      );
+    const currentActiveSection = sections.find(section => {
+        const rect = section.getBoundingClientRect();
+        return rect.top <= window.innerHeight * 0.5 && rect.bottom >= window.innerHeight * 0.5;
     });
     if (currentActiveSection) {
-      setActiveLink(`#${currentActiveSection.id}`);
+        setActiveLink(`#${currentActiveSection.id}`);
     }
 
+
     return () => {
-      sections.forEach((section) => {
+      sections.forEach(section => {
         if (section) observer.unobserve(section);
       });
       observer.disconnect();
     };
   }, []); // menuItems is static, so no dependency needed
+
 
   useEffect(() => {
     if (isMenuOpen) {
