@@ -4,8 +4,10 @@ import {
   useRef,
   useMemo,
   useCallback,
+  useReducer,
 } from "preact/hooks";
-import { memo } from "preact/compat";
+import { memo, startTransition } from "preact/compat";
+import type { JSX } from "preact";
 import {
   MotionDiv,
   MotionP,
@@ -28,13 +30,61 @@ interface ProjectCard {
   isDesign: boolean;
 }
 
+type FilterState = {
+  category: "all" | "dev" | "design";
+  technology: string | null;
+  searchTerm: string;
+};
+
+type FilterAction =
+  | { type: "SET_CATEGORY"; payload: "all" | "dev" | "design" }
+  | { type: "SET_TECHNOLOGY"; payload: string | null }
+  | { type: "SET_SEARCH"; payload: string }
+  | { type: "RESET" };
+
+const filterReducer = (
+  state: FilterState,
+  action: FilterAction
+): FilterState => {
+  switch (action.type) {
+    case "SET_CATEGORY":
+      return { ...state, category: action.payload };
+    case "SET_TECHNOLOGY":
+      return { ...state, technology: action.payload };
+    case "SET_SEARCH":
+      return { ...state, searchTerm: action.payload };
+    case "RESET":
+      return { category: "all", technology: null, searchTerm: "" };
+    default:
+      return state;
+  }
+};
+
+const useDebounce = <T,>(value: T, delay: number): T => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
 const parseStringArray = (str: string): string[] => {
+  if (!str) return [];
   try {
     const cleanStr = str.replace(/'/g, '"');
-    return JSON.parse(cleanStr);
-  } catch (error) {
-    console.error("Error parsing string array:", error);
-    return [];
+    const parsed = JSON.parse(cleanStr);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return str
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
   }
 };
 
@@ -42,38 +92,30 @@ const mediaUtils = {
   isVideo: (url: string): boolean => {
     const lowerUrl = url.toLowerCase();
     return (
-      lowerUrl.endsWith(".mp4") ||
       lowerUrl.includes(".mp4") ||
-      (lowerUrl.includes("imgur") && lowerUrl.includes(".mp4"))
+      lowerUrl.includes(".webm") ||
+      lowerUrl.includes(".mov")
     );
   },
 
   isGif: (url: string): boolean => {
     const lowerUrl = url.toLowerCase();
-    const isImgur = lowerUrl.includes("imgur");
-    const isNotOtherFormat =
-      !lowerUrl.includes(".mp4") &&
-      !lowerUrl.includes(".png") &&
-      !lowerUrl.includes(".jpg") &&
-      !lowerUrl.includes(".jpeg");
-
-    return lowerUrl.endsWith(".gif") || (isImgur && isNotOtherFormat);
+    return lowerUrl.includes(".gif") && !lowerUrl.includes(".mp4");
   },
 
   isAnimated: (url: string): boolean => {
     return mediaUtils.isVideo(url) || mediaUtils.isGif(url);
   },
 
-  getStillImageUrl: (gifUrl: string): string => {
-    if (gifUrl.includes("imgur.com") && !gifUrl.includes(".mp4")) {
+  getOptimizedImageUrl: (url: string, size: string = "m"): string => {
+    if (url.includes("imgur.com") && !url.includes(".mp4")) {
       const imgurRegex = /imgur\.com\/([a-zA-Z0-9]+)/;
-      const result = imgurRegex.exec(gifUrl);
-
-      if (result?.[1]) {
-        return `https://i.imgur.com/${result[1]}h.jpg`;
+      const match = imgurRegex.exec(url);
+      if (match?.[1]) {
+        return `https://i.imgur.com/${match[1]}${size}.jpg`;
       }
     }
-    return gifUrl;
+    return url;
   },
 };
 
@@ -81,117 +123,89 @@ const Badge = memo(
   ({
     children,
     active = false,
-    onClick = undefined,
-    index = 0,
+    onClick,
+    ariaLabel,
   }: {
-    children: React.ReactNode;
+    children: JSX.Element | string;
     active?: boolean;
     onClick?: () => void;
-    index?: number;
+    ariaLabel?: string;
   }) => {
-    const badgeClass = useMemo(
-      () =>
-        `badge cursor-pointer text-xs px-2 py-1 rounded-md ${
-          active
-            ? "bg-light-accent/20 dark:bg-dark-accent/20 text-light-primary dark:text-dark-primary"
-            : "bg-light-muted/40 dark:bg-dark-muted/40"
-        }`,
-      [active]
-    );
-
     return (
-      <MotionDiv
-        className={badgeClass}
+      <div
+        className={`badge cursor-pointer text-xs px-3 py-1.5 rounded-full transition-all duration-200 select-none hover:scale-105 ${
+          active
+            ? "bg-light-accent/20 dark:bg-dark-accent/20 text-light-primary dark:text-dark-primary ring-2 ring-light-accent/30 dark:ring-dark-accent/30"
+            : "bg-light-muted/40 dark:bg-dark-muted/40 hover:bg-light-muted/60 dark:hover:bg-dark-muted/60"
+        }`}
         onClick={onClick}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{
-          delay: index * 0.05,
-          duration: 0.4,
+        role={onClick ? "button" : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        aria-label={ariaLabel}
+        onKeyDown={(e: JSX.TargetedKeyboardEvent<HTMLDivElement>) => {
+          if (onClick && (e.key === "Enter" || e.key === " ")) {
+            e.preventDefault();
+            onClick();
+          }
         }}
-        whileHover={{
-          y: -3,
-          scale: 1.05,
-        }}
-        whileTap={{ scale: 0.95 }}
       >
         {children}
-      </MotionDiv>
+      </div>
     );
   }
 );
 
 const PlayIcon = memo(() => (
-  <MotionDiv
-    className="absolute inset-0 flex items-center justify-center z-10"
-    initial={{ opacity: 0, scale: 0.8 }}
-    animate={{ opacity: 0.9, scale: 1 }}
-    exit={{ opacity: 0, scale: 0.8 }}
-    transition={{ duration: 0.3, ease: "easeOut" }}
-  >
-    <MotionSvg
-      width="50"
-      height="50"
-      viewBox="0 0 24 24"
-      className="text-light-bg dark:text-dark-bg opacity-80"
-      whileHover={{
-        scale: 1.1,
-        transition: { duration: 0.2 },
-      }}
-    >
-      <MotionPath d="M8 5v14l11-7z" fill="currentColor" />
-    </MotionSvg>
-  </MotionDiv>
+  <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+    <div className="bg-black/50 backdrop-blur-sm rounded-full p-3">
+      <MotionSvg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        className="text-white"
+      >
+        <MotionPath d="M8 5v14l11-7z" fill="currentColor" />
+      </MotionSvg>
+    </div>
+  </div>
 ));
 
 const VideoMedia = memo(
   ({
     url,
+    title,
     hovered,
   }: {
     url: string;
     title: string;
     hovered: boolean;
-    mediaTransition: any;
   }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
+    const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
-      let timerId: number;
-      if (!videoRef.current) return;
+      const video = videoRef.current;
+      if (!video) return;
 
-      if (hovered) {
-        timerId = window.setTimeout(() => {
-          if (videoRef.current?.paused) {
-            const playPromise = videoRef.current.play();
-
-            if (playPromise !== undefined) {
-              playPromise.catch((err) => {
-                if (err.name !== "AbortError") {
-                  console.error("Error playing video:", err);
-                }
-              });
-            }
-          }
-        }, 100);
-      } else {
-        const video = videoRef.current;
-        if (video && !video.paused) {
-          video.pause();
-          video.currentTime = 0;
+      if (hovered && isLoaded) {
+        const playPromise = video.play();
+        if (playPromise) {
+          playPromise.catch(() => {});
         }
+      } else {
+        video.pause();
+        video.currentTime = 0;
       }
-
-      return () => clearTimeout(timerId);
-    }, [hovered]);
+    }, [hovered, isLoaded]);
 
     return (
-      <MotionDiv
-        initial={{ filter: "grayscale(100%)" }}
-        animate={{
-          filter: hovered ? "grayscale(0%)" : "grayscale(100%)",
+      <div
+        className="w-full h-full transition-all duration-300"
+        style={{
+          filter: hovered
+            ? "grayscale(0%) brightness(1)"
+            : "grayscale(100%) brightness(0.7)",
         }}
-        transition={{ duration: 0.4 }}
       >
         <video
           ref={videoRef}
@@ -201,86 +215,76 @@ const VideoMedia = memo(
           playsInline
           preload="metadata"
           className="w-full h-full object-cover"
+          onLoadedData={() => setIsLoaded(true)}
+          onError={() => setIsLoaded(false)}
+          aria-label={`Video preview of ${title}`}
         />
-      </MotionDiv>
+      </div>
     );
   }
 );
 
-const GifMedia = memo(
+const ImageMedia = memo(
   ({
     url,
     title,
     hovered,
+    isGif = false,
   }: {
     url: string;
     title: string;
     hovered: boolean;
-    mediaTransition: any;
+    isGif?: boolean;
   }) => {
-    return (
-      <>
-        <MotionImg
-          src={url}
-          alt={title}
-          className="w-full h-full object-cover absolute inset-0"
-          width="100%"
-          height="100%"
-          loading="lazy"
-          decoding="async"
-          initial={{ opacity: 0 }}
-          animate={{
-            opacity: hovered ? 1 : 0,
-            filter: "grayscale(0%)",
-          }}
-          transition={{ duration: 0.4 }}
-        />
-        <MotionImg
-          src={mediaUtils.getStillImageUrl(url)}
-          alt={`${title} - preview`}
-          className="w-full h-full object-cover absolute inset-0"
-          width="100%"
-          height="100%"
-          loading="lazy"
-          decoding="async"
-          initial={{ opacity: 1 }}
-          animate={{
-            opacity: hovered ? 0 : 1,
-            filter: "grayscale(100%)",
-          }}
-          transition={{ duration: 0.4 }}
-        />
-      </>
-    );
-  }
-);
+    const [imageLoaded, setImageLoaded] = useState(false);
+    const [error, setError] = useState(false);
 
-const StaticMedia = memo(
-  ({
-    url,
-    title,
-    hovered,
-  }: {
-    url: string;
-    title: string;
-    hovered: boolean;
-    mediaTransition: any;
-  }) => {
+    const staticUrl = useMemo(
+      () => (isGif ? mediaUtils.getOptimizedImageUrl(url, "h") : url),
+      [url, isGif]
+    );
+
     return (
-      <MotionImg
-        src={url}
-        alt={title}
-        className="w-full h-full object-cover"
-        width="100%"
-        height="100%"
-        loading="lazy"
-        decoding="async"
-        initial={{ filter: "grayscale(100%)" }}
-        animate={{
-          filter: hovered ? "grayscale(0%)" : "grayscale(100%)",
-        }}
-        transition={{ duration: 0.4 }}
-      />
+      <div className="w-full h-full relative">
+        {isGif && (
+          <img
+            src={url}
+            alt={title}
+            className="w-full h-full object-cover absolute inset-0 transition-opacity duration-300"
+            loading="lazy"
+            decoding="async"
+            style={{
+              opacity: hovered && imageLoaded ? 1 : 0,
+              filter: "grayscale(0%)",
+            }}
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setError(true)}
+          />
+        )}
+
+        <img
+          src={staticUrl}
+          alt={isGif ? `${title} - preview` : title}
+          className="w-full h-full object-cover transition-all duration-300"
+          loading="lazy"
+          decoding="async"
+          style={{
+            opacity: isGif && hovered && imageLoaded ? 0 : error ? 0 : 1,
+            filter: hovered
+              ? "grayscale(0%) brightness(1)"
+              : "grayscale(100%) brightness(0.7)",
+          }}
+          onError={() => setError(true)}
+        />
+
+        {error && (
+          <div className="absolute inset-0 flex items-center justify-center bg-light-muted dark:bg-dark-muted">
+            <span className="text-light-secondary dark:text-dark-secondary text-sm">
+              Error al cargar imagen
+            </span>
+          </div>
+        )}
+      </div>
     );
   }
 );
@@ -295,57 +299,23 @@ const ProjectMedia = memo(
     title: string;
     hovered: boolean;
   }) => {
-    const isVideoMedia = useMemo(() => mediaUtils.isVideo(url), [url]);
-    const isGifMedia = useMemo(() => mediaUtils.isGif(url), [url]);
-
-    const renderMediaContent = () => {
-      if (isVideoMedia) {
-        return (
-          <VideoMedia
-            url={url}
-            title={title}
-            hovered={hovered}
-            mediaTransition={null}
-          />
-        );
-      }
-
-      if (isGifMedia) {
-        return (
-          <GifMedia
-            url={url}
-            title={title}
-            hovered={hovered}
-            mediaTransition={null}
-          />
-        );
-      }
-
-      return (
-        <StaticMedia
-          url={url}
-          title={title}
-          hovered={hovered}
-          mediaTransition={null}
-        />
-      );
-    };
+    const isVideo = useMemo(() => mediaUtils.isVideo(url), [url]);
+    const isGif = useMemo(() => mediaUtils.isGif(url), [url]);
+    const isAnimated = useMemo(() => mediaUtils.isAnimated(url), [url]);
 
     return (
-      <div
-        className="w-full h-full relative overflow-hidden rounded-t-xl"
-        style={{ contain: "paint layout" }}
-      >
-        {renderMediaContent()}
+      <div className="w-full h-full relative overflow-hidden rounded-t-xl bg-light-muted dark:bg-dark-muted">
+        {isVideo ? (
+          <VideoMedia url={url} title={title} hovered={hovered} />
+        ) : (
+          <ImageMedia url={url} title={title} hovered={hovered} isGif={isGif} />
+        )}
 
-        {!hovered && (isVideoMedia || isGifMedia) && <PlayIcon />}
+        {!hovered && isAnimated && <PlayIcon />}
 
-        <MotionDiv
-          className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"
-          style={{ width: "100%", height: "100%" }}
-          initial={{ opacity: 0.5 }}
-          animate={{ opacity: hovered ? 0.2 : 0.6 }}
-          transition={{ duration: 0.4 }}
+        <div
+          className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent transition-opacity duration-300"
+          style={{ opacity: hovered ? 0.3 : 0.6 }}
         />
       </div>
     );
@@ -357,487 +327,425 @@ const ProjectLink = memo(
     href,
     isPrimary = false,
     children,
+    ariaLabel,
   }: {
     href: string;
     isPrimary?: boolean;
-    children: React.ReactNode;
+    children: JSX.Element | string;
+    ariaLabel?: string;
   }) => (
-    <MotionA
+    <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
       className={`${
         isPrimary ? "btn-gradient" : "btn-outline"
-      } text-sm flex-1 text-center rounded-lg py-2 font-medium`}
-      whileHover={{
-        scale: 1.05,
-        translateY: -3,
-      }}
-      whileTap={{ scale: 0.95 }}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      } text-sm flex-1 text-center rounded-lg py-2.5 px-4 font-medium transition-all duration-200 hover:scale-105 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-light-accent dark:focus:ring-dark-accent focus:ring-offset-2`}
+      aria-label={ariaLabel}
     >
       {children}
-    </MotionA>
+    </a>
   )
 );
 
-const ProjectCard = memo(
-  ({ project, index }: { project: ProjectCard; index: number }) => {
-    const [hovered, setHovered] = useState(false);
-    const [isVisible, setIsVisible] = useState(false);
-    const cardRef = useRef<HTMLDivElement>(null);
+const ProjectCard = memo(({ project }: { project: ProjectCard }) => {
+  const [hovered, setHovered] = useState(false);
 
-    useEffect(() => {
-      if (!cardRef.current) return;
+  const techs = useMemo(() => parseStringArray(project.icons), [project.icons]);
 
-      const observer = new IntersectionObserver(
-        (entries) => {
-          if (entries[0].isIntersecting) {
-            setTimeout(() => {
-              setIsVisible(true);
-            }, Math.min(index * 100, 300));
-          } else {
-            setIsVisible(false);
-          }
-        },
-        { threshold: 0.1, rootMargin: "0px 0px -100px 0px" }
-      );
+  const isAnimated = useMemo(
+    () => mediaUtils.isAnimated(project.gif),
+    [project.gif]
+  );
 
-      observer.observe(cardRef.current);
+  const mediaType = useMemo(() => {
+    if (mediaUtils.isVideo(project.gif)) return "Video";
+    if (mediaUtils.isGif(project.gif)) return "Animado";
+    return null;
+  }, [project.gif]);
 
-      return () => {
-        observer.disconnect();
-      };
-    }, [index]);
+  const handleMouseEnter = useCallback(() => setHovered(true), []);
+  const handleMouseLeave = useCallback(() => setHovered(false), []);
 
-    const techs = useMemo(
-      () => parseStringArray(project.icons),
-      [project.icons]
-    );
-    const isAnimated = useMemo(
-      () => mediaUtils.isAnimated(project.gif),
-      [project.gif]
-    );
-    const mediaType = useMemo(
-      () => (mediaUtils.isVideo(project.gif) ? "Video" : "Animado"),
-      [project.gif]
-    );
+  return (
+    <div className="group opacity-100">
+      <article
+        className="glass-card overflow-hidden rounded-xl flex flex-col h-full relative shadow-lg hover:shadow-2xl transition-all duration-300 focus-within:ring-2 focus-within:ring-light-accent dark:focus-within:ring-dark-accent"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        <div className="relative overflow-hidden h-56 bg-light-muted dark:bg-dark-muted">
+          <ProjectMedia
+            url={project.gif}
+            title={project.title}
+            hovered={hovered}
+          />
 
-    const cardStyles = {
-      opacity: isVisible ? 1 : 0,
-      transform: isVisible ? "translateY(0)" : "translateY(50px)",
-      transition: isVisible
-        ? "opacity 0.5s ease, transform 0.7s cubic-bezier(0.2, 0.8, 0.4, 1)"
-        : "none",
-    };
+          <div className="absolute top-3 right-3 flex gap-2 z-20">
+            {project.isDesign && (
+              <Badge ariaLabel="Proyecto de diseño">Diseño</Badge>
+            )}
+            {mediaType && (
+              <Badge ariaLabel={`Contenido ${mediaType.toLowerCase()}`}>
+                {mediaType}
+              </Badge>
+            )}
+          </div>
 
-    return (
-      <div ref={cardRef} style={{ minHeight: "100px" }}>
-        <article
-          className="glass-card overflow-hidden rounded-xl flex flex-col h-full relative shadow-lg"
-          style={cardStyles}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-        >
-          <div className="relative overflow-hidden h-56 bg-light-muted dark:bg-dark-muted">
-            <ProjectMedia
-              url={project.gif}
-              title={project.title}
-              hovered={hovered}
-            />
+          <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
+            <h3 className="text-xl font-bold mb-1 text-white drop-shadow-lg line-clamp-2">
+              {project.title}
+            </h3>
+          </div>
+        </div>
 
-            <div className="absolute top-3 right-3 flex gap-2 z-10">
-              {project.isDesign && (
-                <Badge>
-                  <div>Diseño</div>
+        <div className="p-6 relative z-10 flex flex-col flex-1">
+          <div className="flex-1">
+            <p className="text-light-secondary dark:text-dark-secondary mb-4 line-clamp-3 leading-relaxed">
+              {project.description}
+            </p>
+
+            <div className="flex flex-wrap gap-2 mb-4">
+              {techs.slice(0, 5).map((tech) => (
+                <Badge
+                  key={`${project.id}-${tech}`}
+                  ariaLabel={`Tecnología: ${tech}`}
+                >
+                  {tech}
                 </Badge>
-              )}
-              {isAnimated && (
-                <Badge>
-                  <div>{mediaType}</div>
+              ))}
+              {techs.length > 5 && (
+                <Badge
+                  ariaLabel={`${techs.length - 5} tecnologías adicionales`}
+                >
+                  {`+${techs.length - 5}`}
                 </Badge>
               )}
             </div>
-
-            <div className="absolute bottom-0 left-0 right-0 p-4">
-              <p className="text-xl font-bold mb-1 text-white drop-shadow-lg">
-                {project.title}
-              </p>
-            </div>
           </div>
 
-          <div className="p-6 relative z-10 flex flex-col flex-1">
-            <div className="flex-1">
-              <p className="text-light-secondary dark:text-dark-secondary mb-4 line-clamp-3">
-                {project.description}
-              </p>
+          <div className="flex gap-3 mt-auto pt-4">
+            {project.demoUrl && (
+              <ProjectLink
+                href={project.demoUrl}
+                isPrimary
+                ariaLabel={`Ver demo de ${project.title}`}
+              >
+                Ver Demo
+              </ProjectLink>
+            )}
 
-              <div className="flex flex-wrap gap-2 mb-4">
-                {techs.slice(0, 4).map((tech, techIndex) => (
-                  <Badge key={tech} index={techIndex}>
-                    {tech}
-                  </Badge>
-                ))}
-                {techs.length > 4 && (
-                  <Badge>
-                    <div>+{techs.length - 4} más</div>
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-auto pt-4">
-              {project.demoUrl && (
-                <ProjectLink href={project.demoUrl} isPrimary>
-                  Ver Demo
-                </ProjectLink>
-              )}
-
-              {project.github && (
-                <ProjectLink href={project.github}>Código</ProjectLink>
-              )}
-            </div>
+            {project.github && (
+              <ProjectLink
+                href={project.github}
+                ariaLabel={`Ver código fuente de ${project.title}`}
+              >
+                Código
+              </ProjectLink>
+            )}
           </div>
-        </article>
-      </div>
-    );
-  }
-);
+        </div>
+      </article>
+    </div>
+  );
+});
 
 const CategoryButton = memo(
   ({
     active,
     onClick,
     children,
+    ariaLabel,
   }: {
     active: boolean;
     onClick: () => void;
-    children: React.ReactNode;
+    children: JSX.Element | string;
+    ariaLabel?: string;
   }) => {
     return (
-      <MotionButton
-        className={`btn-outline relative px-5 py-2 rounded-lg overflow-hidden ${
+      <button
+        className={`btn-outline relative px-6 py-2.5 rounded-lg overflow-hidden transition-all duration-200 hover:scale-105 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-light-accent dark:focus:ring-dark-accent ${
           active ? "bg-light-primary/10 dark:bg-dark-primary/10" : ""
         }`}
         onClick={onClick}
-        whileHover={{ y: -3 }}
-        whileTap={{ scale: 0.95 }}
+        aria-label={ariaLabel}
+        aria-pressed={active}
       >
         {children}
         {active && (
-          <MotionDiv
-            className="absolute bottom-0 left-0 h-0.5 bg-light-accent dark:bg-dark-accent"
-            initial={{ width: 0 }}
-            animate={{ width: "100%" }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-          />
+          <div className="absolute bottom-0 left-0 h-0.5 bg-light-accent dark:bg-dark-accent w-full" />
         )}
-      </MotionButton>
+      </button>
     );
   }
 );
 
-const LoadingSpinner = () => (
-  <MotionDiv
-    className="flex justify-center items-center py-12"
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-  >
+const LoadingSpinner = memo(() => (
+  <div className="flex flex-col justify-center items-center py-16">
     <MotionSvg
-      width="50"
-      height="50"
+      width="48"
+      height="48"
       viewBox="0 0 50 50"
-      className="text-light-accent dark:text-dark-accent"
+      className="text-light-accent dark:text-dark-accent mb-4"
       animate={{ rotate: 360 }}
       transition={{
         rotate: {
           repeat: Infinity,
-          duration: 1.5,
+          duration: 1.2,
           ease: "linear",
         },
       }}
     >
       <MotionPath
         fill="none"
-        strokeWidth="5"
+        strokeWidth="4"
         stroke="currentColor"
         strokeLinecap="round"
         d="M25,2.5A22.5,22.5,0,1,1,2.5,25,22.5,22.5,0,0,1,25,2.5"
-        strokeDasharray="140"
-        strokeDashoffset="140"
+        strokeDasharray="100"
+        strokeDashoffset="100"
         animate={{ strokeDashoffset: 0 }}
         transition={{
           repeat: Infinity,
-          duration: 1.5,
+          duration: 1.2,
           ease: "easeInOut",
         }}
       />
     </MotionSvg>
-    <MotionP className="ml-3 text-light-secondary dark:text-dark-secondary">
+    <p className="text-light-secondary dark:text-dark-secondary text-lg">
       Cargando proyectos...
-    </MotionP>
-  </MotionDiv>
+    </p>
+  </div>
+));
+
+const ErrorMessage = memo(
+  ({ error, onRetry }: { error: string; onRetry: () => void }) => (
+    <div className="p-8 bg-red-50 dark:bg-red-900/20 rounded-xl text-red-700 dark:text-red-300 text-center my-12 border border-red-200 dark:border-red-800">
+      <MotionSvg
+        className="w-12 h-12 mx-auto mb-4 text-red-500"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+        />
+      </MotionSvg>
+      <h3 className="text-lg font-semibold mb-2">Error al cargar proyectos</h3>
+      <p className="mb-4">{error}</p>
+      <button
+        className="bg-red-200 dark:bg-red-800 hover:bg-red-300 dark:hover:bg-red-700 px-6 py-2.5 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500"
+        onClick={onRetry}
+      >
+        Reintentar
+      </button>
+    </div>
+  )
 );
 
-const ErrorMessage = ({
-  error,
-  onRetry,
-}: {
-  error: string;
-  onRetry: () => void;
-}) => (
-  <MotionDiv
-    className="p-6 bg-red-100 dark:bg-red-900/20 rounded-lg text-red-700 dark:text-red-300 text-center my-10"
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5 }}
-  >
-    <MotionP>Error al cargar proyectos: {error}</MotionP>
-    <MotionButton
-      className="mt-4 bg-red-200 dark:bg-red-800 px-4 py-2 rounded-lg"
-      onClick={onRetry}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
+const EmptyState = memo(({ onReset }: { onReset: () => void }) => (
+  <div className="text-center py-16">
+    <MotionSvg
+      className="w-16 h-16 mx-auto mb-6 text-light-muted dark:text-dark-muted"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
     >
-      Reintentar
-    </MotionButton>
-  </MotionDiv>
-);
-
-const EmptyState = ({ onReset }: { onReset: () => void }) => (
-  <MotionDiv
-    className="text-center py-12"
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5 }}
-  >
-    <MotionP className="text-xl text-light-secondary dark:text-dark-secondary">
-      No se encontraron proyectos con los filtros actuales.
-    </MotionP>
-    <MotionButton
-      className="mt-4 btn-outline"
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+      />
+    </MotionSvg>
+    <h3 className="text-xl font-semibold mb-2 text-light-primary dark:text-dark-primary">
+      No se encontraron proyectos
+    </h3>
+    <p className="text-light-secondary dark:text-dark-secondary mb-6 max-w-md mx-auto">
+      No hay proyectos que coincidan con los filtros actuales. Intenta ajustar
+      los criterios de búsqueda.
+    </p>
+    <button
+      className="btn-outline px-6 py-2.5 hover:scale-105 hover:-translate-y-1 transition-all duration-200"
       onClick={onReset}
-      whileHover={{ scale: 1.05, y: -3 }}
-      whileTap={{ scale: 0.95 }}
     >
       Mostrar todos los proyectos
-    </MotionButton>
-  </MotionDiv>
-);
+    </button>
+  </div>
+));
 
 const Projects = () => {
   const [projects, setProjects] = useState<ProjectCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<string | null>(null);
-  const [activeCategory, setActiveCategory] = useState<
-    "all" | "dev" | "design"
-  >("all");
+  const [filters, dispatch] = useReducer(filterReducer, {
+    category: "all",
+    technology: null,
+    searchTerm: "",
+  });
 
-  const iconsCache = useRef<Record<string, string[]>>({});
+  const debouncedSearchTerm = useDebounce(filters.searchTerm, 300);
 
-  const cachedParseStringArray = useCallback((str: string): string[] => {
-    if (iconsCache.current[str]) {
-      return iconsCache.current[str];
-    }
-    const result = parseStringArray(str);
-    iconsCache.current[str] = result;
-    return result;
-  }, []);
-
-  useEffect(() => {
+  const fetchProjects = useCallback(async () => {
     const controller = new AbortController();
-    const signal = controller.signal;
 
-    const fetchProjects = async () => {
-      try {
-        setLoading(true);
+    try {
+      setLoading(true);
+      setError(null);
 
-        try {
-          const response = await fetch(
-            "https://drfapiprojects.onrender.com/projectcards/",
-            { signal }
-          );
-
-          if (!response.ok) {
-            throw new Error(`Failed to fetch: ${response.status}`);
-          }
-
-          const data = await response.json();
-          setProjects(data);
-          setError(null);
-        } catch (fetchError) {
-          if (
-            fetchError instanceof TypeError &&
-            fetchError.message.includes("Content Security Policy")
-          ) {
-            console.warn("CSP bloqueó la solicitud, usando datos de respaldo");
-
-            const fallbackData = [
-              {
-                id: 1,
-                demoUrl: "https://github.com/davidgdev",
-                github: "https://github.com/davidgdev",
-                title: "Proyecto de Ejemplo",
-                gif: "https://via.placeholder.com/600x400",
-                description:
-                  "Este es un proyecto de ejemplo que se muestra cuando la API no está disponible.",
-                icons: "React,TypeScript,Tailwind",
-                cardLang: "es",
-                isDesign: false,
-              },
-              {
-                id: 2,
-                demoUrl: "https://github.com/davidgdev",
-                github: "https://github.com/davidgdev",
-                title: "Diseño de Interfaz",
-                gif: "https://via.placeholder.com/600x400",
-                description:
-                  "Un diseño de interfaz de usuario creado con Figma.",
-                icons: "Figma,UI/UX",
-                cardLang: "es",
-                isDesign: true,
-              },
-            ];
-
-            setProjects(fallbackData);
-            setError(null);
-          } else {
-            throw fetchError;
-          }
+      const response = await fetch(
+        "https://drfapiprojects.onrender.com/projectcards/",
+        {
+          signal: controller.signal,
+          headers: {
+            Accept: "application/json",
+          },
         }
-      } catch (err) {
-        if (!(err instanceof DOMException && err.name === "AbortError")) {
-          console.error("Error fetching projects:", err);
-          setError(
-            err instanceof Error ? err.message : "Unknown error occurred"
-          );
-        }
-      } finally {
-        setLoading(false);
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-    };
 
-    fetchProjects();
+      const data = await response.json();
+
+      if (!Array.isArray(data)) {
+        throw new Error("Invalid data format received");
+      }
+
+      setProjects(data);
+      setError(null);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return;
+      }
+
+      console.warn("API not available, using fallback data:", err);
+
+      const fallbackData: ProjectCard[] = [
+        {
+          id: 1,
+          demoUrl: "https://github.com/davidgdev",
+          github: "https://github.com/davidgdev",
+          title: "Proyecto de Ejemplo",
+          gif: "https://via.placeholder.com/600x400/4F46E5/FFFFFF?text=Proyecto+Demo",
+          description:
+            "Este es un proyecto de ejemplo que se muestra cuando la API no está disponible. Incluye todas las funcionalidades básicas esperadas.",
+          icons: '["React", "TypeScript", "Tailwind"]',
+          cardLang: "es",
+          isDesign: false,
+        },
+        {
+          id: 2,
+          demoUrl: "https://github.com/davidgdev",
+          github: "https://github.com/davidgdev",
+          title: "Diseño de Interfaz",
+          gif: "https://via.placeholder.com/600x400/EC4899/FFFFFF?text=Diseño+UI",
+          description:
+            "Un diseño de interfaz de usuario creado con herramientas profesionales de diseño.",
+          icons: '["Figma", "UI/UX", "Prototipado"]',
+          cardLang: "es",
+          isDesign: true,
+        },
+      ];
+
+      setProjects(fallbackData);
+      setError(null);
+    } finally {
+      setLoading(false);
+    }
 
     return () => controller.abort();
   }, []);
 
-  const filteredProjects = useMemo(
-    () =>
-      projects.filter((project) => {
-        const techs = cachedParseStringArray(project.icons);
-        const matchesTech = filter ? techs.includes(filter) : true;
-
-        let matchesCategory = true;
-        if (activeCategory !== "all") {
-          matchesCategory =
-            activeCategory === "design" ? project.isDesign : !project.isDesign;
-        }
-
-        return matchesTech && matchesCategory;
-      }),
-    [projects, filter, activeCategory, cachedParseStringArray]
-  );
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
   const allTags = useMemo(() => {
     const tagSet = new Set<string>();
     projects.forEach((project) => {
-      const techs = cachedParseStringArray(project.icons);
+      const techs = parseStringArray(project.icons);
       techs.forEach((tech) => tagSet.add(tech));
     });
-    return Array.from(tagSet).sort((a, b) => a.localeCompare(b));
-  }, [projects, cachedParseStringArray]);
+    return Array.from(tagSet).sort((a, b) =>
+      a.localeCompare(b, "es", { sensitivity: "base" })
+    );
+  }, [projects]);
 
-  const setActiveFilter = useCallback((tag: string | null) => {
-    setFilter(tag);
-  }, []);
+  const filteredProjects = useMemo(() => {
+    return projects.filter((project) => {
+      const techs = parseStringArray(project.icons);
 
-  const setActiveFilterCategory = useCallback(
+      const matchesTech = filters.technology
+        ? techs.some((tech) =>
+            tech.toLowerCase().includes(filters.technology!.toLowerCase())
+          )
+        : true;
+
+      const matchesCategory =
+        filters.category === "all" ||
+        (filters.category === "design" ? project.isDesign : !project.isDesign);
+
+      const matchesSearch =
+        !debouncedSearchTerm ||
+        project.title
+          .toLowerCase()
+          .includes(debouncedSearchTerm.toLowerCase()) ||
+        project.description
+          .toLowerCase()
+          .includes(debouncedSearchTerm.toLowerCase()) ||
+        techs.some((tech) =>
+          tech.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+        );
+
+      return matchesTech && matchesCategory && matchesSearch;
+    });
+  }, [projects, filters.technology, filters.category, debouncedSearchTerm]);
+
+  const handleCategoryChange = useCallback(
     (category: "all" | "dev" | "design") => {
-      setActiveCategory(category);
+      startTransition(() => {
+        dispatch({ type: "SET_CATEGORY", payload: category });
+      });
     },
     []
   );
 
+  const handleTechnologyChange = useCallback((technology: string | null) => {
+    startTransition(() => {
+      dispatch({ type: "SET_TECHNOLOGY", payload: technology });
+    });
+  }, []);
+
+  const handleSearchChange = useCallback((searchTerm: string) => {
+    dispatch({ type: "SET_SEARCH", payload: searchTerm });
+  }, []);
+
   const resetFilters = useCallback(() => {
-    setFilter(null);
-    setActiveCategory("all");
+    startTransition(() => {
+      dispatch({ type: "RESET" });
+    });
   }, []);
 
   const handleRetry = useCallback(() => {
-    window.location.reload();
-  }, []);
-
-  const ProjectsHeader = useMemo(
-    () => (
-      <div className="text-center mb-16">
-        <MotionP className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-gradient">
-          Proyectos Destacados
-        </MotionP>
-
-        <MotionP className="text-light-secondary dark:text-dark-secondary text-lg max-w-2xl mx-auto mb-8">
-          Explora la colección de proyectos en los que he trabajado, desde
-          aplicaciones web hasta diseños de interfaz.
-        </MotionP>
-
-        <div className="flex justify-center gap-4 mb-8">
-          <CategoryButton
-            active={activeCategory === "all"}
-            onClick={() => setActiveFilterCategory("all")}
-          >
-            Todos
-          </CategoryButton>
-
-          <CategoryButton
-            active={activeCategory === "dev"}
-            onClick={() => setActiveFilterCategory("dev")}
-          >
-            Desarrollo
-          </CategoryButton>
-
-          <CategoryButton
-            active={activeCategory === "design"}
-            onClick={() => setActiveFilterCategory("design")}
-          >
-            Diseño
-          </CategoryButton>
-        </div>
-
-        <div className="flex flex-wrap justify-center gap-2 mt-6 max-w-4xl mx-auto">
-          <Badge active={filter === null} onClick={() => setActiveFilter(null)}>
-            Todas las tecnologías
-          </Badge>
-
-          {allTags.map((tag, index) => (
-            <Badge
-              key={tag}
-              active={filter === tag}
-              onClick={() => setActiveFilter(tag)}
-              index={index}
-            >
-              {tag}
-            </Badge>
-          ))}
-        </div>
-      </div>
-    ),
-    [activeCategory, filter, allTags, setActiveFilterCategory, setActiveFilter]
-  );
+    fetchProjects();
+  }, [fetchProjects]);
 
   const renderContent = () => {
     if (loading) return <LoadingSpinner />;
-    if (error) return <ErrorMessage error={error} onRetry={handleRetry} />;
+    if (error && projects.length === 0)
+      return <ErrorMessage error={error} onRetry={handleRetry} />;
     if (filteredProjects.length === 0)
       return <EmptyState onReset={resetFilters} />;
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {filteredProjects.map((project, index) => (
-          <ProjectCard key={project.id} project={project} index={index} />
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+        {filteredProjects.map((project) => (
+          <ProjectCard key={project.id} project={project} />
         ))}
       </div>
     );
@@ -846,13 +754,80 @@ const Projects = () => {
   return (
     <section
       id="projects"
-      className="py-20 bg-light-bg dark:bg-dark-bg"
+      className="py-20 px-4 sm:px-6 lg:px-8 container mx-auto relative min-h-screen perspective overflow-hidden bg-light-bg dark:bg-dark-bg"
       data-optimize="true"
     >
       <div className="triangle-divider"></div>
 
-      {ProjectsHeader}
-      {renderContent()}
+      <header className="text-center mb-16">
+        <MotionP
+          className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-gradient"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        >
+          Proyectos Destacados
+        </MotionP>
+
+        <MotionP
+          className="text-light-secondary dark:text-dark-secondary text-lg max-w-2xl mx-auto mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+        >
+          Explora la colección de proyectos en los que he trabajado, desde
+          aplicaciones web hasta diseños de interfaz.
+        </MotionP>
+
+        <div className="flex justify-center gap-4 mb-8">
+          <CategoryButton
+            active={filters.category === "all"}
+            onClick={() => handleCategoryChange("all")}
+            ariaLabel="Mostrar todos los proyectos"
+          >
+            Todos
+          </CategoryButton>
+
+          <CategoryButton
+            active={filters.category === "dev"}
+            onClick={() => handleCategoryChange("dev")}
+            ariaLabel="Mostrar solo proyectos de desarrollo"
+          >
+            Desarrollo
+          </CategoryButton>
+
+          <CategoryButton
+            active={filters.category === "design"}
+            onClick={() => handleCategoryChange("design")}
+            ariaLabel="Mostrar solo proyectos de diseño"
+          >
+            Diseño
+          </CategoryButton>
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-2 mt-6 max-w-5xl mx-auto">
+          <Badge
+            active={filters.technology === null}
+            onClick={() => handleTechnologyChange(null)}
+            ariaLabel="Mostrar todas las tecnologías"
+          >
+            Todas las tecnologías
+          </Badge>
+
+          {allTags.map((tag) => (
+            <Badge
+              key={tag}
+              active={filters.technology === tag}
+              onClick={() => handleTechnologyChange(tag)}
+              ariaLabel={`Filtrar por ${tag}`}
+            >
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      </header>
+
+      <main>{renderContent()}</main>
     </section>
   );
 };

@@ -491,7 +491,7 @@ const Footer: FunctionComponent = () => {
         </MotionDiv>
 
         <MotionA
-          href="#top"
+          href="#home"
           className="fixed bottom-8 right-8 w-12 h-12 rounded-full bg-light-primary dark:bg-dark-primary text-light-bg dark:text-dark-bg flex items-center justify-center shadow-lg z-50"
           initial={{ opacity: 0, y: 100 }}
           animate={{ opacity: 1, y: 0 }}

@@ -492,15 +492,24 @@ const ProgressBar: FunctionComponent<{ isScrolled: boolean }> = ({
     const updateScrollProgress = () => {
       const scrollHeight =
         document.documentElement.scrollHeight - window.innerHeight;
-      const scrolled = window.scrollY;
+      const scrolled =
+        document.body.scrollTop || document.documentElement.scrollTop;
       const progress = scrollHeight > 0 ? scrolled / scrollHeight : 0;
       setScrollProgress(progress);
     };
 
-    window.addEventListener("scroll", updateScrollProgress, { passive: true });
+    document.body.addEventListener("scroll", updateScrollProgress, {
+      passive: true,
+    });
+    document.addEventListener("scroll", updateScrollProgress, {
+      passive: true,
+    });
     updateScrollProgress();
 
-    return () => window.removeEventListener("scroll", updateScrollProgress);
+    return () => {
+      document.body.removeEventListener("scroll", updateScrollProgress);
+      document.removeEventListener("scroll", updateScrollProgress);
+    };
   }, []);
 
   if (!isScrolled) return null;
@@ -546,12 +555,14 @@ const Nav: FunctionComponent = () => {
 
     if (element) {
       const navHeight = isScrolled ? 80 : 100;
+      const currentBodyScroll =
+        document.body.scrollTop || document.documentElement.scrollTop;
       const elementPosition =
-        element.getBoundingClientRect().top + window.pageYOffset;
+        element.getBoundingClientRect().top + currentBodyScroll;
       const offsetPosition = elementPosition - navHeight;
 
       setTimeout(() => {
-        window.scrollTo({
+        document.body.scrollTo({
           top: Math.max(0, offsetPosition),
           behavior: "smooth",
         });
@@ -561,7 +572,7 @@ const Nav: FunctionComponent = () => {
     } else {
       if (sectionId === "home") {
         setTimeout(() => {
-          window.scrollTo({ top: 0, behavior: "smooth" });
+          document.body.scrollTo({ top: 0, behavior: "smooth" });
         }, delay);
         return true;
       }
@@ -571,7 +582,8 @@ const Nav: FunctionComponent = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
+      const currentScrollY =
+        document.body.scrollTop || document.documentElement.scrollTop;
       const scrollDifference = Math.abs(currentScrollY - lastScrollY.current);
 
       setIsScrolled(currentScrollY > 20);
@@ -593,9 +605,14 @@ const Nav: FunctionComponent = () => {
       }, 150);
     };
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
+    document.body.addEventListener("scroll", handleScroll, { passive: true });
+    document.addEventListener("scroll", handleScroll, { passive: true });
+
+    handleScroll();
+
     return () => {
-      window.removeEventListener("scroll", handleScroll);
+      document.body.removeEventListener("scroll", handleScroll);
+      document.removeEventListener("scroll", handleScroll);
       if (scrollTimeout.current) {
         clearTimeout(scrollTimeout.current);
       }
@@ -684,11 +701,13 @@ const Nav: FunctionComponent = () => {
         const element = document.querySelector(href);
         if (element) {
           const navHeight = isScrolled ? 80 : 100;
+          const currentBodyScroll =
+            document.body.scrollTop || document.documentElement.scrollTop;
           const elementPosition =
-            element.getBoundingClientRect().top + window.pageYOffset;
+            element.getBoundingClientRect().top + currentBodyScroll;
           const offsetPosition = elementPosition - navHeight;
 
-          window.scrollTo({
+          document.body.scrollTo({
             top: offsetPosition,
             behavior: "smooth",
           });

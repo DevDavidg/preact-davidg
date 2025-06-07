@@ -794,7 +794,7 @@ const Hero = () => {
         </MotionDiv>
       </div>
 
-      <div className="container relative z-10 px-4 md:px-6">
+      <div className="container relative z-10 px-4 md:px-6 pt-28">
         <MotionDiv
           ref={(el: HTMLDivElement | null) => {
             contentRef.current = el;
