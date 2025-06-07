@@ -8,15 +8,7 @@ import {
 } from "preact/hooks";
 import { memo, startTransition } from "preact/compat";
 import type { JSX } from "preact";
-import {
-  MotionDiv,
-  MotionP,
-  MotionA,
-  MotionImg,
-  MotionSvg,
-  MotionPath,
-  MotionButton,
-} from "../utils/motion-components";
+import { MotionP, MotionSvg, MotionPath } from "../utils/motion-components";
 
 interface ProjectCard {
   id: number;
@@ -352,11 +344,6 @@ const ProjectCard = memo(({ project }: { project: ProjectCard }) => {
   const [hovered, setHovered] = useState(false);
 
   const techs = useMemo(() => parseStringArray(project.icons), [project.icons]);
-
-  const isAnimated = useMemo(
-    () => mediaUtils.isAnimated(project.gif),
-    [project.gif]
-  );
 
   const mediaType = useMemo(() => {
     if (mediaUtils.isVideo(project.gif)) return "Video";
@@ -719,10 +706,6 @@ const Projects = () => {
     startTransition(() => {
       dispatch({ type: "SET_TECHNOLOGY", payload: technology });
     });
-  }, []);
-
-  const handleSearchChange = useCallback((searchTerm: string) => {
-    dispatch({ type: "SET_SEARCH", payload: searchTerm });
   }, []);
 
   const resetFilters = useCallback(() => {

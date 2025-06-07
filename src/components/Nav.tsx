@@ -16,12 +16,6 @@ import {
 import { fadeIn, initialFadeIn } from "../hooks/animations";
 import useTheme from "../hooks/useTheme";
 
-const springTransition = {
-  type: "spring",
-  stiffness: 400,
-  damping: 25,
-};
-
 const fastSpring = {
   type: "spring",
   stiffness: 600,
@@ -881,33 +875,12 @@ const Nav: FunctionComponent = () => {
               />
 
               <MotionDiv
-                className="flex flex-col space-y-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1, duration: 0.4 }}
-              >
-                <MotionSpan className="text-sm text-light-muted dark:text-dark-muted font-medium">
-                  Cambiar tema
-                </MotionSpan>
-                <div className="flex justify-center">
-                  <ThemeToggle
-                    theme={theme}
-                    toggleTheme={toggleTheme}
-                    isScrolled={false}
-                  />
-                </div>
-              </MotionDiv>
-
-              <MotionDiv
                 className="absolute bottom-8 left-8 right-8"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.2, duration: 0.4 }}
               >
                 <MotionDiv className="text-center">
-                  <MotionSpan className="text-xs text-light-muted dark:text-dark-muted">
-                    © 2024 Portfolio
-                  </MotionSpan>
                   <MotionDiv
                     className="mt-2 h-1 bg-gradient-to-r from-light-accent/20 via-light-accent to-light-accent/20 dark:from-dark-accent/20 dark:via-dark-accent dark:to-dark-accent/20 rounded-full"
                     animate={{
