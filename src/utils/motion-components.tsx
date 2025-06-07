@@ -1,32 +1,55 @@
-import { createElement, FunctionComponent } from "preact"; // Import FunctionComponent
-import { motion, HTMLMotionProps as FramerHTMLMotionProps } from "framer-motion"; // Rename base import
+import { createElement, FunctionComponent } from "preact";
+import { motion, HTMLMotionProps, SVGMotionProps } from "framer-motion";
 
-// Global type declarations (ensure these are appropriate for your usage)
-declare global {
-  interface HTMLElementTagNameMap {
-    svg: SVGElement;
-    path: SVGPathElement;
-    // Consider adding other SVG elements if you create motion components for them (e.g., g, circle)
-  }
-}
+// HTML element types
+type HTMLElements = keyof HTMLElementTagNameMap;
+type SVGElements = keyof SVGElementTagNameMap;
 
-// Type alias for Framer Motion's HTML props for a given HTML tag
-type HTMLMotionProps<TagName extends keyof HTMLElementTagNameMap> = FramerHTMLMotionProps<TagName>;
+// Union type for all motion elements
+type MotionElements = HTMLElements | SVGElements;
 
-// Updated createMotionComponent function
-function createMotionComponent<TagName extends keyof HTMLElementTagNameMap>(
-  type: TagName
-): FunctionComponent<HTMLMotionProps<TagName>> {
-  const MotionTarget = motion[type]; // motion[type] should resolve, e.g. motion.div
-                                     // which is already a Preact component by Framer Motion
+// Type guard to check if element is SVG
+const isSVGElement = (type: MotionElements): type is SVGElements => {
+  return [
+    "svg",
+    "path",
+    "circle",
+    "rect",
+    "line",
+    "polygon",
+    "polyline",
+    "ellipse",
+    "g",
+    "defs",
+    "use",
+    "text",
+    "tspan",
+  ].includes(type as string);
+};
 
-  // Return a new functional component that correctly types its props
-  return (props: HTMLMotionProps<TagName>) => {
-    return createElement(MotionTarget, props);
+// Generic motion props type
+type MotionProps<T extends MotionElements> = T extends SVGElements
+  ? SVGMotionProps<SVGElementTagNameMap[T]>
+  : T extends HTMLElements
+  ? HTMLMotionProps<T>
+  : never;
+
+// Updated createMotionComponent function with proper typing
+function createMotionComponent<T extends MotionElements>(
+  type: T
+): FunctionComponent<MotionProps<T>> {
+  return (props: MotionProps<T>) => {
+    if (isSVGElement(type)) {
+      const SVGMotionTarget = motion[type as keyof typeof motion];
+      return createElement(SVGMotionTarget, props as any);
+    } else {
+      const HTMLMotionTarget = motion[type as keyof typeof motion];
+      return createElement(HTMLMotionTarget, props as any);
+    }
   };
 }
 
-// Re-export your motion components
+// HTML Motion Components
 export const MotionDiv = createMotionComponent("div");
 export const MotionNav = createMotionComponent("nav");
 export const MotionHeader = createMotionComponent("header");
@@ -46,15 +69,22 @@ export const MotionH4 = createMotionComponent("h4");
 export const MotionH5 = createMotionComponent("h5");
 export const MotionH6 = createMotionComponent("h6");
 export const MotionImg = createMotionComponent("img");
-export const MotionSvg = createMotionComponent("svg" as any); // Cast to any for TagName, as it's for SVGElements
-export const MotionPath = createMotionComponent("path" as any); // Cast to any for TagName, as it's for SVGElements
 export const MotionArticle = createMotionComponent("article");
 export const MotionForm = createMotionComponent("form");
 export const MotionInput = createMotionComponent("input");
 export const MotionTextarea = createMotionComponent("textarea");
 
-// Optional: A generic prop type for consumers if needed
-// This type export should also be updated to reflect the new HTMLMotionProps definition
-export type MotionComponentProps<
-  TagName extends keyof HTMLElementTagNameMap = "div"
-> = HTMLMotionProps<TagName>;
+// SVG Motion Components
+export const MotionSvg = createMotionComponent("svg");
+export const MotionPath = createMotionComponent("path");
+export const MotionCircle = createMotionComponent("circle");
+export const MotionRect = createMotionComponent("rect");
+export const MotionLine = createMotionComponent("line");
+export const MotionPolygon = createMotionComponent("polygon");
+export const MotionPolyline = createMotionComponent("polyline");
+export const MotionEllipse = createMotionComponent("ellipse");
+export const MotionG = createMotionComponent("g");
+
+// Generic prop type for consumers
+export type MotionComponentProps<T extends MotionElements = "div"> =
+  MotionProps<T>;

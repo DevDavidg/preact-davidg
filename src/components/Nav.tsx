@@ -1,7 +1,6 @@
 import { FunctionComponent, JSX } from "preact";
-import { useState, useEffect, useRef } from "preact/hooks"; // Removed useCallback if not needed later
+import { useState, useEffect, useRef } from "preact/hooks";
 import clsx from "clsx";
-import { useTheme } from "../../hooks/useTheme"; // Import useTheme
 import {
   MotionA,
   MotionButton,
@@ -12,33 +11,43 @@ import {
   MotionSpan,
   MotionSvg,
   MotionHeader,
+  MotionPath,
 } from "../utils/motion-components";
-import {
-  fadeIn,
-  initialFadeIn,
-  slideUp,
-  initialSlideUp,
-} from "../hooks/animations";
+import { fadeIn, initialFadeIn } from "../hooks/animations";
+import useTheme from "../hooks/useTheme";
 
 const springTransition = {
   type: "spring",
-  stiffness: 300,
-  damping: 20,
+  stiffness: 400,
+  damping: 25,
 };
 
-const scrollTransition = {
+const fastSpring = {
+  type: "spring",
+  stiffness: 600,
+  damping: 30,
+};
+
+const smoothTransition = {
   type: "tween",
-  duration: 0.4,
-  ease: [0.25, 0.1, 0.25, 1],
+  duration: 0.3,
+  ease: [0.4, 0, 0.2, 1],
 };
 
 const bubbleBounce = {
-  scale: [1, 1.05, 0.95, 1.02, 1],
+  scale: [1, 1.05, 0.98, 1.02, 1],
   transition: {
-    times: [0, 0.3, 0.6, 0.8, 1],
-    duration: 0.6,
+    times: [0, 0.2, 0.5, 0.8, 1],
+    duration: 0.4,
   },
 };
+
+const menuItems = [
+  { href: "#home", label: "Inicio" },
+  { href: "#about", label: "Acerca de" },
+  { href: "#projects", label: "Proyectos" },
+  { href: "#contact", label: "Contacto" },
+];
 
 const ThemeToggle: FunctionComponent<{
   theme: string;
@@ -50,35 +59,34 @@ const ThemeToggle: FunctionComponent<{
     animate={{
       ...fadeIn,
       scale: isScrolled ? 0.9 : 1,
-      transition: scrollTransition,
+      transition: smoothTransition,
     }}
     whileHover={{
       scale: 1.1,
+      rotate: 5,
       boxShadow:
         theme === "light"
-          ? "0 0 15px rgba(251, 191, 36, 0.8), 0 0 30px rgba(251, 191, 36, 0.4)"
-          : "0 0 15px rgba(124, 58, 237, 0.8), 0 0 30px rgba(124, 58, 237, 0.4)",
+          ? "0 0 20px rgba(251, 191, 36, 0.8), 0 0 40px rgba(251, 191, 36, 0.4)"
+          : "0 0 20px rgba(124, 58, 237, 0.8), 0 0 40px rgba(124, 58, 237, 0.4)",
       transition: { duration: 0.2 },
     }}
     whileTap={{
       scale: 0.9,
-      boxShadow:
-        theme === "light"
-          ? "0 0 8px rgba(251, 191, 36, 0.5)"
-          : "0 0 8px rgba(124, 58, 237, 0.5)",
+      rotate: -5,
+      transition: { duration: 0.1 },
     }}
     onClick={toggleTheme}
     className={clsx(
-      "p-3 rounded-full backdrop-blur-lg shadow-lg relative overflow-hidden",
+      "p-3 rounded-full backdrop-blur-xl shadow-lg relative overflow-hidden border",
       theme === "light"
-        ? "bg-amber-100/90 text-amber-600 shadow-amber-200/50"
-        : "bg-violet-900/90 text-violet-200 shadow-violet-500/30"
+        ? "bg-amber-50/95 text-amber-600 shadow-amber-200/50 border-amber-200/30"
+        : "bg-violet-950/95 text-violet-200 shadow-violet-500/30 border-violet-500/20"
     )}
     style={{
       boxShadow:
         theme === "light"
-          ? "0 0 10px rgba(251, 191, 36, 0.4), 0 0 20px rgba(251, 191, 36, 0.2)"
-          : "0 0 10px rgba(124, 58, 237, 0.4), 0 0 20px rgba(124, 58, 237, 0.2)",
+          ? "0 4px 20px rgba(251, 191, 36, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.5)"
+          : "0 4px 20px rgba(124, 58, 237, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
     }}
     aria-label={
       theme === "light" ? "Switch to dark mode" : "Switch to light mode"
@@ -95,12 +103,12 @@ const ThemeToggle: FunctionComponent<{
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        initial={{ opacity: 0, rotate: -45, scale: 0.7 }}
+        initial={{ opacity: 0, rotate: -90, scale: 0.5 }}
         animate={{
           opacity: 1,
           rotate: 0,
-          scale: [0.7, 1.2, 1],
-          transition: { duration: 0.5, times: [0, 0.5, 1] },
+          scale: [0.5, 1.3, 1],
+          transition: { duration: 0.6, times: [0, 0.6, 1] },
         }}
       >
         <circle cx="12" cy="12" r="5"></circle>
@@ -124,12 +132,12 @@ const ThemeToggle: FunctionComponent<{
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        initial={{ opacity: 0, rotate: 45, scale: 0.7 }}
+        initial={{ opacity: 0, rotate: 90, scale: 0.5 }}
         animate={{
           opacity: 1,
           rotate: 0,
-          scale: [0.7, 1.2, 1],
-          transition: { duration: 0.5, times: [0, 0.5, 1] },
+          scale: [0.5, 1.3, 1],
+          transition: { duration: 0.6, times: [0, 0.6, 1] },
         }}
       >
         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -137,19 +145,20 @@ const ThemeToggle: FunctionComponent<{
     )}
     <MotionSpan
       className={clsx(
-        "absolute inset-0 pointer-events-none",
+        "absolute inset-0 pointer-events-none rounded-full",
         theme === "light"
-          ? "bg-gradient-radial from-amber-400/20 via-amber-300/15 to-transparent"
-          : "bg-gradient-radial from-violet-500/20 via-violet-400/15 to-transparent"
+          ? "bg-gradient-radial from-amber-400/30 via-amber-300/20 to-transparent"
+          : "bg-gradient-radial from-violet-500/30 via-violet-400/20 to-transparent"
       )}
       animate={{
-        opacity: theme === "light" ? [0.2, 0.4, 0.2] : [0.15, 0.3, 0.15],
+        opacity: theme === "light" ? [0.3, 0.6, 0.3] : [0.2, 0.4, 0.2],
         scale: [1, 1.1, 1],
+        rotate: [0, 180, 360],
       }}
       transition={{
-        duration: 4,
+        duration: 6,
         repeat: Infinity,
-        repeatType: "reverse",
+        ease: "linear",
       }}
     />
   </MotionButton>
@@ -162,10 +171,10 @@ const MobileMenuButton: FunctionComponent<{
 }> = ({ isOpen, onClick, isScrolled }) => (
   <MotionButton
     className={clsx(
-      "md:hidden p-3 rounded-full backdrop-blur-md shadow-lg",
+      "md:hidden p-3 rounded-full backdrop-blur-xl shadow-lg border relative overflow-hidden",
       isOpen
-        ? "bg-red-100/80 text-red-600 dark:bg-red-900/40 dark:text-red-200"
-        : "bg-light-bg/80 dark:bg-dark-bg/40 text-light-primary dark:text-dark-primary"
+        ? "bg-red-50/95 text-red-600 dark:bg-red-950/95 dark:text-red-300 border-red-200/30 dark:border-red-500/20"
+        : "bg-light-bg/95 dark:bg-dark-bg/95 text-light-primary dark:text-dark-primary border-gray-200/30 dark:border-gray-700/30"
     )}
     onClick={() => {
       onClick();
@@ -176,13 +185,20 @@ const MobileMenuButton: FunctionComponent<{
     animate={{
       ...fadeIn,
       scale: isScrolled ? 0.9 : 1,
-      transition: scrollTransition,
+      transition: smoothTransition,
     }}
     whileHover={{
       scale: 1.05,
-      boxShadow: "0 0 12px rgba(var(--color-accent-rgb), 0.5)",
+      rotate: isOpen ? -5 : 5,
+      boxShadow: isOpen
+        ? "0 0 15px rgba(239, 68, 68, 0.5)"
+        : "0 0 15px rgba(var(--color-accent-rgb), 0.5)",
+      transition: { duration: 0.2 },
     }}
-    whileTap={bubbleBounce}
+    whileTap={{
+      scale: 0.95,
+      transition: { duration: 0.1 },
+    }}
     aria-label={isOpen ? "Close menu" : "Open menu"}
     aria-expanded={isOpen}
   >
@@ -193,80 +209,181 @@ const MobileMenuButton: FunctionComponent<{
       viewBox="0 0 24 24"
       stroke="currentColor"
       animate={{
-        rotate: isOpen ? 90 : 0,
-        transition: springTransition,
+        rotate: isOpen ? 180 : 0,
+        transition: fastSpring,
       }}
     >
       {isOpen ? (
-        <path
+        <MotionPath
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={2}
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ duration: 0.3 }}
           d="M6 18L18 6M6 6l12 12"
         />
       ) : (
-        <path
+        <MotionPath
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={2}
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ duration: 0.3 }}
           d="M4 6h16M4 12h16M4 18h16"
         />
       )}
     </MotionSvg>
+    <MotionSpan
+      className="absolute inset-0 rounded-full opacity-0"
+      animate={{
+        opacity: isOpen ? [0, 0.3, 0] : 0,
+        scale: isOpen ? [0.8, 1.2, 0.8] : 1,
+      }}
+      transition={{
+        duration: 1,
+        repeat: isOpen ? Infinity : 0,
+      }}
+      style={{
+        background: isOpen
+          ? "radial-gradient(circle, rgba(239, 68, 68, 0.3) 0%, transparent 70%)"
+          : "none",
+      }}
+    />
   </MotionButton>
 );
 
 const LogoComponent: FunctionComponent<{
   isScrolled: boolean;
-}> = ({ isScrolled }) => (
+  setActiveLink: (link: string) => void;
+  scrollToSection: (sectionId: string, isFromMenu?: boolean) => boolean;
+}> = ({ isScrolled, setActiveLink, scrollToSection }) => (
   <MotionA
     href="#home"
-    className="text-2xl font-bold relative z-10 flex items-center"
+    className="text-2xl font-bold relative z-10 flex items-center group"
     initial={initialFadeIn}
     animate={{
       ...fadeIn,
       scale: isScrolled ? 0.95 : 1,
-      transition: scrollTransition,
+      transition: smoothTransition,
     }}
     whileHover={{
       scale: isScrolled ? 1.05 : 1.03,
-      textShadow: "0 0 8px rgba(var(--color-accent-rgb), 0.6)",
+      transition: fastSpring,
     }}
     whileTap={bubbleBounce}
     onClick={(e: JSX.TargetedMouseEvent<HTMLAnchorElement>) => {
       e.preventDefault();
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      setActiveLink("#home");
+      scrollToSection("home");
     }}
   >
     <MotionSpan
-      className="text-transparent bg-clip-text bg-gradient-to-r from-light-accent to-light-primary dark:from-dark-accent dark:to-dark-primary"
+      className="text-transparent bg-clip-text bg-gradient-to-r from-light-accent via-light-primary to-light-accent dark:from-dark-accent dark:via-dark-primary dark:to-dark-accent"
       animate={{
-        textShadow: [
-          "0 0 2px rgba(var(--color-accent-rgb), 0.3)",
-          "0 0 5px rgba(var(--color-accent-rgb), 0.5)",
-          "0 0 2px rgba(var(--color-accent-rgb), 0.3)",
-        ],
-        transition: {
-          duration: 2.5,
-          repeat: Infinity,
-          repeatType: "reverse",
-        },
+        backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+      }}
+      transition={{
+        duration: 3,
+        repeat: Infinity,
+        ease: "linear",
+      }}
+      style={{
+        backgroundSize: "200% 200%",
+        textShadow: "0 0 8px rgba(var(--color-accent-rgb), 0.3)",
       }}
     >
       Portfolio
     </MotionSpan>
     <MotionSpan
-      initial={{ opacity: 0, width: 0 }}
+      initial={{ opacity: 0, width: 0, x: -10 }}
       animate={{
         opacity: 1,
         width: "auto",
+        x: 0,
       }}
-      transition={{ delay: 0.3, duration: 0.3 }}
-      className="ml-1 text-light-muted dark:text-dark-muted text-sm"
+      transition={{ delay: 0.3, duration: 0.4, type: "spring" }}
+      className="ml-2 text-light-muted dark:text-dark-muted text-lg font-mono group-hover:text-light-accent dark:group-hover:text-dark-accent transition-colors duration-300"
     >
       &lt;/&gt;
     </MotionSpan>
+    <MotionSpan
+      className="absolute -inset-2 bg-gradient-to-r from-light-accent/0 via-light-accent/10 to-light-accent/0 dark:from-dark-accent/0 dark:via-dark-accent/10 dark:to-dark-accent/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+      animate={{
+        scale: [1, 1.05, 1],
+      }}
+      transition={{
+        duration: 2,
+        repeat: Infinity,
+        ease: "easeInOut",
+      }}
+    />
   </MotionA>
+);
+
+const NavLink: FunctionComponent<{
+  href: string;
+  isActive: boolean;
+  onClick: (e: JSX.TargetedMouseEvent<HTMLAnchorElement>) => void;
+  children: JSX.Element | string | (JSX.Element | string)[];
+  index: number;
+}> = ({ href, isActive, onClick, children, index }) => (
+  <MotionLi className="relative group">
+    <MotionA
+      href={href}
+      className={clsx(
+        "relative px-4 py-2 text-sm font-medium uppercase tracking-wider transition-all duration-300 inline-block rounded-lg",
+        isActive
+          ? "text-light-accent dark:text-dark-accent"
+          : "text-light-primary dark:text-dark-primary hover:text-light-accent dark:hover:text-dark-accent"
+      )}
+      initial={{ opacity: 0, y: -10 }}
+      animate={{
+        opacity: 1,
+        y: 0,
+        transition: { delay: index * 0.1, duration: 0.3 },
+      }}
+      whileHover={{
+        scale: 1.05,
+        y: -2,
+        textShadow: "0 0 12px rgba(var(--color-accent-rgb), 0.6)",
+        transition: fastSpring,
+      }}
+      whileTap={{
+        scale: 0.95,
+        y: 0,
+        transition: { duration: 0.1 },
+      }}
+      onClick={onClick}
+    >
+      {children}
+      <MotionSpan
+        className="absolute inset-0 bg-gradient-to-r from-light-accent/0 via-light-accent/10 to-light-accent/0 dark:from-dark-accent/0 dark:via-dark-accent/10 dark:to-dark-accent/0 rounded-lg opacity-0 group-hover:opacity-100"
+        initial={{ scale: 0.8 }}
+        whileHover={{ scale: 1 }}
+        transition={{ duration: 0.2 }}
+      />
+      {isActive && (
+        <MotionSpan
+          className="absolute bottom-0 left-1/2 h-1 bg-gradient-to-r from-light-accent to-light-primary dark:from-dark-accent dark:to-dark-primary rounded-full"
+          initial={{ width: 0, x: "-50%" }}
+          animate={{
+            width: "80%",
+            boxShadow: [
+              "0 0 5px rgba(var(--color-accent-rgb), 0.5)",
+              "0 0 15px rgba(var(--color-accent-rgb), 0.8)",
+              "0 0 5px rgba(var(--color-accent-rgb), 0.5)",
+            ],
+          }}
+          transition={{
+            width: { duration: 0.3, type: "spring", stiffness: 300 },
+            boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+          }}
+        />
+      )}
+    </MotionA>
+  </MotionLi>
 );
 
 const MobileNavLink: FunctionComponent<{
@@ -277,56 +394,75 @@ const MobileNavLink: FunctionComponent<{
   children: JSX.Element | string | (JSX.Element | string)[];
 }> = ({ href, isActive, onClick, index, children }) => (
   <MotionLi
-    custom={index}
-    initial={initialSlideUp}
-    animate={slideUp}
-    transition={{
-      delay: index * 0.05,
+    initial={{ opacity: 0, x: 50, scale: 0.9 }}
+    animate={{
+      opacity: 1,
+      x: 0,
+      scale: 1,
+      transition: {
+        delay: index * 0.1,
+        duration: 0.4,
+        type: "spring",
+        stiffness: 300,
+      },
+    }}
+    exit={{
+      opacity: 0,
+      x: 50,
+      scale: 0.9,
+      transition: { duration: 0.2 },
     }}
   >
     <MotionA
       href={href}
       className={clsx(
-        "text-xl font-medium uppercase tracking-wider block text-center p-3 relative",
+        "text-xl font-medium uppercase tracking-wider block text-left p-4 relative rounded-xl border-l-4 group",
         isActive
-          ? "text-light-accent dark:text-dark-accent"
-          : "text-light-primary dark:text-dark-primary"
+          ? "text-light-accent dark:text-dark-accent bg-light-accent/5 dark:bg-dark-accent/5 border-light-accent dark:border-dark-accent"
+          : "text-light-primary dark:text-dark-primary border-transparent hover:border-light-accent/50 dark:hover:border-dark-accent/50 hover:bg-light-accent/5 dark:hover:bg-dark-accent/5"
       )}
-      onClick={(e: JSX.TargetedMouseEvent<HTMLAnchorElement>) => {
-        onClick(e);
-        e.currentTarget.animate(
-          [
-            { transform: "scale(1)" },
-            { transform: "scale(1.1)" },
-            { transform: "scale(0.95)" },
-            { transform: "scale(1.02)" },
-            { transform: "scale(1)" },
-          ],
-          { duration: 400, easing: "ease-in-out" }
-        );
-      }}
+      onClick={onClick}
       whileHover={{
-        scale: 1.05,
-        textShadow: "0 0 8px rgba(var(--color-accent-rgb), 0.6)",
+        x: 8,
+        backgroundColor: isActive
+          ? "rgba(var(--color-accent-rgb), 0.1)"
+          : "rgba(var(--color-accent-rgb), 0.05)",
         transition: { duration: 0.2 },
       }}
-      whileTap={bubbleBounce}
+      whileTap={{
+        scale: 0.98,
+        x: 4,
+        transition: { duration: 0.1 },
+      }}
     >
-      {children}
+      <MotionSpan className="relative z-10">{children}</MotionSpan>
+      <MotionSpan
+        className="absolute right-4 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100"
+        initial={{ x: -10 }}
+        whileHover={{ x: 0 }}
+        transition={{ duration: 0.2 }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M8.59 16.58L13.17 12L8.59 7.41L10 6L16 12L10 18L8.59 16.58Z" />
+        </svg>
+      </MotionSpan>
       {isActive && (
         <MotionSpan
-          className="block h-1 mt-1 bg-gradient-to-r from-light-accent to-light-primary dark:from-dark-accent dark:to-dark-primary rounded-full mx-auto shadow-glow"
-          initial={{ width: 0, boxShadow: "none" }}
+          className="absolute inset-0 bg-gradient-to-r from-light-accent/10 to-transparent dark:from-dark-accent/10 dark:to-transparent rounded-xl"
+          initial={{ opacity: 0, scale: 0.95 }}
           animate={{
-            width: "50%",
-            boxShadow:
-              "0 0 8px rgba(var(--color-accent-rgb), 0.7), 0 0 4px rgba(var(--color-accent-rgb), 0.5)",
+            opacity: 1,
+            scale: 1,
+            background: [
+              "linear-gradient(to right, rgba(var(--color-accent-rgb), 0.1), transparent)",
+              "linear-gradient(to right, rgba(var(--color-accent-rgb), 0.15), transparent)",
+              "linear-gradient(to right, rgba(var(--color-accent-rgb), 0.1), transparent)",
+            ],
           }}
           transition={{
-            duration: 0.3,
-            type: "spring",
-            stiffness: 300,
-            damping: 20,
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut",
           }}
         />
       )}
@@ -334,148 +470,181 @@ const MobileNavLink: FunctionComponent<{
   </MotionLi>
 );
 
+const ProgressBar: FunctionComponent<{ isScrolled: boolean }> = ({
+  isScrolled,
+}) => {
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  useEffect(() => {
+    const availableSections = menuItems.map((item) => {
+      const sectionId = item.href.substring(1);
+      const element = document.getElementById(sectionId);
+      return {
+        id: sectionId,
+        exists: !!element,
+        href: item.href,
+      };
+    });
+    console.log("Available sections:", availableSections);
+  }, []);
+
+  useEffect(() => {
+    const updateScrollProgress = () => {
+      const scrollHeight =
+        document.documentElement.scrollHeight - window.innerHeight;
+      const scrolled = window.scrollY;
+      const progress = scrollHeight > 0 ? scrolled / scrollHeight : 0;
+      setScrollProgress(progress);
+    };
+
+    window.addEventListener("scroll", updateScrollProgress, { passive: true });
+    updateScrollProgress();
+
+    return () => window.removeEventListener("scroll", updateScrollProgress);
+  }, []);
+
+  if (!isScrolled) return null;
+
+  return (
+    <MotionDiv
+      className="absolute left-0 bottom-0 h-1 bg-gradient-to-r from-light-accent via-light-primary to-light-accent dark:from-dark-accent dark:via-dark-primary dark:to-dark-accent overflow-visible rounded-full"
+      initial={{ scaleX: 0, opacity: 0 }}
+      animate={{
+        scaleX: scrollProgress,
+        opacity: 1,
+        boxShadow: [
+          "0 0 8px rgba(var(--color-accent-rgb), 0.5)",
+          "0 0 16px rgba(var(--color-accent-rgb), 0.8)",
+          "0 0 8px rgba(var(--color-accent-rgb), 0.5)",
+        ],
+      }}
+      style={{
+        transformOrigin: "left",
+        width: "100%",
+      }}
+      transition={{
+        scaleX: { type: "spring", stiffness: 300, damping: 30 },
+        boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+      }}
+    />
+  );
+};
+
 const Nav: FunctionComponent = () => {
-  const { theme, toggleTheme } = useTheme(); // Use the hook
+  const { theme, toggleTheme } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeLink, setActiveLink] = useState("#home");
-  const [isAnimationReady, setIsAnimationReady] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
   const menuRef = useRef<HTMLDivElement>(null);
-  const prevScrollY = useRef<number>(0);
-  const [scrollDirection, setScrollDirection] = useState<"up" | "down">("up");
+  const lastScrollY = useRef<number>(0);
+  const scrollTimeout = useRef<NodeJS.Timeout>();
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsAnimationReady(true);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, []);
+  const scrollToSection = (sectionId: string, isFromMenu = false) => {
+    const element = document.getElementById(sectionId);
+    const delay = isFromMenu ? 300 : 0;
 
-  // useEffect for theme initialization is removed, useTheme handles it.
-  // checkActiveSection is removed. IntersectionObserver will handle activeLink.
+    if (element) {
+      const navHeight = isScrolled ? 80 : 100;
+      const elementPosition =
+        element.getBoundingClientRect().top + window.pageYOffset;
+      const offsetPosition = elementPosition - navHeight;
 
-  const menuItems = [
-    { href: "#home", label: "Inicio" },
-    { href: "#about", label: "Acerca de" },
-    { href: "#projects", label: "Proyectos" },
-    { href: "#contact", label: "Contacto" },
-  ];
+      setTimeout(() => {
+        window.scrollTo({
+          top: Math.max(0, offsetPosition),
+          behavior: "smooth",
+        });
+      }, delay);
+
+      return true;
+    } else {
+      if (sectionId === "home") {
+        setTimeout(() => {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }, delay);
+        return true;
+      }
+      return false;
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      if (currentScrollY > prevScrollY.current) {
-        setScrollDirection("down");
-      } else {
-        setScrollDirection("up");
+      const scrollDifference = Math.abs(currentScrollY - lastScrollY.current);
+
+      setIsScrolled(currentScrollY > 20);
+
+      if (scrollDifference > 5) {
+        if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
+          setIsVisible(false);
+        } else {
+          setIsVisible(true);
+        }
+        lastScrollY.current = currentScrollY;
       }
-      setIsScrolled(currentScrollY > 50);
-      prevScrollY.current = currentScrollY;
-      // checkActiveSection() removed
+
+      if (scrollTimeout.current) {
+        clearTimeout(scrollTimeout.current);
+      }
+      scrollTimeout.current = setTimeout(() => {
+        setIsVisible(true);
+      }, 150);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll(); // Initial check
-
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []); // Removed checkActiveSection from dependencies
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (scrollTimeout.current) {
+        clearTimeout(scrollTimeout.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
-    const sectionIds = menuItems.map(item => item.href.substring(1));
-    const sections = sectionIds.map(id => document.getElementById(id)).filter(el => el !== null) as HTMLElement[];
+    const sectionIds = menuItems.map((item) => item.href.substring(1));
+    const sections = sectionIds
+      .map((id) => document.getElementById(id))
+      .filter((el) => el !== null) as HTMLElement[];
 
     if (sections.length === 0) return;
 
     const observerCallback = (entries: IntersectionObserverEntry[]) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          setActiveLink(`#${entry.target.id}`);
-        }
-      });
+      const visibleEntries = entries.filter((entry) => entry.isIntersecting);
+
+      if (visibleEntries.length > 0) {
+        const mostVisible = visibleEntries.reduce((prev, current) =>
+          current.intersectionRatio > prev.intersectionRatio ? current : prev
+        );
+        setActiveLink(`#${mostVisible.target.id}`);
+      }
     };
 
     const observerOptions = {
       root: null,
-      threshold: 0.5,
-      // rootMargin: '0px 0px -40% 0px' // Example if needed later
+      threshold: [0.1, 0.3, 0.5, 0.7],
+      rootMargin: "-10% 0px -10% 0px",
     };
 
-    const observer = new IntersectionObserver(observerCallback, observerOptions);
-    sections.forEach(section => {
-      if (section) observer.observe(section);
-    });
-
-    // Initial check for active section on load
-    const currentActiveSection = sections.find(section => {
-        const rect = section.getBoundingClientRect();
-        return rect.top <= window.innerHeight * 0.5 && rect.bottom >= window.innerHeight * 0.5;
-    });
-    if (currentActiveSection) {
-        setActiveLink(`#${currentActiveSection.id}`);
-    }
-
+    const observer = new IntersectionObserver(
+      observerCallback,
+      observerOptions
+    );
+    sections.forEach((section) => observer.observe(section));
 
     return () => {
-      sections.forEach(section => {
-        if (section) observer.unobserve(section);
-      });
+      sections.forEach((section) => observer.unobserve(section));
       observer.disconnect();
     };
-  }, []); // menuItems is static, so no dependency needed
-
+  }, []);
 
   useEffect(() => {
-    if (isMenuOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-
+    document.body.style.overflow = isMenuOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
   }, [isMenuOpen]);
-
-  // Removed useCallback from handleLinkClick, toggleMenu, closeMenu for now,
-  // as their dependencies haven't changed and they are not passed to heavily memoized components
-  // where useCallback would make a significant difference. If performance issues arise,
-  // useCallback can be re-added selectively.
-  // The main toggleTheme is now from useTheme hook.
-
-  const handleLinkClick = (e: JSX.TargetedMouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    const href = e.currentTarget.getAttribute("href");
-    if (href) {
-      setActiveLink(href);
-      setIsMenuOpen(false);
-
-      if (href.startsWith("#")) {
-        const element = document.querySelector(href);
-        if (element) {
-          setTimeout(() => {
-            element.scrollIntoView({
-              behavior: "smooth",
-              block: "start",
-            });
-          }, 100);
-        } else {
-          console.log("Elemento no encontrado:", href);
-        }
-      } else if (href === "/") {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      } else {
-        console.log("Navegación a:", href);
-      }
-    }
-  };
-
-  const toggleMenu = () => {
-    setIsMenuOpen((prev) => !prev);
-  };
-
-  const closeMenu = () => {
-    setIsMenuOpen(false);
-  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -488,224 +657,99 @@ const Nav: FunctionComponent = () => {
       }
     };
 
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isMenuOpen) {
+        setIsMenuOpen(false);
+      }
+    };
+
     document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
     };
   }, [isMenuOpen]);
 
-  const popupAnimation = {
-    hidden: {
-      opacity: 0,
-      y: 10,
-      scale: 0.95,
-    },
-    visible: (i: number) => ({
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 24,
-        delay: i * 0.05,
-      },
-    }),
+  const handleLinkClick = (e: JSX.TargetedMouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    const href = e.currentTarget.getAttribute("href");
+
+    if (href) {
+      setActiveLink(href);
+      setIsMenuOpen(false);
+
+      if (href.startsWith("#")) {
+        const element = document.querySelector(href);
+        if (element) {
+          const navHeight = isScrolled ? 80 : 100;
+          const elementPosition =
+            element.getBoundingClientRect().top + window.pageYOffset;
+          const offsetPosition = elementPosition - navHeight;
+
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: "smooth",
+          });
+        }
+      }
+    }
   };
 
   return (
     <MotionHeader
-      className="fixed top-0 left-0 right-0 w-full h-auto z-50 pointer-events-none"
-      style={{
-        paddingTop: "1rem",
-        paddingBottom: "1rem",
+      className="fixed top-0 left-0 right-0 w-full z-50 pointer-events-none"
+      style={{ paddingTop: "1rem", paddingBottom: "1rem" }}
+      initial={{ opacity: 0, y: -20 }}
+      animate={{
+        opacity: 1,
+        y: isVisible ? 0 : -100,
+        transition: {
+          opacity: { duration: 0.3 },
+          y: { duration: 0.4, type: "spring", stiffness: 300, damping: 30 },
+        },
       }}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
     >
       <MotionNav
         className={clsx(
-          "transition-all duration-300 rounded-xl max-w-6xl overflow-visible mx-auto",
+          "transition-all duration-500 rounded-2xl max-w-7xl mx-auto relative overflow-visible border",
           isScrolled
-            ? "py-2 px-4 shadow-lg backdrop-blur-md bg-light-bg/90 dark:bg-dark-bg/90"
-            : "py-4 px-8 bg-transparent"
+            ? "py-3 px-6 shadow-2xl backdrop-blur-xl bg-light-bg/95 dark:bg-dark-bg/95 border-gray-200/20 dark:border-gray-700/20"
+            : "py-4 px-8 bg-transparent border-transparent"
         )}
         style={{
           boxShadow: isScrolled
-            ? "0 4px 20px rgba(0, 0, 0, 0.1), 0 8px 30px rgba(0, 0, 0, 0.05)"
+            ? "0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.1)"
             : "none",
-          transform:
-            isScrolled && scrollDirection === "down"
-              ? "translateY(-5px)"
-              : "translateY(0)",
         }}
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.1 }}
+        animate={{
+          scale: isScrolled ? 0.98 : 1,
+          transition: smoothTransition,
+        }}
       >
         <div className="flex items-center justify-between w-full pointer-events-auto">
-          <LogoComponent isScrolled={isScrolled} />
+          <LogoComponent
+            isScrolled={isScrolled}
+            setActiveLink={setActiveLink}
+            scrollToSection={scrollToSection}
+          />
 
-          <MotionUl
-            className="hidden md:flex items-center space-x-1 lg:space-x-2"
-            initial="hidden"
-            animate={isAnimationReady ? "visible" : "hidden"}
-          >
-            <MotionLi variants={popupAnimation} custom={0} className="relative">
-              <MotionA
-                href="#home"
-                className={clsx(
-                  "relative px-4 py-2 text-sm font-medium uppercase tracking-wider transition-all duration-300 inline-block",
-                  activeLink === "#home"
-                    ? "text-light-accent dark:text-dark-accent"
-                    : "text-light-primary dark:text-dark-primary hover:text-light-accent dark:hover:text-dark-accent"
-                )}
-                whileHover={{
-                  scale: 1.05,
-                  textShadow: "0 0 8px rgba(var(--color-accent-rgb), 0.4)",
-                  transition: { type: "spring", stiffness: 300, damping: 10 },
-                }}
-                whileTap={{ scale: 0.95 }}
+          <MotionUl className="hidden md:flex items-center space-x-2">
+            {menuItems.map((item, index) => (
+              <NavLink
+                key={item.href}
+                href={item.href}
+                isActive={activeLink === item.href}
                 onClick={handleLinkClick}
+                index={index}
               >
-                Inicio
-                {activeLink === "#home" && (
-                  <MotionSpan
-                    className="absolute bottom-0 left-0 h-1 w-full bg-gradient-to-r from-light-accent to-light-primary dark:from-dark-accent dark:to-dark-primary rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{
-                      width: "100%",
-                      boxShadow:
-                        "0 0 10px rgba(var(--color-accent-rgb), 0.7), 0 0 5px rgba(var(--color-accent-rgb), 0.5)",
-                    }}
-                    transition={{
-                      duration: 0.3,
-                      type: "spring",
-                      stiffness: 300,
-                      damping: 20,
-                    }}
-                  />
-                )}
-              </MotionA>
-            </MotionLi>
-
-            <MotionLi variants={popupAnimation} custom={1} className="relative">
-              <MotionA
-                href="#about"
-                className={clsx(
-                  "relative px-4 py-2 text-sm font-medium uppercase tracking-wider transition-all duration-300 inline-block",
-                  activeLink === "#about"
-                    ? "text-light-accent dark:text-dark-accent"
-                    : "text-light-primary dark:text-dark-primary hover:text-light-accent dark:hover:text-dark-accent"
-                )}
-                whileHover={{
-                  scale: 1.05,
-                  textShadow: "0 0 8px rgba(var(--color-accent-rgb), 0.4)",
-                  transition: { type: "spring", stiffness: 300, damping: 10 },
-                }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleLinkClick}
-              >
-                Acerca de
-                {activeLink === "#about" && (
-                  <MotionSpan
-                    className="absolute bottom-0 left-0 h-1 w-full bg-gradient-to-r from-light-accent to-light-primary dark:from-dark-accent dark:to-dark-primary rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{
-                      width: "100%",
-                      boxShadow:
-                        "0 0 10px rgba(var(--color-accent-rgb), 0.7), 0 0 5px rgba(var(--color-accent-rgb), 0.5)",
-                    }}
-                    transition={{
-                      duration: 0.3,
-                      type: "spring",
-                      stiffness: 300,
-                      damping: 20,
-                    }}
-                  />
-                )}
-              </MotionA>
-            </MotionLi>
-
-            <MotionLi variants={popupAnimation} custom={2} className="relative">
-              <MotionA
-                href="#projects"
-                className={clsx(
-                  "relative px-4 py-2 text-sm font-medium uppercase tracking-wider transition-all duration-300 inline-block",
-                  activeLink === "#projects"
-                    ? "text-light-accent dark:text-dark-accent"
-                    : "text-light-primary dark:text-dark-primary hover:text-light-accent dark:hover:text-dark-accent"
-                )}
-                whileHover={{
-                  scale: 1.05,
-                  textShadow: "0 0 8px rgba(var(--color-accent-rgb), 0.4)",
-                  transition: { type: "spring", stiffness: 300, damping: 10 },
-                }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleLinkClick}
-              >
-                Proyectos
-                {activeLink === "#projects" && (
-                  <MotionSpan
-                    className="absolute bottom-0 left-0 h-1 w-full bg-gradient-to-r from-light-accent to-light-primary dark:from-dark-accent dark:to-dark-primary rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{
-                      width: "100%",
-                      boxShadow:
-                        "0 0 10px rgba(var(--color-accent-rgb), 0.7), 0 0 5px rgba(var(--color-accent-rgb), 0.5)",
-                    }}
-                    transition={{
-                      duration: 0.3,
-                      type: "spring",
-                      stiffness: 300,
-                      damping: 20,
-                    }}
-                  />
-                )}
-              </MotionA>
-            </MotionLi>
-
-            <MotionLi variants={popupAnimation} custom={3} className="relative">
-              <MotionA
-                href="#contact"
-                className={clsx(
-                  "relative px-4 py-2 text-sm font-medium uppercase tracking-wider transition-all duration-300 inline-block",
-                  activeLink === "#contact"
-                    ? "text-light-accent dark:text-dark-accent"
-                    : "text-light-primary dark:text-dark-primary hover:text-light-accent dark:hover:text-dark-accent"
-                )}
-                whileHover={{
-                  scale: 1.05,
-                  textShadow: "0 0 8px rgba(var(--color-accent-rgb), 0.4)",
-                  transition: { type: "spring", stiffness: 300, damping: 10 },
-                }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleLinkClick}
-              >
-                Contacto
-                {activeLink === "#contact" && (
-                  <MotionSpan
-                    className="absolute bottom-0 left-0 h-1 w-full bg-gradient-to-r from-light-accent to-light-primary dark:from-dark-accent dark:to-dark-primary rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{
-                      width: "100%",
-                      boxShadow:
-                        "0 0 10px rgba(var(--color-accent-rgb), 0.7), 0 0 5px rgba(var(--color-accent-rgb), 0.5)",
-                    }}
-                    transition={{
-                      duration: 0.3,
-                      type: "spring",
-                      stiffness: 300,
-                      damping: 20,
-                    }}
-                  />
-                )}
-              </MotionA>
-            </MotionLi>
+                {item.label}
+              </NavLink>
+            ))}
           </MotionUl>
 
-          <div className="flex items-center space-x-2 pointer-events-auto">
+          <div className="flex items-center space-x-3 pointer-events-auto">
             <ThemeToggle
               theme={theme}
               toggleTheme={toggleTheme}
@@ -713,57 +757,64 @@ const Nav: FunctionComponent = () => {
             />
             <MobileMenuButton
               isOpen={isMenuOpen}
-              onClick={toggleMenu}
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
               isScrolled={isScrolled}
             />
           </div>
         </div>
 
-        {isScrolled && (
+        <ProgressBar isScrolled={isScrolled} />
+      </MotionNav>
+
+      {isMenuOpen && (
+        <MotionDiv
+          className="md:hidden fixed inset-0 z-40"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+        >
           <MotionDiv
-            className="absolute left-0 bottom-0 h-0.5 bg-gradient-to-r from-light-accent via-light-primary to-light-accent dark:from-dark-accent dark:via-dark-primary dark:to-dark-accent overflow-visible"
-            initial={{ scaleX: 0 }}
-            animate={{
-              scaleX:
-                document.documentElement.scrollHeight - window.innerHeight > 0
-                  ? window.scrollY /
-                    (document.documentElement.scrollHeight - window.innerHeight)
-                  : 0,
-            }}
-            style={{
-              transformOrigin: "left",
-              width: "100%",
-              boxShadow: "0 0 8px rgba(var(--color-accent-rgb), 0.7)",
-            }}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            onClick={() => setIsMenuOpen(false)}
+          />
+
+          <MotionDiv
+            ref={menuRef}
+            className="absolute top-0 right-0 w-80 h-full bg-light-bg/98 dark:bg-dark-bg/98 shadow-2xl backdrop-blur-xl border-l border-gray-200/20 dark:border-gray-700/20"
+            initial={{ x: "100%", opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "100%", opacity: 0 }}
             transition={{
               type: "spring",
               stiffness: 300,
               damping: 30,
+              duration: 0.4,
             }}
-          />
-        )}
-      </MotionNav>
-
-      {isMenuOpen && (
-        <div className="md:hidden">
-          <button
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 w-full h-full border-0 p-0"
-            onClick={closeMenu}
-            aria-label="Cerrar menú"
-          />
-
-          <div
-            ref={menuRef}
-            className="fixed top-0 right-0 w-64 h-full bg-light-bg/95 dark:bg-dark-bg/95 shadow-xl z-50 backdrop-blur-lg"
             style={{
-              boxShadow: "-5px 0 25px rgba(0, 0, 0, 0.15)",
+              boxShadow: "-8px 0 32px rgba(0, 0, 0, 0.15)",
             }}
           >
-            <div className="p-6 space-y-6">
-              <div className="flex justify-end">
-                <button
-                  className="text-light-primary dark:text-dark-primary hover:text-light-accent dark:hover:text-dark-accent"
-                  onClick={closeMenu}
+            <div className="p-8 space-y-8 h-full overflow-y-auto">
+              <div className="flex justify-between items-center">
+                <MotionSpan
+                  className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-light-accent to-light-primary dark:from-dark-accent dark:to-dark-primary"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  Menú
+                </MotionSpan>
+                <MotionButton
+                  className="p-2 rounded-full text-light-muted dark:text-dark-muted hover:text-light-accent dark:hover:text-dark-accent hover:bg-light-accent/10 dark:hover:bg-dark-accent/10 transition-colors duration-200"
+                  onClick={() => setIsMenuOpen(false)}
+                  initial={{ opacity: 0, rotate: -90 }}
+                  animate={{ opacity: 1, rotate: 0 }}
+                  transition={{ delay: 0.3 }}
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -779,46 +830,84 @@ const Nav: FunctionComponent = () => {
                       d="M6 18L18 6M6 6l12 12"
                     />
                   </svg>
-                </button>
+                </MotionButton>
               </div>
 
-              <ul className="space-y-4">
-                <MobileNavLink
-                  href="#home"
-                  isActive={activeLink === "#home"}
-                  onClick={handleLinkClick}
-                  index={0}
-                >
-                  Inicio
-                </MobileNavLink>
-                <MobileNavLink
-                  href="#about"
-                  isActive={activeLink === "#about"}
-                  onClick={handleLinkClick}
-                  index={1}
-                >
-                  Acerca de
-                </MobileNavLink>
-                <MobileNavLink
-                  href="#projects"
-                  isActive={activeLink === "#projects"}
-                  onClick={handleLinkClick}
-                  index={2}
-                >
-                  Proyectos
-                </MobileNavLink>
-                <MobileNavLink
-                  href="#contact"
-                  isActive={activeLink === "#contact"}
-                  onClick={handleLinkClick}
-                  index={3}
-                >
-                  Contacto
-                </MobileNavLink>
-              </ul>
+              <MotionDiv
+                className="h-px bg-gradient-to-r from-transparent via-light-accent/30 to-transparent dark:via-dark-accent/30"
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+              />
+
+              <MotionUl className="space-y-3">
+                {menuItems.map((item, index) => (
+                  <MobileNavLink
+                    key={item.href}
+                    href={item.href}
+                    isActive={activeLink === item.href}
+                    onClick={handleLinkClick}
+                    index={index}
+                  >
+                    {item.label}
+                  </MobileNavLink>
+                ))}
+              </MotionUl>
+
+              <MotionDiv
+                className="h-px bg-gradient-to-r from-transparent via-light-accent/30 to-transparent dark:via-dark-accent/30"
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ delay: 0.8, duration: 0.5 }}
+              />
+
+              <MotionDiv
+                className="flex flex-col space-y-4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1, duration: 0.4 }}
+              >
+                <MotionSpan className="text-sm text-light-muted dark:text-dark-muted font-medium">
+                  Cambiar tema
+                </MotionSpan>
+                <div className="flex justify-center">
+                  <ThemeToggle
+                    theme={theme}
+                    toggleTheme={toggleTheme}
+                    isScrolled={false}
+                  />
+                </div>
+              </MotionDiv>
+
+              <MotionDiv
+                className="absolute bottom-8 left-8 right-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.2, duration: 0.4 }}
+              >
+                <MotionDiv className="text-center">
+                  <MotionSpan className="text-xs text-light-muted dark:text-dark-muted">
+                    © 2024 Portfolio
+                  </MotionSpan>
+                  <MotionDiv
+                    className="mt-2 h-1 bg-gradient-to-r from-light-accent/20 via-light-accent to-light-accent/20 dark:from-dark-accent/20 dark:via-dark-accent dark:to-dark-accent/20 rounded-full"
+                    animate={{
+                      backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: "linear",
+                    }}
+                    style={{
+                      backgroundSize: "200% 200%",
+                    }}
+                  />
+                </MotionDiv>
+              </MotionDiv>
             </div>
-          </div>
-        </div>
+          </MotionDiv>
+        </MotionDiv>
       )}
     </MotionHeader>
   );
