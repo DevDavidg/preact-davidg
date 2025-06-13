@@ -421,7 +421,9 @@ const Footer: FunctionComponent = () => {
                   whileTap="tap"
                   className="px-4 py-2 bg-light-primary dark:bg-dark-primary text-light-bg dark:text-dark-bg rounded-lg font-medium overflow-hidden relative group"
                 >
-                  <MotionSpan className="relative z-10">Suscribirse</MotionSpan>
+                  <MotionSpan className="flex items-center justify-center">
+                    ↑
+                  </MotionSpan>
                   <MotionSpan
                     className="absolute inset-0 bg-light-accent dark:bg-dark-accent"
                     initial={{ x: "-100%" }}

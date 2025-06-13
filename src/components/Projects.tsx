@@ -583,15 +583,12 @@ const Projects = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(
-        "https://drfapiprojects.onrender.com/projectcards/",
-        {
-          signal: controller.signal,
-          headers: {
-            Accept: "application/json",
-          },
-        }
-      );
+      const response = await fetch("/api/proxy", {
+        signal: controller.signal,
+        headers: {
+          Accept: "application/json",
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -615,10 +612,10 @@ const Projects = () => {
       const fallbackData: ProjectCard[] = [
         {
           id: 1,
-          demoUrl: "https://github.com/davidgdev",
-          github: "https://github.com/davidgdev",
+          demoUrl: "https://github.com/DevDavidg",
+          github: "https://github.com/DevDavidg",
           title: "Proyecto de Ejemplo",
-          gif: "https://via.placeholder.com/600x400/4F46E5/FFFFFF?text=Proyecto+Demo",
+          gif: "https://placehold.co/600x400/4F46E5/FFFFFF/png?text=Proyecto+Demo",
           description:
             "Este es un proyecto de ejemplo que se muestra cuando la API no está disponible. Incluye todas las funcionalidades básicas esperadas.",
           icons: '["React", "TypeScript", "Tailwind"]',
@@ -627,10 +624,10 @@ const Projects = () => {
         },
         {
           id: 2,
-          demoUrl: "https://github.com/davidgdev",
-          github: "https://github.com/davidgdev",
+          demoUrl: "https://github.com/DevDavidg",
+          github: "https://github.com/DevDavidg",
           title: "Diseño de Interfaz",
-          gif: "https://via.placeholder.com/600x400/EC4899/FFFFFF?text=Diseño+UI",
+          gif: "https://placehold.co/600x400/EC4899/FFFFFF/png?text=Diseño+UI",
           description:
             "Un diseño de interfaz de usuario creado con herramientas profesionales de diseño.",
           icons: '["Figma", "UI/UX", "Prototipado"]',

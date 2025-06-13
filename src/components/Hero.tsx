@@ -233,7 +233,7 @@ const AnimatedTitle: FunctionComponent<{
         <MotionSpan
           key={`word-${word}-${wordIndex}`}
           variants={wordVariants}
-          className={`inline-block mr-2 md:mr-3 mb-1 md:mb-2 ${
+          className={`h-20 inline-block mr-2 md:mr-3 mb-1 md:mb-2 ${
             specialWords.includes(word) ? "text-gradient" : ""
           }`}
         >

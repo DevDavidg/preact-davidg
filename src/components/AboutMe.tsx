@@ -720,12 +720,6 @@ const BioIntro = memo(({ personalInfo }: { personalInfo: PersonalInfo }) => (
       variants={animations.item}
     >
       Acerca de mí
-      <MotionDiv
-        className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-light-accent to-light-primary dark:from-dark-accent dark:to-dark-primary"
-        initial={{ width: 0, x: "50%", opacity: 0 }}
-        animate={{ width: "100%", x: 0, opacity: 1 }}
-        transition={{ delay: 0.5, duration: 0.5 }}
-      />
     </MotionH2>
 
     <MotionDiv
@@ -742,102 +736,37 @@ const BioIntro = memo(({ personalInfo }: { personalInfo: PersonalInfo }) => (
       <div className="absolute inset-0 glow-3d" />
     </MotionDiv>
 
-    <MotionP
-      className="text-lg md:text-xl mb-6 text-light-secondary dark:text-dark-secondary leading-relaxed text-left"
-      variants={animations.item}
-    >
-      Mi nombre es{" "}
-      <span className="text-light-accent dark:text-dark-accent font-semibold">
-        {personalInfo.name}
-      </span>{" "}
-      , tengo {personalInfo.age} años, soy {personalInfo.title}, actualmente
-      vivo en {personalInfo.location}. Cuento con más de 4 años de experiencia
-      creando interfaces de usuario modernas, accesibles y de alto rendimiento
-      para diversas empresas y proyectos.
-    </MotionP>
-
-    <MotionP
-      className="text-lg md:text-xl mb-8 text-light-secondary dark:text-dark-secondary leading-relaxed text-left"
-      variants={animations.item}
-    >
-      Me especializo en el desarrollo frontend con React, TypeScript y
-      frameworks modernos. Tengo amplia experiencia en UX/UI, diseño responsivo
-      y metodologías ágiles. Mi objetivo es combinar diseño estético con código
-      limpio y eficiente para crear experiencias digitales que impresionen y
-      funcionen perfectamente.
-    </MotionP>
-
     <MotionDiv
-      className="flex justify-center gap-4 flex-wrap mt-8"
+      className="text-left space-y-4 text-light-secondary dark:text-dark-secondary"
       variants={animations.item}
     >
-      <MotionA
-        href={`mailto:${personalInfo.email}`}
-        className="btn-gradient group flex items-center relative overflow-hidden"
-        whileHover={{ scale: 1.05, y: -5 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        <span className="relative z-10 flex items-center">
-          <MotionSvg
-            xmlns="http://www.w3.org/2000/svg"
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="mr-2"
-          >
-            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
-          </MotionSvg>
-          Contactarme
+      <p className="text-lg">
+        <span className="font-bold text-light-accent dark:text-dark-accent">
+          Mi nombre es David Guillen
         </span>
-        <MotionDiv
-          className="absolute inset-0 bg-white/20"
-          initial={{ x: "-100%" }}
-          whileHover={{ x: "100%" }}
-          transition={{ duration: 0.5 }}
-        />
-      </MotionA>
-
-      <MotionA
-        href="/cv/davidguillen-cv.pdf"
-        target="_blank"
-        className="btn-outline group flex items-center relative overflow-hidden"
-        whileHover={{ scale: 1.05, y: -5 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        <span className="relative z-10 flex items-center">
-          <MotionSvg
-            xmlns="http://www.w3.org/2000/svg"
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="mr-2"
-          >
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="16" y1="13" x2="8" y2="13" />
-            <line x1="16" y1="17" x2="8" y2="17" />
-            <line x1="10" y1="9" x2="8" y2="9" />
-          </MotionSvg>
-          Descargar CV
+        , tengo 22 años, soy
+        <span className="font-bold text-light-accent dark:text-dark-accent">
+          {" "}
+          Front-End Dev & Mobile Dev
         </span>
-        <MotionDiv
-          className="absolute inset-0 bg-light-accent/10 dark:bg-dark-accent/10"
-          initial={{ scale: 0, opacity: 0 }}
-          whileHover={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.4 }}
-          style={{ originX: 0.5, originY: 0.5 }}
-        />
-      </MotionA>
+        , actualmente vivo en Almagro CABA, BsAs, Argentina. Cuento con más de 4
+        años de experiencia creando interfaces de usuario modernas, accesibles y
+        de alto rendimiento para diversas empresas y proyectos.
+      </p>
+      <p className="text-lg">
+        Me especializo en el desarrollo frontend con{" "}
+        <span className="font-bold text-light-accent dark:text-dark-accent">
+          React
+        </span>
+        ,{" "}
+        <span className="font-bold text-light-accent dark:text-dark-accent">
+          TypeScript
+        </span>
+        , y tengo amplia experiencia en UX/UI, diseño responsivo y metodologías
+        ágiles. Mi objetivo es combinar diseño estético con código limpio y
+        eficiente para crear experiencias digitales que impresionen y funcionen
+        perfectamente.
+      </p>
     </MotionDiv>
   </MotionDiv>
 ));
