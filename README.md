@@ -1,6 +1,6 @@
-# DevDavidG - Preact Application
+# David Guillen - Portfolio Personal
 
-Este proyecto es una aplicación web moderna construida con Preact y empaquetada con Vite, optimizada para ofrecer el mejor rendimiento posible incluso en dispositivos de gama baja.
+Portfolio profesional de David Guillen, Front-End & Mobile Developer especializado en React, Angular, Vue y desarrollo móvil. Esta aplicación web moderna está construida con Preact y empaquetada con Vite, optimizada para ofrecer el mejor rendimiento posible incluso en dispositivos de gama baja.
 
 ## 🚀 Tecnologías
 

@@ -1182,10 +1182,10 @@ const Contact: FunctionComponent = () => {
                       <div>
                         <h4 className="font-medium">Email</h4>
                         <a
-                          href="mailto:contact@example.com"
+                          href="mailto:dev.davidg@gmail.com"
                           className="text-light-accent dark:text-dark-accent hover:underline"
                         >
-                          contact@example.com
+                          dev.davidg@gmail.com
                         </a>
                       </div>
                     </div>
@@ -1216,7 +1216,7 @@ const Contact: FunctionComponent = () => {
                       <div>
                         <h4 className="font-medium">Ubicación</h4>
                         <p className="text-light-secondary dark:text-dark-secondary">
-                          Remoto, Mundial
+                          Villa Crespo, CABA, Argentina
                         </p>
                       </div>
                     </div>

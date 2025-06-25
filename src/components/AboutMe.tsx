@@ -747,24 +747,25 @@ const BioIntro = memo(({ personalInfo }: { personalInfo: PersonalInfo }) => (
         , tengo 22 años, soy
         <span className="font-bold text-light-accent dark:text-dark-accent">
           {" "}
-          Front-End Dev & Mobile Dev
+          Front-End & Mobile Developer
         </span>
-        , actualmente vivo en Almagro CABA, BsAs, Argentina. Cuento con más de 4
+        , actualmente vivo en Villa Crespo, CABA, Argentina. Cuento con más de 4
         años de experiencia creando interfaces de usuario modernas, accesibles y
         de alto rendimiento para diversas empresas y proyectos.
       </p>
       <p className="text-lg">
         Me especializo en el desarrollo frontend con{" "}
         <span className="font-bold text-light-accent dark:text-dark-accent">
-          React
+          React, Preact, Redux, Next.js, Angular, Vue y Nuxt.js
         </span>
-        ,{" "}
+        , así como en desarrollo móvil con{" "}
         <span className="font-bold text-light-accent dark:text-dark-accent">
-          TypeScript
+          React Native
         </span>
-        , y tengo amplia experiencia en UX/UI, diseño responsivo y metodologías
-        ágiles. Mi objetivo es combinar diseño estético con código limpio y
-        eficiente para crear experiencias digitales que impresionen y funcionen
+        . Tengo amplia experiencia en UX/UI, diseño responsivo y metodologías
+        ágiles como Scrum. Mi objetivo es combinar diseño estético con código
+        limpio y eficiente, siguiendo principios como SOLID, DRY, KISS y BEM
+        para crear experiencias digitales que impresionen y funcionen
         perfectamente.
       </p>
     </MotionDiv>
@@ -1011,26 +1012,28 @@ const AboutMe: FunctionComponent = () => {
   const personalInfo: PersonalInfo = {
     name: "David Guillen",
     age: 22,
-    location: "Almagro CABA, BsAs, Argentina",
-    title: "Front-End Dev & Mobile Dev",
+    location: "Villa Crespo, CABA, Argentina",
+    title: "Front-End & Mobile Developer",
     email: "dev.davidg@gmail.com",
     phone: "+54 011 70030947",
-    linkedin: "https://linkedin.com/in/david-guillen",
+    linkedin: "https://linkedin.com/in/davidguillen",
     portfolio: "https://dev-davidg.web.app/",
   };
 
   const skills: Skill[] = [
     { name: "React", level: 5, category: "frontend" },
+    { name: "Preact", level: 5, category: "frontend" },
+    { name: "Redux", level: 4, category: "frontend" },
+    { name: "Next.js", level: 4, category: "frontend" },
+    { name: "Angular", level: 4, category: "frontend" },
+    { name: "Vue", level: 4, category: "frontend" },
+    { name: "Nuxt.js", level: 3, category: "frontend" },
+    { name: "RxJS", level: 3, category: "frontend" },
+    { name: "React Native", level: 4, category: "frontend" },
     { name: "TypeScript", level: 5, category: "frontend" },
     { name: "JavaScript", level: 5, category: "frontend" },
     { name: "HTML5", level: 5, category: "frontend" },
     { name: "CSS3", level: 5, category: "frontend" },
-    { name: "Redux", level: 4, category: "frontend" },
-    { name: "NextJS", level: 4, category: "frontend" },
-    { name: "Angular", level: 4, category: "frontend" },
-    { name: "Vue", level: 3, category: "frontend" },
-    { name: "React Native", level: 4, category: "frontend" },
-    { name: "Jest", level: 3, category: "frontend" },
 
     { name: "Figma", level: 4, category: "design" },
     { name: "Adobe XD", level: 3, category: "design" },
@@ -1038,76 +1041,92 @@ const AboutMe: FunctionComponent = () => {
     { name: "Adobe Illustrator", level: 3, category: "design" },
     { name: "UX/UI Design", level: 4, category: "design" },
 
-    { name: "SASS/SCSS", level: 5, category: "frameworks" },
+    { name: "SCSS", level: 5, category: "frameworks" },
+    { name: "SASS", level: 5, category: "frameworks" },
     { name: "LESS", level: 4, category: "frameworks" },
+    { name: "CSS", level: 5, category: "frameworks" },
     { name: "Styled Components", level: 4, category: "frameworks" },
     { name: "Bootstrap", level: 5, category: "frameworks" },
     { name: "Material UI", level: 4, category: "frameworks" },
     { name: "Tailwind CSS", level: 4, category: "frameworks" },
-    { name: "Quasar", level: 3, category: "frameworks" },
 
+    { name: "Jest", level: 3, category: "tools" },
+    { name: "Cucumber", level: 3, category: "tools" },
     { name: "Git", level: 4, category: "tools" },
     { name: "Jira", level: 4, category: "tools" },
     { name: "Trello", level: 5, category: "tools" },
     { name: "Slack", level: 5, category: "tools" },
-    { name: "Storybook", level: 3, category: "tools" },
-    { name: "Jenkins", level: 3, category: "tools" },
     { name: "Miro", level: 4, category: "tools" },
+    { name: "Jenkins", level: 3, category: "tools" },
+    { name: "Storybook", level: 3, category: "tools" },
 
-    { name: "English B2", level: 4, category: "languages" },
-    { name: "Spanish (Native)", level: 5, category: "languages" },
+    { name: "Inglés B2", level: 4, category: "languages" },
+    { name: "Español (Nativo)", level: 5, category: "languages" },
 
-    { name: "SOLID Principles", level: 4, category: "other" },
-    { name: "BEM Methodology", level: 4, category: "other" },
+    { name: "Agile", level: 4, category: "other" },
+    { name: "Scrum", level: 4, category: "other" },
+    { name: "BEM", level: 4, category: "other" },
+    { name: "DRY", level: 4, category: "other" },
+    { name: "KISS", level: 4, category: "other" },
+    { name: "SOLID", level: 4, category: "other" },
     { name: "ITCSS", level: 4, category: "other" },
-    { name: "DRY & KISS", level: 4, category: "other" },
-    { name: "Agile Methodologies", level: 4, category: "other" },
-    { name: "Teamwork", level: 5, category: "other" },
-    { name: "Time Management", level: 4, category: "other" },
-    { name: "Self-learning", level: 5, category: "other" },
-    { name: "Adaptability", level: 5, category: "other" },
+    { name: "Comunicación efectiva", level: 5, category: "other" },
+    { name: "Trabajo en equipo", level: 5, category: "other" },
+    { name: "Gestión del tiempo", level: 4, category: "other" },
+    { name: "Adaptabilidad", level: 5, category: "other" },
+    { name: "Autodidacta", level: 5, category: "other" },
   ];
 
   const experiences: Experience[] = [
     {
-      company: "Empresa IT",
-      role: "Front End & Mobile Dev",
-      period: "Octubre 2024 - Actualidad",
+      company: "Santander España",
+      role: "Desarrollador Front End",
+      period: "Mar 2025 - Actualidad",
       description:
-        "Desarrollo de aplicaciones web y móviles utilizando tecnologías modernas.",
+        "Desarrollo de sistema interno utilizando tecnologías modernas.",
+      technologies: ["Angular", "TypeScript", "Gluon", "Flame UI"],
+      type: "job",
+    },
+    {
+      company: "Nonconformist",
+      role: "Front End & Mobile Developer",
+      period: "Oct 2024 - Actualidad",
+      description:
+        "Desarrollo de aplicaciones web y móviles con tecnologías modernas.",
       technologies: ["React", "React Native", "TypeScript", "Bootstrap"],
       type: "job",
     },
     {
-      company: "Empleos Marketing Digital",
+      company: "Empleos Marketing Digital EMD",
       role: "Front End Developer",
-      period: "Enero de 2024 - Julio de 2024",
+      period: "Ene 2024 - Jul 2024",
       description:
-        "Encargado de levantar el proyecto desde 0, integración Back-End.",
-      technologies: ["React JS", "CSS", "i18n", "Bootstrap"],
+        "Desarrollo completo del proyecto desde cero con integración backend.",
+      technologies: ["React.js", "CSS", "i18n", "Bootstrap"],
       type: "job",
     },
     {
-      company: "Empresa IT",
+      company: "GlobalLogic",
       role: "Front End",
-      period: "Julio 2022 - Octubre 2024",
-      description: "Trabajé en proyectos front end para Claro Arg/Py/Uy.",
+      period: "Jul 2022 - Oct 2024",
+      description:
+        "Desarrollo de proyectos para Claro (Argentina, Paraguay, Uruguay).",
       technologies: ["React", "StyledComponents", "TypeScript", "Jenkins"],
       type: "job",
     },
     {
-      company: "Empresa comercial",
+      company: "Skyblue Analytics",
       role: "Front End",
-      period: "Abril de 2023 - Septiembre de 2023",
+      period: "Abr 2023 - Sep 2023",
       description:
-        "Trabajé directamente con el CTO enfocado en desarrollar todo el frontend de la plataforma.",
+        "Desarrollo completo del frontend en colaboración directa con el CTO.",
       technologies: ["Vue", "Quasar", "TypeScript", "GraphQL"],
       type: "job",
     },
     {
-      company: "Campus Virtual",
+      company: "VinciU",
       role: "Front End y UX",
-      period: "Julio 2022 - Abril 2023",
+      period: "Jul 2022 - Abr 2023",
       description: "A cargo de la UI del campus virtual.",
       technologies: [
         "Angular",
@@ -1122,36 +1141,36 @@ const AboutMe: FunctionComponent = () => {
       type: "job",
     },
     {
-      company: "Diseño de hogar",
-      role: "Desarrollador móvil y diseñador de UX/UI",
-      period: "Abril de 2023 - Mayo de 2023",
-      description: "Trabajé para Walmart y en el landing de Goohaus.",
-      technologies: ["Flutterflow", "Flutter", "Figma", "Angular"],
+      company: "Diseño de Hogar (Walmart & Goohaus)",
+      role: "Mobile Developer & UX/UI Designer",
+      period: "Abr 2023 - May 2023",
+      description: "Desarrollo de landing y apps móviles.",
+      technologies: ["FlutterFlow", "Flutter", "Figma", "Angular"],
       type: "freelance",
     },
     {
-      company: "Business Analytics",
+      company: "Ludela Analytics",
       role: "Full Stack & UI Designer",
-      period: "Dic 2021 - Julio 2022",
+      period: "Dic 2021 - Jul 2022",
       description:
-        "Encargado de la programación de aplicaciones front & back para empresas multinacionales y nacionales.",
-      technologies: ["Angular", "Firebase", "Node", "SCSS"],
+        "Desarrollo de aplicaciones front y back para empresas nacionales e internacionales.",
+      technologies: ["Angular", "Firebase", "Node.js", "SCSS"],
       type: "job",
     },
     {
-      company: "Empresa de IT",
-      role: "Front end & QA Manual",
+      company: "Nolock",
+      role: "Front End & QA Manual",
       period: "Oct 2021 - Dic 2021",
       description:
-        "A cargo de la programación y pruebas para la detección temprana de errores.",
-      technologies: ["React", "React Native", "NextJS", "Jest", "Cucumber"],
+        "Programación y pruebas manuales para detección temprana de errores.",
+      technologies: ["React", "React Native", "Next.js", "Jest", "Cucumber"],
       type: "job",
     },
     {
-      company: "Empresa crypto",
+      company: "Orion2Pay",
       role: "Front End y UX",
       period: "Ene 2020 - Oct 2021",
-      description: "A cargo de la página principal.",
+      description: "Encargado de la página principal.",
       technologies: ["React", "TypeScript", "Figma"],
       type: "job",
     },
@@ -1164,7 +1183,7 @@ const AboutMe: FunctionComponent = () => {
       period: "2021-2023",
     },
     {
-      institution: "Escuela secundaria",
+      institution: "Secundaria completa",
       degree: "Educación secundaria completa",
       period: "2015-2020",
     },
@@ -1172,14 +1191,19 @@ const AboutMe: FunctionComponent = () => {
 
   const courses: Course[] = [
     {
+      provider: "SoloLearn",
+      name: "Web Development Fundamentals",
+      topics: ["HTML", "CSS", "JS", "Responsive Design", "React"],
+    },
+    {
       provider: "SoyHenry",
       name: "Web Development",
-      topics: ["React Developer", "Front End Developer", "JavaScript"],
+      topics: ["React Dev", "Front End Dev", "JavaScript"],
     },
     {
       provider: "CoderHouse",
       name: "Front End Development",
-      topics: ["Front End Dev", "React Dev"],
+      topics: ["Front End", "React"],
     },
     {
       provider: "Platzi",
@@ -1188,42 +1212,37 @@ const AboutMe: FunctionComponent = () => {
         "Angular",
         "React",
         "TypeScript",
-        "Advanced JavaScript",
-        "UX/UI Designer",
+        "Advanced JS",
+        "UX/UI",
         "DOM",
         "Vue",
       ],
     },
     {
-      provider: "SoloLearn",
-      name: "Web Development Fundamentals",
-      topics: ["HTML", "CSS", "JS", "Responsive Design", "React"],
-    },
-    {
       provider: "Google Creative Campus",
-      name: "Web Development",
-      topics: ["FE", "JS APIS"],
+      name: "Frontend Development",
+      topics: ["Frontend", "JS APIs"],
     },
     {
       provider: "Microsoft",
       name: "Web Development",
-      topics: ["Web development"],
+      topics: ["Web Development"],
     },
     {
       provider: "Udemy",
       name: "Comprehensive Web Development",
       topics: [
-        "Front End Developer",
+        "Frontend",
         "CSS",
         "Less",
-        "Gridbox",
+        "Grid",
         "Flexbox",
         "SVG",
-        "JQuery",
-        "API Rest",
-        "Node JS",
+        "jQuery",
+        "API REST",
+        "Node.js",
         "MongoDB",
-        "Angular JS",
+        "AngularJS",
         "Svelte",
       ],
     },

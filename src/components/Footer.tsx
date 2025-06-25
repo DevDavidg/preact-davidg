@@ -226,8 +226,8 @@ const Footer: FunctionComponent = () => {
   const currentYear = new Date().getFullYear();
 
   const socialLinks = [
-    { name: "GitHub", url: "https://github.com/" },
-    { name: "LinkedIn", url: "https://linkedin.com/" },
+    { name: "GitHub", url: "https://github.com/DevDavidg" },
+    { name: "LinkedIn", url: "https://linkedin.com/in/davidguillen" },
     { name: "Twitter", url: "https://twitter.com/" },
     { name: "Instagram", url: "https://instagram.com/" },
   ];
