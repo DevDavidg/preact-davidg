@@ -3,7 +3,7 @@ import preact from "@preact/preset-vite";
 import compression from "vite-plugin-compression2";
 import { visualizer } from "rollup-plugin-visualizer";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     preact(),
     compression({
@@ -14,10 +14,17 @@ export default defineConfig({
       algorithm: "brotliCompress",
       exclude: [/\.(br)$/, /\.(gz)$/],
     }),
-    visualizer({
-      filename: "stats.html",
-      open: false,
-    }),
+    // Solo generar stats.html cuando se especifique ANALYZE=true
+    ...(process.env.ANALYZE === "true" 
+      ? [visualizer({
+          filename: "stats.html",
+          open: false,
+          gzipSize: true,
+          brotliSize: true,
+          template: "treemap", // Mejor visualización
+        })]
+      : []
+    ),
   ],
   server: {
     proxy: {
@@ -97,4 +104,4 @@ export default defineConfig({
       "Cache-Control": "public, max-age=31536000",
     },
   },
-});
+}));

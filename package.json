@@ -8,6 +8,7 @@
     "dev:with-proxy": "concurrently \"npm run proxy\" \"npm run dev\"",
     "proxy": "node dev-proxy.js",
     "build": "vite build",
+    "build:analyze": "ANALYZE=true vite build",
     "check-types": "tsc -b",
     "preview": "vite preview",
     "serve:express": "node simple-server.js",
