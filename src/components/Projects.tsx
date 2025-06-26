@@ -583,26 +583,16 @@ const Projects = () => {
       setLoading(true);
       setError(null);
 
-      // Try primary proxy first
-      let response = await fetch("/api/proxy", {
-        signal: controller.signal,
-        headers: {
-          Accept: "application/json",
-        },
-      });
-
-      // If primary proxy fails and we're in development, try dev proxy
-      if (!response.ok && window.location.hostname === "localhost") {
-        console.log(
-          "Primary proxy failed, trying development proxy on port 3001..."
-        );
-        response = await fetch("http://localhost:3001/api/proxy", {
+      // Fetch directly from the API
+      let response = await fetch(
+        "https://drfapiprojects.onrender.com/projectcards/",
+        {
           signal: controller.signal,
           headers: {
             Accept: "application/json",
           },
-        });
-      }
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
