@@ -1,12 +1,64 @@
-import { exec } from "child_process";
+import express from "express";
+import { createProxyMiddleware } from "http-proxy-middleware";
 import path from "path";
 import { fileURLToPath } from "url";
+import { exec } from "child_process";
 import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DIST_DIR = path.join(__dirname, "dist");
 const SERVE_CONFIG = path.join(__dirname, "serve.json");
+
+const app = express();
+const PORT = process.env.PORT || 4173;
+
+// CORS middleware
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+
+  if (req.method === "OPTIONS") {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
+// API proxy middleware
+app.use(
+  "/api/proxy",
+  createProxyMiddleware({
+    target: "https://drfapiprojects.onrender.com",
+    changeOrigin: true,
+    pathRewrite: {
+      "^/api/proxy": "/projectcards",
+    },
+    onError: (err, req, res) => {
+      console.error("Proxy error:", err);
+      res.status(500).json({ error: "Proxy error occurred" });
+    },
+    onProxyReq: (proxyReq, req, res) => {
+      console.log(
+        `Proxying ${req.method} ${req.url} -> ${proxyReq.getHeader("host")}${
+          proxyReq.path
+        }`
+      );
+    },
+  })
+);
+
+// Serve static files from dist directory
+app.use(express.static(path.join(__dirname, "dist")));
+
+// Fallback to index.html for SPA routing
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "dist", "index.html"));
+});
 
 if (!fs.existsSync(DIST_DIR)) {
   console.log(
@@ -29,7 +81,12 @@ if (!fs.existsSync(DIST_DIR)) {
     buildProcess.on("close", (code) => {
       if (code === 0) {
         console.log("\x1b[32mBuild completado correctamente\x1b[0m");
-        startServer();
+        app.listen(PORT, () => {
+          console.log(`Server running at http://localhost:${PORT}`);
+          console.log(
+            `API proxy available at http://localhost:${PORT}/api/proxy`
+          );
+        });
       } else {
         console.error(
           `\x1b[31mError al ejecutar build, código: ${code}\x1b[0m`
@@ -42,61 +99,13 @@ if (!fs.existsSync(DIST_DIR)) {
     process.exit(1);
   }
 } else {
-  startServer();
-}
-
-function startServer() {
-  const PORT = 4173;
-
-  if (!fs.existsSync(SERVE_CONFIG)) {
-    console.warn(
-      "\x1b[33mAdvertencia: No se encontró el archivo serve.json. Se usará la configuración por defecto.\x1b[0m"
-    );
-  }
-
-  const serveCommand = fs.existsSync(SERVE_CONFIG)
-    ? `npx serve --config ${SERVE_CONFIG} -p ${PORT} --no-clipboard`
-    : `npx serve dist -p ${PORT} --no-compression --single --no-clipboard`;
-
-  console.log(
-    "\n\x1b[32m===================================================\x1b[0m"
-  );
-  console.log(
-    `\x1b[32mIniciando servidor en http://localhost:${PORT}...\x1b[0m`
-  );
-  console.log(
-    "\x1b[32m===================================================\x1b[0m"
-  );
-  console.log(`\x1b[36mComando: ${serveCommand}\x1b[0m`);
-
-  const serverProcess = exec(serveCommand);
-
-  let serverStarted = false;
-
-  serverProcess.stdout.on("data", (data) => {
-    process.stdout.write(data);
-
-    if (
-      !serverStarted &&
-      (data.includes("Serving!") || data.includes("Available on:"))
-    ) {
-      serverStarted = true;
-      setTimeout(() => {
-        openBrowser(PORT);
-      }, 500);
-    }
-  });
-
-  serverProcess.stderr.on("data", (data) => {
-    process.stderr.write(`\x1b[31m${data}\x1b[0m`);
-  });
-
-  process.on("SIGINT", () => {
-    console.log("\n\x1b[33mDeteniendo servidor...\x1b[0m");
-    serverProcess.kill();
-    process.exit(0);
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+    console.log(`API proxy available at http://localhost:${PORT}/api/proxy`);
   });
 }
+
+export default app;
 
 function getBrowserCommand(url) {
   if (process.platform === "win32") return `start "" "${url}"`;
