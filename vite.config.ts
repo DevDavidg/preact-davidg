@@ -69,15 +69,20 @@ export default defineConfig({
           "framer-motion": ["framer-motion"],
         },
         assetFileNames: (assetInfo) => {
-          if (assetInfo.type === "asset" && assetInfo.name) {
-            if (
-              /\.(png|jpe?g|svg|gif|tiff|webp|bmp|ico)$/i.test(assetInfo.name)
-            ) {
-              return `assets/images/[name]-[hash][extname]`;
-            }
-            return `assets/[name]-[hash][extname]`;
+          const name = assetInfo.name ?? "";
+
+          // ❌ Evitar incluir .tsx como asset
+          if (name.endsWith(".tsx")) {
+            return "assets/ignored/[name]-[hash][extname]";
           }
-          return `assets/[name]-[hash][extname]`;
+
+          // 🖼️ Imágenes en carpeta aparte
+          if (/\.(png|jpe?g|svg|gif|tiff|webp|bmp|ico)$/i.test(name)) {
+            return "assets/images/[name]-[hash][extname]";
+          }
+
+          // Otros assets
+          return "assets/[name]-[hash][extname]";
         },
         chunkFileNames: "assets/[name]-[hash].js",
         entryFileNames: "assets/[name]-[hash].js",
