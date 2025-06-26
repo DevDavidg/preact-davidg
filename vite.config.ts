@@ -1,6 +1,5 @@
 import { defineConfig } from "vite";
 import preact from "@preact/preset-vite";
-import compression from "vite-plugin-compression2";
 import { visualizer } from "rollup-plugin-visualizer";
 
 export default defineConfig(({ mode }) => ({
@@ -11,14 +10,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     preact(),
-    compression({
-      algorithm: "gzip",
-      exclude: [/\.(br)$/, /\.(gz)$/],
-    }),
-    compression({
-      algorithm: "brotliCompress",
-      exclude: [/\.(br)$/, /\.(gz)$/],
-    }),
+    // ❌ Compresión eliminada para evitar problemas en Vercel deploy
     // Solo generar stats.html cuando se especifique ANALYZE=true
     ...(process.env.ANALYZE === "true" 
       ? [visualizer({
@@ -83,15 +75,15 @@ export default defineConfig(({ mode }) => ({
           "framer-motion": ["framer-motion"],
         },
         assetFileNames: (assetInfo) => {
-          const name = assetInfo.name ?? "";
-
-          // ❌ Evitar incluir .tsx como asset
-          if (name.endsWith(".tsx")) {
-            return "assets/ignored/[name]-[hash][extname]";
+          if (!assetInfo.name) return "assets/[name]-[hash][extname]";
+          
+          // ❌ Excluir archivos de código fuente
+          if (/\.(tsx?|jsx?)$/i.test(assetInfo.name)) {
+            return "assets/temp/[name]-[hash][extname]"; // Los ponemos en temp para luego eliminarlos
           }
-
+          
           // 🖼️ Imágenes en carpeta aparte
-          if (/\.(png|jpe?g|svg|gif|tiff|webp|bmp|ico)$/i.test(name)) {
+          if (/\.(png|jpe?g|svg|gif|tiff|webp|bmp|ico)$/i.test(assetInfo.name)) {
             return "assets/images/[name]-[hash][extname]";
           }
 
