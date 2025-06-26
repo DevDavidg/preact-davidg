@@ -583,16 +583,13 @@ const Projects = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch directly from the API
-      let response = await fetch(
-        "https://drfapiprojects.onrender.com/projectcards/",
-        {
-          signal: controller.signal,
-          headers: {
-            Accept: "application/json",
-          },
-        }
-      );
+      // Use API proxy to avoid CORS issues
+      let response = await fetch("/api/proxy", {
+        signal: controller.signal,
+        headers: {
+          Accept: "application/json",
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
