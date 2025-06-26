@@ -40,10 +40,15 @@ export default async function handler(
 
     if (!apiResponse.ok) {
       console.error(`❌ API responded with status: ${apiResponse.status}`);
+      const errorBody = await apiResponse.text(); // Get raw text to avoid JSON parse errors
+      console.error(`❌ Error body from external API: ${errorBody}`);
+      
+      // Forward the exact status and a detailed error message
       return response.status(apiResponse.status).json({
-        error: 'External API error',
-        status: apiResponse.status,
-        message: apiResponse.statusText
+        error: 'External API Error',
+        proxy_status: apiResponse.status,
+        proxy_message: apiResponse.statusText,
+        external_api_body: errorBody,
       });
     }
 
@@ -61,19 +66,34 @@ export default async function handler(
   } catch (error) {
     console.error('❌ Proxy error:', error);
 
-    // Error específico para timeout
-    if (error && typeof error === 'object' && 'name' in error && error.name === 'AbortError') {
+    let errorDetails: Record<string, any> = {
+        message: 'An unknown error occurred',
+    };
+
+    if (error instanceof Error) {
+        errorDetails.message = error.message;
+        errorDetails.name = error.name;
+        errorDetails.stack = error.stack; // Might be useful
+    } else if (typeof error === 'object' && error !== null) {
+        errorDetails = { ...errorDetails, ...error };
+    } else {
+        errorDetails.message = String(error);
+    }
+    
+    // Check for timeout specifically
+    if (errorDetails.name === 'AbortError') {
       return response.status(408).json({
-        error: 'Request timeout',
-        message: 'External API took too long to respond'
+        error: 'Request Timeout',
+        message: 'The request to the external API timed out (max 10s). This can happen on cold starts.',
+        details: errorDetails,
       });
     }
 
-    // Error genérico
+    // Generic server error
     return response.status(500).json({
-      error: 'Internal server error',
-      message: 'Failed to fetch data from external API',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Internal Server Error',
+      message: 'The proxy encountered an unhandled error.',
+      details: errorDetails,
     });
   }
 } 
