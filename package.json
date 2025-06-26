@@ -7,7 +7,7 @@
     "dev": "vite",
     "dev:with-proxy": "concurrently \"npm run proxy\" \"npm run dev\"",
     "proxy": "node dev-proxy.js",
-    "build": "vite build && (if exist dist\\assets\\ignored rmdir /s /q dist\\assets\\ignored) && (if exist dist\\assets\\temp rmdir /s /q dist\\assets\\temp) && (del /q dist\\assets\\*.tsx 2>nul || echo)",
+    "build": "vite build && node clean-build.cjs",
     "build:analyze": "ANALYZE=true vite build",
     "check-types": "tsc -b",
     "preview": "vite preview",
