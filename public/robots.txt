@@ -3,4 +3,4 @@ User-agent: *
 Allow: /
 
 # Sitemap location
-Sitemap: https://example.com/sitemap.xml 
+Sitemap: https://preact-davidg.vercel.app/sitemap.xml 
