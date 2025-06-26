@@ -4,6 +4,11 @@ import compression from "vite-plugin-compression2";
 import { visualizer } from "rollup-plugin-visualizer";
 
 export default defineConfig(({ mode }) => ({
+  // Configuración de sourcemaps y debugging
+  esbuild: {
+    sourcemap: true,
+    keepNames: true, // Preservar nombres de funciones para debugging
+  },
   plugins: [
     preact(),
     compression({
@@ -27,6 +32,7 @@ export default defineConfig(({ mode }) => ({
     ),
   ],
   server: {
+    sourcemapIgnoreList: false, // Mostrar sourcemaps de node_modules
     proxy: {
       "/api/proxy": {
         target: "https://drfapiprojects.onrender.com",
@@ -60,6 +66,7 @@ export default defineConfig(({ mode }) => ({
     minify: "terser",
     assetsInlineLimit: 0,
     cssMinify: true,
+    sourcemap: mode === "development" ? true : false, // Sourcemaps solo en desarrollo
     terserOptions: {
       compress: {
         drop_console: true,
