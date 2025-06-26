@@ -13,11 +13,11 @@ const FORCE_PRODUCTION_MODE = false;
 export const ENV = {
   TESTING: FORCE_PRODUCTION_MODE
     ? false
-    : getEnvVar("VITE_TESTING") || isDevelopment(),
+    : getEnvVar("VITE_TESTING") && isDevelopment(),
   PERFORMANCE_OPTIMIZER_ENABLED: FORCE_PRODUCTION_MODE
     ? false
-    : getEnvVar("VITE_PERFORMANCE_OPTIMIZER_ENABLED") || isDevelopment(),
+    : getEnvVar("VITE_PERFORMANCE_OPTIMIZER_ENABLED") && isDevelopment(),
   PERFORMANCE_MONITOR_ENABLED: FORCE_PRODUCTION_MODE
     ? false
-    : getEnvVar("VITE_PERFORMANCE_MONITOR_ENABLED") || isDevelopment(),
+    : getEnvVar("VITE_PERFORMANCE_MONITOR_ENABLED") && isDevelopment(),
 };
