@@ -1,5 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+// Configurar runtime para Node.js
+export const config = {
+  runtime: 'nodejs18.x',
+};
+
 export default async function handler(
   request: VercelRequest,
   response: VercelResponse
