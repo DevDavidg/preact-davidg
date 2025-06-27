@@ -227,7 +227,10 @@ const Footer: FunctionComponent = () => {
 
   const socialLinks = [
     { name: "GitHub", url: "https://github.com/DevDavidg" },
-    { name: "LinkedIn", url: "https://linkedin.com/in/davidguillen" },
+    {
+      name: "LinkedIn",
+      url: "https://www.linkedin.com/in/david-guillen-5074281b8/",
+    },
     { name: "Twitter", url: "https://twitter.com/" },
     { name: "Instagram", url: "https://instagram.com/" },
   ];

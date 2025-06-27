@@ -733,7 +733,13 @@ const BioIntro = memo(({ personalInfo }: { personalInfo: PersonalInfo }) => (
           .map((name) => name[0])
           .join("")}
       </div>
-      <div className="absolute inset-0 glow-3d" />
+      <div className="absolute inset-0 glow-3d">
+        <img
+          src="/assets/profileimg.jpg"
+          alt="David Guillen"
+          className="object-cover w-full h-full opacity-40"
+        />
+      </div>
     </MotionDiv>
 
     <MotionDiv
@@ -1016,7 +1022,7 @@ const AboutMe: FunctionComponent = () => {
     title: "Front-End & Mobile Developer",
     email: "dev.davidg@gmail.com",
     phone: "+54 011 70030947",
-    linkedin: "https://linkedin.com/in/davidguillen",
+    linkedin: "https://www.linkedin.com/in/david-guillen-5074281b8/",
     portfolio: "https://dev-davidg.web.app/",
   };
 
