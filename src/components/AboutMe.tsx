@@ -920,18 +920,56 @@ const ExperienceTimeline = memo(
     );
 
     const experiencesByYear = useMemo(() => {
+      const monthMap: { [key: string]: number } = {
+        Ene: 0,
+        Feb: 1,
+        Mar: 2,
+        Abr: 3,
+        May: 4,
+        Jun: 5,
+        Jul: 6,
+        Ago: 7,
+        Sep: 8,
+        Oct: 9,
+        Nov: 10,
+        Dic: 11,
+      };
+
+      const parseDate = (periodString: string): Date => {
+        if (periodString.trim() === "Actualidad") {
+          return new Date(8640000000000000); // Max Date
+        }
+        const [monthStr, yearStr] = periodString.split(" ");
+        const month = monthMap[monthStr];
+        const year = parseInt(yearStr, 10);
+        if (month !== undefined && !isNaN(year)) {
+          return new Date(year, month, 1);
+        }
+        return new Date(0); // Min Date for parsing errors
+      };
+
+      const sortedExperiences = [...filteredExperiences].sort((a, b) => {
+        const [, endA] = a.period.split(" - ");
+        const [, endB] = b.period.split(" - ");
+        return parseDate(endB).getTime() - parseDate(endA).getTime();
+      });
+
       const groupedByYear: Record<string, Experience[]> = {};
 
-      filteredExperiences.forEach((exp) => {
-        const year = exp.period.split(" ").pop() ?? "Desconocido";
+      sortedExperiences.forEach((exp) => {
+        const year = exp.period.includes("Actualidad")
+          ? "Actualidad"
+          : exp.period.split(" ").pop() ?? "Desconocido";
         if (!groupedByYear[year]) {
           groupedByYear[year] = [];
         }
         groupedByYear[year].push(exp);
       });
 
-      return Object.entries(groupedByYear).sort((a, b) => {
-        return parseInt(b[0]) - parseInt(a[0]);
+      return Object.entries(groupedByYear).sort(([yearA], [yearB]) => {
+        if (yearA === "Actualidad") return -1;
+        if (yearB === "Actualidad") return 1;
+        return parseInt(yearB, 10) - parseInt(yearA, 10);
       });
     }, [filteredExperiences]);
 
