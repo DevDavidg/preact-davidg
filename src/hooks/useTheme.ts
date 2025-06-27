@@ -5,19 +5,12 @@ type Theme = "light" | "dark";
 
 export const useTheme = () => {
   const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window === "undefined") return "light";
+    if (typeof window === "undefined") return "dark";
 
     const savedTheme = localStorage.getItem("theme") as Theme;
     if (savedTheme) return savedTheme;
 
-    if (
-      window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches
-    ) {
-      return "dark";
-    }
-
-    return "light";
+    return "dark";
   });
 
   useEffect(() => {
