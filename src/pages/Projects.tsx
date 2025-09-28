@@ -1,12 +1,12 @@
 import { FunctionComponent } from "preact";
-import Proyects from "../components/Proyects";
+import Projects from "../components/Projects";
 
-const Projects: FunctionComponent = () => {
+const ProjectsPage: FunctionComponent = () => {
   return (
     <div class="min-h-screen">
-      <Proyects />
+      <Projects />
     </div>
   );
 };
 
-export default Projects;
+export default ProjectsPage;

@@ -1,0 +1,209 @@
+{
+    "common": {
+        "loading": "Cargando...",
+        "error": "Error",
+        "retry": "Reintentar",
+        "close": "Cerrar",
+        "menu": "Menú",
+        "scroll": "Scroll"
+    },
+    "navigation": {
+        "home": "Inicio",
+        "about": "Acerca de",
+        "projects": "Proyectos",
+        "contact": "Contacto",
+        "portfolio": "Portfolio"
+    },
+    "hero": {
+        "welcome": "Bienvenidos a mi portfolio",
+        "title": "Diseñando experiencias digitales con impacto",
+        "subtitle": "Front-End Specialist & Fullstack Developer especializado en crear interfaces modernas, accesibles y de alto rendimiento.",
+        "viewProjects": "Ver proyectos",
+        "contact": "Contactar"
+    },
+    "about": {
+        "title": "Acerca de mí",
+        "bio": {
+            "name": "Mi nombre es David Guillen",
+            "age": "tengo 22 años, soy",
+            "title": "Front-End Specialist & Fullstack Developer",
+            "location": "actualmente vivo en Villa Crespo, Buenos Aires, Argentina. Cuento con más de 4 años de experiencia creando interfaces de usuario modernas, accesibles y de alto rendimiento para diversas empresas y proyectos.",
+            "specialization": "Me especializo en el desarrollo full-stack con React, Preact, Redux, Next.js, Angular, Vue y Nuxt.js, así como en desarrollo móvil con React Native. Tengo amplia experiencia en desarrollo backend con Node.js, Express, Python, y gestión de bases de datos con MySQL, PostgreSQL, MongoDB y Firebase. Mi experiencia incluye UX/UI, diseño responsivo y metodologías ágiles como Scrum y Kanban. Mi objetivo es combinar diseño estético con código limpio y eficiente, siguiendo principios como SOLID, DRY, KISS y BEM para crear experiencias digitales que impresionen y funcionen perfectamente."
+        },
+        "contact": {
+            "phone": "Teléfono",
+            "email": "Email",
+            "linkedin": "LinkedIn",
+            "portfolio": "Portfolio"
+        },
+        "tabs": {
+            "experience": "Experiencia",
+            "education": "Educación",
+            "skills": "Habilidades"
+        },
+        "experience": {
+            "title": "Experiencia",
+            "filters": {
+                "all": "Todos",
+                "companies": "Empresas",
+                "freelance": "Freelance"
+            },
+            "badges": {
+                "company": "Empresa",
+                "freelance": "Freelance"
+            },
+            "current": "Actualidad",
+            "descriptions": {
+                "nonconformist": "Desarrollo end-to-end de aplicaciones web y móviles.",
+                "santander": "Desarrollo de sistemas internos con fuerte integración front-back.",
+                "globallogic": "Proyectos para Claro (Argentina, Paraguay, Uruguay).",
+                "skyblue": "Desarrollo frontend completo + integración backend junto al CTO.",
+                "vinciu": "UI del campus virtual.",
+                "orion2pay": "Líder de desarrollo de la plataforma principal.",
+                "ludela": "Desarrollo fullstack para empresas nacionales e internacionales.",
+                "nolock": "Desarrollo de funcionalidades + testing manual.",
+                "goohaus": "Desarrollo de landing pages.",
+                "marketing_emd": "Proyecto fullstack desde cero."
+            }
+        },
+        "education": {
+            "title": "Educación",
+            "formal": "Educación Formal",
+            "courses": "Cursos y Formación"
+        },
+        "skills": {
+            "title": "Habilidades",
+            "level": "Nivel de habilidades",
+            "softSkills": "Habilidades blandas",
+            "filters": {
+                "all": "Todas",
+                "frontend": "Frontend",
+                "frameworks": "Frameworks",
+                "design": "Diseño",
+                "tools": "Herramientas",
+                "languages": "Idiomas",
+                "methodologies": "Metodologías"
+            },
+            "levels": {
+                "expert": "Experto",
+                "advanced": "Avanzado",
+                "intermediate": "Intermedio",
+                "basic": "Básico",
+                "beginner": "Principiante"
+            },
+            "notFound": "No se encontraron habilidades para esta categoría."
+        }
+    },
+    "projects": {
+        "title": "Proyectos Destacados",
+        "subtitle": "Explora la colección de proyectos en los que he trabajado, desde aplicaciones web hasta diseños de interfaz.",
+        "filters": {
+            "all": "Todos",
+            "development": "Desarrollo",
+            "design": "Diseño",
+            "allTechnologies": "Todas las tecnologías"
+        },
+        "badges": {
+            "design": "Diseño",
+            "video": "Video",
+            "animated": "Animado"
+        },
+        "actions": {
+            "viewDemo": "Ver Demo",
+            "viewCode": "Código"
+        },
+        "loading": "Cargando proyectos...",
+        "error": {
+            "title": "Error al cargar proyectos",
+            "retry": "Reintentar"
+        },
+        "empty": {
+            "title": "No se encontraron proyectos",
+            "description": "No hay proyectos que coincidan con los filtros actuales. Intenta ajustar los criterios de búsqueda.",
+            "showAll": "Mostrar todos los proyectos"
+        },
+        "imageError": "Error al cargar imagen"
+    },
+    "contact": {
+        "title": "Hablemos Juntos",
+        "subtitle": "¿Tienes un proyecto en mente o quieres colaborar? ¡Me encantaría saber de ti!",
+        "connect": "Conectemos",
+        "description": "Listo para transformar tus ideas en realidad. Creemos algo increíble juntos. No dudes en contactarme.",
+        "contactInfo": {
+            "email": "Email",
+            "location": "Ubicación",
+            "locationValue": "Villa Crespo, Buenos Aires, Argentina"
+        },
+        "follow": "Sígueme",
+        "form": {
+            "title": "Envíame un Mensaje",
+            "name": "Nombre",
+            "namePlaceholder": "Tu nombre",
+            "email": "Email",
+            "emailPlaceholder": "Tu email",
+            "subject": "Asunto (Opcional)",
+            "subjectPlaceholder": "¿De qué se trata?",
+            "message": "Mensaje",
+            "messagePlaceholder": "Tu mensaje...",
+            "submit": "Enviar Mensaje",
+            "submitting": "Enviando...",
+            "validation": {
+                "nameRequired": "Por favor escribe tu nombre",
+                "emailRequired": "Por favor escribe tu email",
+                "emailInvalid": "Por favor ingresa un email válido",
+                "messageRequired": "Por favor escribe un mensaje",
+                "messageMinLength": "El mensaje debe tener al menos 10 caracteres"
+            },
+            "success": "¡Gracias por tu mensaje! Me pondré en contacto contigo pronto.",
+            "error": "Ha ocurrido un error al enviar el mensaje. Por favor, inténtalo de nuevo."
+        }
+    },
+    "footer": {
+        "title": "Portfolio",
+        "description": "Creando interfaces elegantes y funcionales con un enfoque en la experiencia del usuario. Especializado en soluciones digitales que combinan estética y usabilidad.",
+        "follow": "Sígueme en",
+        "quickLinks": "Enlaces Rápidos",
+        "links": {
+            "home": "Inicio",
+            "projects": "Proyectos",
+            "services": "Servicios",
+            "about": "Sobre mí",
+            "contact": "Contacto"
+        },
+        "newsletter": {
+            "title": "Newsletter",
+            "description": "Suscríbete para recibir las últimas novedades y actualizaciones.",
+            "placeholder": "Tu email",
+            "subscribe": "Suscribirse",
+            "success": "¡Gracias por suscribirte!"
+        },
+        "copyright": "Todos los derechos reservados.",
+        "legal": {
+            "privacy": "Privacidad",
+            "terms": "Términos",
+            "sitemap": "Sitemap"
+        }
+    },
+    "social": {
+        "github": "GitHub",
+        "linkedin": "LinkedIn",
+        "twitter": "Twitter",
+        "instagram": "Instagram"
+    },
+    "accessibility": {
+        "openMenu": "Abrir menú",
+        "closeMenu": "Cerrar menú",
+        "switchToDark": "Cambiar a modo oscuro",
+        "switchToLight": "Cambiar a modo claro",
+        "scrollToTop": "Ir arriba",
+        "viewDemo": "Ver demo de",
+        "viewCode": "Ver código fuente de",
+        "filterBy": "Filtrar por",
+        "showAll": "Mostrar todos",
+        "showOnly": "Mostrar solo",
+        "technology": "Tecnología",
+        "additionalTechnologies": "tecnologías adicionales",
+        "animatedContent": "Contenido animado",
+        "designProject": "Proyecto de diseño"
+    }
+}

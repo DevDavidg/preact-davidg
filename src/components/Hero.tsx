@@ -8,6 +8,7 @@ import {
   MotionSpan,
   MotionSvg,
 } from "../utils/motion-components";
+import { useTranslation } from "../hooks/useTranslation";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -257,6 +258,7 @@ const AnimatedTitle: FunctionComponent<{
 };
 
 const Hero = () => {
+  const { t } = useTranslation();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const heroRef = useRef<HTMLElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
@@ -464,7 +466,7 @@ const Hero = () => {
     };
   };
 
-  const titleText = "Diseñando experiencias digitales con impacto";
+  const titleText = t("hero.title");
   const specialWords = ["experiencias", "digitales", "impacto"];
 
   const shapes3D = [
@@ -824,7 +826,7 @@ const Hero = () => {
                 transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
                 className="w-2 h-2 md:w-3 md:h-3 bg-light-accent dark:bg-dark-accent rounded-full mr-2"
               ></MotionSpan>
-              Bienvenidos a mi portfolio
+              {t("hero.welcome")}
             </span>
           </MotionDiv>
 
@@ -840,34 +842,7 @@ const Hero = () => {
             className="text-lg sm:text-xl md:text-2xl text-light-secondary dark:text-dark-secondary mb-8 md:mb-10 max-w-2xl perspective preserve-3d"
             style={{ textShadow: "0 1px 2px rgba(0,0,0,0.05)" }}
           >
-            Desarrollador frontend especializado en crear{" "}
-            <MotionSpan
-              initial={{ opacity: 0, y: 10, rotateX: 90 }}
-              animate={{ opacity: 1, y: 0, rotateX: 0 }}
-              transition={{ delay: 0.5, duration: 0.3, type: "spring" }}
-              className="highlight-text backdrop-blur-sm"
-            >
-              interfaces modernas
-            </MotionSpan>
-            ,{" "}
-            <MotionSpan
-              initial={{ opacity: 0, y: 10, rotateX: 90 }}
-              animate={{ opacity: 1, y: 0, rotateX: 0 }}
-              transition={{ delay: 0.6, duration: 0.3, type: "spring" }}
-              className="highlight-text backdrop-blur-sm"
-            >
-              accesibles
-            </MotionSpan>{" "}
-            y de{" "}
-            <MotionSpan
-              initial={{ opacity: 0, y: 10, rotateX: 90 }}
-              animate={{ opacity: 1, y: 0, rotateX: 0 }}
-              transition={{ delay: 0.7, duration: 0.3, type: "spring" }}
-              className="highlight-text backdrop-blur-sm"
-            >
-              alto rendimiento
-            </MotionSpan>
-            .
+            {t("hero.subtitle")}
           </MotionP>
 
           <MotionDiv
@@ -894,7 +869,7 @@ const Hero = () => {
               }}
             >
               <span className="relative z-10 flex items-center justify-center">
-                Ver proyectos
+                {t("hero.viewProjects")}
                 <MotionSvg
                   xmlns="http://www.w3.org/2000/svg"
                   width="18"
@@ -955,7 +930,7 @@ const Hero = () => {
               }}
             >
               <span className="relative z-10 flex items-center justify-center">
-                Contactar
+                {t("hero.contact")}
                 <MotionSvg
                   xmlns="http://www.w3.org/2000/svg"
                   width="18"
@@ -999,7 +974,7 @@ const Hero = () => {
             className="hidden sm:flex absolute bottom-2 left-1/2 transform -translate-x-1/2 flex-col items-center perspective"
           >
             <span className="text-sm text-light-secondary dark:text-dark-secondary mb-2 opacity-70">
-              Scroll
+              {t("common.scroll")}
             </span>
             <MotionSvg
               xmlns="http://www.w3.org/2000/svg"

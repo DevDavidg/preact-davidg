@@ -6,16 +6,16 @@ import {
   useCallback,
   useMemo,
 } from "preact/hooks";
-import React, { memo } from "preact/compat";
+import { memo, cloneElement } from "preact/compat";
 import {
   MotionDiv,
   MotionH2,
   MotionH3,
   MotionP,
   MotionSpan,
-  MotionA,
   MotionSvg,
 } from "../utils/motion-components";
+import { useTranslation } from "../hooks/useTranslation";
 
 type TabType = "experience" | "education" | "skills";
 type ExperienceFilterType = "all" | "job" | "freelance";
@@ -144,6 +144,34 @@ function getLevelLabel(level: number): string {
     default:
       return "Principiante";
   }
+}
+
+function getExperienceDescription(
+  company: string,
+  t: (key: string) => string
+): string {
+  // Create a mapping of company names to their translation keys
+  const companyKeyMap: { [key: string]: string } = {
+    Nonconformist: "nonconformist",
+    "Santander España": "santander",
+    GlobalLogic: "globallogic",
+    "Skyblue Analytics": "skyblue",
+    VinciU: "vinciu",
+    Orion2Pay: "orion2pay",
+    "Ludela Analytics": "ludela",
+    Nolock: "nolock",
+    "GOOHAUS (Walmart & Goohaus)": "goohaus",
+    "Marketing Digital EMD": "marketing_emd",
+  };
+
+  const companyKey =
+    companyKeyMap[company] ||
+    company
+      .toLowerCase()
+      .replace(/\s+/g, "_")
+      .replace(/[^a-z0-9_]/g, "");
+
+  return t(`about.experience.descriptions.${companyKey}`);
 }
 
 const GradientBlob = memo(
@@ -291,19 +319,30 @@ const BaseCard = memo(
   )
 );
 
-const ExperienceCard = memo(({ experience }: { experience: Experience }) => (
-  <BaseCard
-    title={experience.company}
-    subtitle={experience.role}
-    period={experience.period}
-    description={experience.description}
-    tags={experience.technologies}
-    badge={{
-      text: experience.type === "job" ? "Empresa" : "Freelance",
-      type: experience.type === "job" ? "primary" : "accent",
-    }}
-  />
-));
+const ExperienceCard = memo(
+  ({
+    experience,
+    t,
+  }: {
+    experience: Experience;
+    t: (key: string) => string;
+  }) => (
+    <BaseCard
+      title={experience.company}
+      subtitle={experience.role}
+      period={experience.period}
+      description={getExperienceDescription(experience.company, t)}
+      tags={experience.technologies}
+      badge={{
+        text:
+          experience.type === "job"
+            ? t("about.experience.badges.company")
+            : t("about.experience.badges.freelance"),
+        type: experience.type === "job" ? "primary" : "accent",
+      }}
+    />
+  )
+);
 
 const EducationCard = memo(({ item }: { item: Education }) => (
   <BaseCard
@@ -585,7 +624,7 @@ const ContactItem = memo(
       whileHover={{ y: -5, boxShadow: "0px 15px 30px rgba(0,0,0,0.1)" }}
     >
       <div className="w-10 h-10 rounded-full bg-light-accent/10 dark:bg-dark-accent/10 flex items-center justify-center mr-3 group-hover:bg-light-accent/20 dark:group-hover:bg-dark-accent/20 transition-colors duration-300">
-        {React.cloneElement(icon, {
+        {cloneElement(icon, {
           className:
             "text-light-accent dark:text-dark-accent group-hover:scale-110 transition-transform duration-300",
           width: 18,
@@ -713,73 +752,72 @@ const ContactInfo = memo(({ personalInfo }: { personalInfo: PersonalInfo }) => (
   </MotionDiv>
 ));
 
-const BioIntro = memo(({ personalInfo }: { personalInfo: PersonalInfo }) => (
-  <MotionDiv className="text-center mb-16 max-w-3xl mx-auto relative">
-    <MotionH2
-      className="text-3xl md:text-5xl font-bold mb-6 text-gradient relative inline-block"
-      variants={animations.item}
-    >
-      Acerca de mí
-    </MotionH2>
+const BioIntro = memo(
+  ({
+    personalInfo,
+    t,
+  }: {
+    personalInfo: PersonalInfo;
+    t: (key: string) => string;
+  }) => (
+    <MotionDiv className="text-center mb-16 max-w-3xl mx-auto relative">
+      <MotionH2
+        className="text-3xl md:text-5xl font-bold mb-6 text-gradient relative inline-block"
+        variants={animations.item}
+      >
+        {t("about.title")}
+      </MotionH2>
 
-    <MotionDiv
-      className="rounded-xl overflow-hidden md:float-right md:ml-8 mb-6 md:mb-0 w-32 h-32 md:w-40 md:h-40 mx-auto md:mx-0 relative shadow-lg card-3d transform-3d-hover"
-      variants={animations.item}
-    >
-      <div className="absolute inset-0 bg-gradient-to-tr from-light-accent/30 dark:from-dark-accent/30 to-light-primary/30 dark:to-dark-primary/30" />
-      <div className="absolute inset-1 bg-light-bg dark:bg-dark-bg rounded-lg flex items-center justify-center text-4xl font-bold text-light-accent dark:text-dark-accent">
-        {personalInfo.name
-          .split(" ")
-          .map((name) => name[0])
-          .join("")}
-      </div>
-      <div className="absolute inset-0 glow-3d">
-        <img
-          src="/assets/profileimg.jpg"
-          alt="David Guillen"
-          className="object-cover w-full h-full opacity-40"
-        />
-      </div>
-    </MotionDiv>
+      <MotionDiv
+        className="rounded-xl overflow-hidden md:float-right md:ml-8 mb-6 md:mb-0 w-32 h-32 md:w-40 md:h-40 mx-auto md:mx-0 relative shadow-lg card-3d transform-3d-hover"
+        variants={animations.item}
+      >
+        <div className="absolute inset-0 bg-gradient-to-tr from-light-accent/30 dark:from-dark-accent/30 to-light-primary/30 dark:to-dark-primary/30" />
+        <div className="absolute inset-1 bg-light-bg dark:bg-dark-bg rounded-lg flex items-center justify-center text-4xl font-bold text-light-accent dark:text-dark-accent">
+          {personalInfo.name
+            .split(" ")
+            .map((name) => name[0])
+            .join("")}
+        </div>
+        <div className="absolute inset-0 glow-3d">
+          <img
+            src="/assets/profileimg.jpg"
+            alt="David Guillen"
+            className="object-cover w-full h-full opacity-40"
+          />
+        </div>
+      </MotionDiv>
 
-    <MotionDiv
-      className="text-left space-y-4 text-light-secondary dark:text-dark-secondary"
-      variants={animations.item}
-    >
-      <p className="text-lg">
-        <span className="font-bold text-light-accent dark:text-dark-accent">
-          Mi nombre es David Guillen
-        </span>
-        , tengo 22 años, soy
-        <span className="font-bold text-light-accent dark:text-dark-accent">
-          {" "}
-          Front-End & Mobile Developer
-        </span>
-        , actualmente vivo en Villa Crespo, CABA, Argentina. Cuento con más de 4
-        años de experiencia creando interfaces de usuario modernas, accesibles y
-        de alto rendimiento para diversas empresas y proyectos.
-      </p>
-      <p className="text-lg">
-        Me especializo en el desarrollo frontend con{" "}
-        <span className="font-bold text-light-accent dark:text-dark-accent">
-          React, Preact, Redux, Next.js, Angular, Vue y Nuxt.js
-        </span>
-        , así como en desarrollo móvil con{" "}
-        <span className="font-bold text-light-accent dark:text-dark-accent">
-          React Native
-        </span>
-        . Tengo amplia experiencia en UX/UI, diseño responsivo y metodologías
-        ágiles como Scrum. Mi objetivo es combinar diseño estético con código
-        limpio y eficiente, siguiendo principios como SOLID, DRY, KISS y BEM
-        para crear experiencias digitales que impresionen y funcionen
-        perfectamente.
-      </p>
+      <MotionDiv
+        className="text-left space-y-4 text-light-secondary dark:text-dark-secondary"
+        variants={animations.item}
+      >
+        <p className="text-lg">
+          <span className="font-bold text-light-accent dark:text-dark-accent">
+            {t("about.bio.name")}
+          </span>
+          , {t("about.bio.age")}{" "}
+          <span className="font-bold text-light-accent dark:text-dark-accent">
+            {t("about.bio.title")}
+          </span>
+          , {t("about.bio.location")}
+        </p>
+        <p className="text-lg">{t("about.bio.specialization")}</p>
+      </MotionDiv>
     </MotionDiv>
-  </MotionDiv>
-));
+  )
+);
 
 const SkillsChart = memo(
-  ({ skills, filter }: { skills: Skill[]; filter: SkillFilterType }) => {
+  ({
+    skills,
+    filter,
+    t,
+  }: {
+    skills: Skill[];
+    filter: SkillFilterType;
+    t: (key: string) => string;
+  }) => {
     const filteredSkills = skills.filter(
       (skill) => filter === "all" || skill.category === filter
     );
@@ -796,7 +834,7 @@ const SkillsChart = memo(
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
-          No se encontraron habilidades para esta categoría.
+          {t("about.skills.notFound")}
         </MotionP>
       );
     }
@@ -806,7 +844,7 @@ const SkillsChart = memo(
         <div className="absolute inset-0 bg-grid opacity-10" />
 
         <h3 className="text-xl font-bold mb-6 text-gradient">
-          Nivel de habilidades
+          {t("about.skills.level")}
         </h3>
 
         <div className="space-y-8">
@@ -890,10 +928,16 @@ const SoftSkillCard = memo(({ skill }: { skill: SoftSkill }) => (
 ));
 
 const SoftSkillsSection = memo(
-  ({ softSkills }: { softSkills: SoftSkill[] }) => (
+  ({
+    softSkills,
+    t,
+  }: {
+    softSkills: SoftSkill[];
+    t: (key: string) => string;
+  }) => (
     <MotionDiv className="mt-12" variants={animations.item}>
       <MotionH3 className="text-xl font-bold mb-6 text-gradient">
-        Habilidades blandas
+        {t("about.skills.softSkills")}
       </MotionH3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -909,9 +953,11 @@ const ExperienceTimeline = memo(
   ({
     experiences,
     filter,
+    t,
   }: {
     experiences: Experience[];
     filter: ExperienceFilterType;
+    t: (key: string) => string;
   }) => {
     const filteredExperiences = useMemo(
       () =>
@@ -936,7 +982,10 @@ const ExperienceTimeline = memo(
       };
 
       const parseDate = (periodString: string): Date => {
-        if (periodString.trim() === "Actualidad") {
+        if (
+          periodString.trim() === "Actualidad" ||
+          periodString.trim() === "Presente"
+        ) {
           return new Date(8640000000000000); // Max Date
         }
         const [monthStr, yearStr] = periodString.split(" ");
@@ -957,9 +1006,10 @@ const ExperienceTimeline = memo(
       const groupedByYear: Record<string, Experience[]> = {};
 
       sortedExperiences.forEach((exp) => {
-        const year = exp.period.includes("Actualidad")
-          ? "Actualidad"
-          : exp.period.split(" ").pop() ?? "Desconocido";
+        const year =
+          exp.period.includes("Actualidad") || exp.period.includes("Presente")
+            ? t("about.experience.current")
+            : exp.period.split(" ").pop() ?? "Desconocido";
         if (!groupedByYear[year]) {
           groupedByYear[year] = [];
         }
@@ -967,11 +1017,11 @@ const ExperienceTimeline = memo(
       });
 
       return Object.entries(groupedByYear).sort(([yearA], [yearB]) => {
-        if (yearA === "Actualidad") return -1;
-        if (yearB === "Actualidad") return 1;
+        if (yearA === t("about.experience.current")) return -1;
+        if (yearB === t("about.experience.current")) return 1;
         return parseInt(yearB, 10) - parseInt(yearA, 10);
       });
-    }, [filteredExperiences]);
+    }, [filteredExperiences, t]);
 
     return (
       <div className="relative">
@@ -1022,7 +1072,7 @@ const ExperienceTimeline = memo(
                     />
 
                     <div className="md:col-span-2 md:hidden">
-                      <ExperienceCard experience={exp} />
+                      <ExperienceCard experience={exp} t={t} />
                     </div>
 
                     <div
@@ -1030,7 +1080,7 @@ const ExperienceTimeline = memo(
                         expIndex % 2 === 0 ? "md:col-start-1" : "md:col-start-2"
                       }`}
                     >
-                      <ExperienceCard experience={exp} />
+                      <ExperienceCard experience={exp} t={t} />
                     </div>
                   </MotionDiv>
                 ))}
@@ -1044,6 +1094,7 @@ const ExperienceTimeline = memo(
 );
 
 const AboutMe: FunctionComponent = () => {
+  const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("experience");
   const [experienceFilter, setExperienceFilter] =
@@ -1056,8 +1107,8 @@ const AboutMe: FunctionComponent = () => {
   const personalInfo: PersonalInfo = {
     name: "David Guillen",
     age: 22,
-    location: "Villa Crespo, CABA, Argentina",
-    title: "Front-End & Mobile Developer",
+    location: "Villa Crespo, Buenos Aires, Argentina",
+    title: "Front-End Specialist & Fullstack Dev",
     email: "dev.davidg@gmail.com",
     phone: "+54 011 70030947",
     linkedin: "https://www.linkedin.com/in/david-guillen-5074281b8/",
@@ -1065,10 +1116,11 @@ const AboutMe: FunctionComponent = () => {
   };
 
   const skills: Skill[] = [
+    // Frontend Technologies
     { name: "React", level: 5, category: "frontend" },
     { name: "Preact", level: 5, category: "frontend" },
     { name: "Redux", level: 4, category: "frontend" },
-    { name: "Next.js", level: 4, category: "frontend" },
+    { name: "NextJS", level: 4, category: "frontend" },
     { name: "Angular", level: 4, category: "frontend" },
     { name: "Vue", level: 4, category: "frontend" },
     { name: "Nuxt.js", level: 3, category: "frontend" },
@@ -1079,12 +1131,14 @@ const AboutMe: FunctionComponent = () => {
     { name: "HTML5", level: 5, category: "frontend" },
     { name: "CSS3", level: 5, category: "frontend" },
 
+    // Design & Prototyping
     { name: "Figma", level: 4, category: "design" },
     { name: "Adobe XD", level: 3, category: "design" },
     { name: "Adobe Photoshop", level: 3, category: "design" },
     { name: "Adobe Illustrator", level: 3, category: "design" },
     { name: "UX/UI Design", level: 4, category: "design" },
 
+    // Styling & Frameworks
     { name: "SCSS", level: 5, category: "frameworks" },
     { name: "SASS", level: 5, category: "frameworks" },
     { name: "LESS", level: 4, category: "frameworks" },
@@ -1094,6 +1148,20 @@ const AboutMe: FunctionComponent = () => {
     { name: "Material UI", level: 4, category: "frameworks" },
     { name: "Tailwind CSS", level: 4, category: "frameworks" },
 
+    // Backend Technologies
+    { name: "Node.js", level: 4, category: "tools" },
+    { name: "Express", level: 4, category: "tools" },
+    { name: "Python", level: 3, category: "tools" },
+
+    // Databases
+    { name: "MySQL", level: 4, category: "tools" },
+    { name: "SQLite", level: 4, category: "tools" },
+    { name: "PostgreSQL", level: 3, category: "tools" },
+    { name: "MongoDB", level: 3, category: "tools" },
+    { name: "Firebase", level: 4, category: "tools" },
+    { name: "SQL", level: 4, category: "tools" },
+
+    // Testing & Tools
     { name: "Jest", level: 3, category: "tools" },
     { name: "Cucumber", level: 3, category: "tools" },
     { name: "Git", level: 4, category: "tools" },
@@ -1104,11 +1172,14 @@ const AboutMe: FunctionComponent = () => {
     { name: "Jenkins", level: 3, category: "tools" },
     { name: "Storybook", level: 3, category: "tools" },
 
+    // Languages
     { name: "Inglés B2", level: 4, category: "languages" },
     { name: "Español (Nativo)", level: 5, category: "languages" },
 
+    // Methodologies & Soft Skills
     { name: "Agile", level: 4, category: "other" },
     { name: "Scrum", level: 4, category: "other" },
+    { name: "Kanban", level: 4, category: "other" },
     { name: "BEM", level: 4, category: "other" },
     { name: "DRY", level: 4, category: "other" },
     { name: "KISS", level: 4, category: "other" },
@@ -1117,67 +1188,71 @@ const AboutMe: FunctionComponent = () => {
     { name: "Comunicación efectiva", level: 5, category: "other" },
     { name: "Trabajo en equipo", level: 5, category: "other" },
     { name: "Gestión del tiempo", level: 4, category: "other" },
-    { name: "Adaptabilidad", level: 5, category: "other" },
-    { name: "Autodidacta", level: 5, category: "other" },
+    { name: "Aprendizaje autodidacta", level: 5, category: "other" },
+    { name: "Adaptabilidad tecnológica", level: 5, category: "other" },
+    { name: "Mentalidad ágil", level: 4, category: "other" },
   ];
 
   const experiences: Experience[] = [
     {
+      company: "Nonconformist",
+      role: "Full-Stack & Mobile Developer",
+      period: "Oct 2024 - Presente",
+      description: "", // Will be filled by translation
+      technologies: [
+        "React",
+        "React Native",
+        "TypeScript",
+        "Bootstrap",
+        "Node.js",
+        "Angular",
+        "Express",
+        "SQL",
+        "NextJS",
+      ],
+      type: "job",
+    },
+    {
       company: "Santander España",
-      role: "Desarrollador Front End",
-      period: "Mar 2025 - Actualidad",
-      description:
-        "Desarrollo de sistema interno utilizando tecnologías modernas.",
+      role: "Front-End Developer",
+      period: "Mar 2025 - Ago 2025",
+      description: "", // Will be filled by translation
       technologies: ["Angular", "TypeScript", "Gluon", "Flame UI"],
       type: "job",
     },
     {
-      company: "Nonconformist",
-      role: "Front End & Mobile Developer",
-      period: "Oct 2024 - Actualidad",
-      description:
-        "Desarrollo de aplicaciones web y móviles con tecnologías modernas.",
-      technologies: ["React", "React Native", "TypeScript", "Bootstrap"],
-      type: "job",
-    },
-    {
-      company: "Empleos Marketing Digital EMD",
-      role: "Front End Developer",
-      period: "Ene 2024 - Jul 2024",
-      description:
-        "Desarrollo completo del proyecto desde cero con integración backend.",
-      technologies: ["React.js", "CSS", "i18n", "Bootstrap"],
-      type: "job",
-    },
-    {
       company: "GlobalLogic",
-      role: "Front End",
+      role: "Front-End",
       period: "Jul 2022 - Oct 2024",
-      description:
-        "Desarrollo de proyectos para Claro (Argentina, Paraguay, Uruguay).",
-      technologies: ["React", "StyledComponents", "TypeScript", "Jenkins"],
+      description: "", // Will be filled by translation
+      technologies: [
+        "React",
+        "StyledComponents",
+        "TypeScript",
+        "Jenkins",
+        "APIs",
+      ],
       type: "job",
     },
     {
       company: "Skyblue Analytics",
-      role: "Front End",
+      role: "Front-End",
       period: "Abr 2023 - Sep 2023",
-      description:
-        "Desarrollo completo del frontend en colaboración directa con el CTO.",
+      description: "", // Will be filled by translation
       technologies: ["Vue", "Quasar", "TypeScript", "GraphQL"],
       type: "job",
     },
     {
       company: "VinciU",
-      role: "Front End y UX",
+      role: "Full-Stack Developer",
       period: "Jul 2022 - Abr 2023",
-      description: "A cargo de la UI del campus virtual.",
+      description: "", // Will be filled by translation
       technologies: [
         "Angular",
         "Firebase",
+        "Node.js",
         "SCSS",
         "Bootstrap",
-        "Material UI",
         "Storybook",
         "TypeScript",
         "Figma",
@@ -1185,37 +1260,43 @@ const AboutMe: FunctionComponent = () => {
       type: "job",
     },
     {
-      company: "Diseño de Hogar (Walmart & Goohaus)",
-      role: "Mobile Developer & UX/UI Designer",
-      period: "Abr 2023 - May 2023",
-      description: "Desarrollo de landing y apps móviles.",
-      technologies: ["FlutterFlow", "Flutter", "Figma", "Angular"],
-      type: "freelance",
+      company: "Orion2Pay",
+      role: "Full-Stack Developer",
+      period: "Ene 2020 - Oct 2021",
+      description: "", // Will be filled by translation
+      technologies: ["React", "TypeScript", "Figma", "Firebase"],
+      type: "job",
     },
     {
       company: "Ludela Analytics",
-      role: "Full Stack & UI Designer",
+      role: "Full-Stack Developer",
       period: "Dic 2021 - Jul 2022",
-      description:
-        "Desarrollo de aplicaciones front y back para empresas nacionales e internacionales.",
+      description: "", // Will be filled by translation
       technologies: ["Angular", "Firebase", "Node.js", "SCSS"],
       type: "job",
     },
     {
       company: "Nolock",
-      role: "Front End & QA Manual",
+      role: "Front-End & QA",
       period: "Oct 2021 - Dic 2021",
-      description:
-        "Programación y pruebas manuales para detección temprana de errores.",
+      description: "", // Will be filled by translation
       technologies: ["React", "React Native", "Next.js", "Jest", "Cucumber"],
       type: "job",
     },
     {
-      company: "Orion2Pay",
-      role: "Front End y UX",
-      period: "Ene 2020 - Oct 2021",
-      description: "Encargado de la página principal.",
-      technologies: ["React", "TypeScript", "Figma"],
+      company: "GOOHAUS (Walmart & Goohaus)",
+      role: "Front-End Developer",
+      period: "Abr 2023 - May 2023",
+      description: "", // Will be filled by translation
+      technologies: ["FlutterFlow", "Flutter", "Angular", "Figma"],
+      type: "freelance",
+    },
+    {
+      company: "Marketing Digital EMD",
+      role: "Front-End Developer",
+      period: "Ene 2024 - Jul 2024",
+      description: "", // Will be filled by translation
+      technologies: ["React.js", "CSS", "i18n", "Bootstrap", "Node.js"],
       type: "job",
     },
   ];
@@ -1227,7 +1308,7 @@ const AboutMe: FunctionComponent = () => {
       period: "2021-2023",
     },
     {
-      institution: "Secundaria completa",
+      institution: "Escuela secundaria completa",
       degree: "Educación secundaria completa",
       period: "2015-2020",
     },
@@ -1241,13 +1322,13 @@ const AboutMe: FunctionComponent = () => {
     },
     {
       provider: "SoyHenry",
-      name: "Web Development",
-      topics: ["React Dev", "Front End Dev", "JavaScript"],
+      name: "Web Development Bootcamp",
+      topics: ["React Developer", "Front End Developer", "JavaScript"],
     },
     {
       provider: "CoderHouse",
       name: "Front End Development",
-      topics: ["Front End", "React"],
+      topics: ["Front End Dev", "React Dev"],
     },
     {
       provider: "Platzi",
@@ -1256,7 +1337,7 @@ const AboutMe: FunctionComponent = () => {
         "Angular",
         "React",
         "TypeScript",
-        "Advanced JS",
+        "JavaScript Avanzado",
         "UX/UI",
         "DOM",
         "Vue",
@@ -1265,7 +1346,7 @@ const AboutMe: FunctionComponent = () => {
     {
       provider: "Google Creative Campus",
       name: "Frontend Development",
-      topics: ["Frontend", "JS APIs"],
+      topics: ["FE", "JS APIs"],
     },
     {
       provider: "Microsoft",
@@ -1276,13 +1357,13 @@ const AboutMe: FunctionComponent = () => {
       provider: "Udemy",
       name: "Comprehensive Web Development",
       topics: [
-        "Frontend",
+        "Front End Dev",
         "CSS",
-        "Less",
-        "Grid",
+        "Gridbox",
         "Flexbox",
+        "Less",
         "SVG",
-        "jQuery",
+        "JQuery",
         "API REST",
         "Node.js",
         "MongoDB",
@@ -1294,7 +1375,7 @@ const AboutMe: FunctionComponent = () => {
 
   const softSkills: SoftSkill[] = [
     {
-      title: "Comunicación",
+      title: "Comunicación efectiva",
       icon: (
         <MotionSvg
           xmlns="http://www.w3.org/2000/svg"
@@ -1357,7 +1438,28 @@ const AboutMe: FunctionComponent = () => {
       description: "Cumplimiento de plazos y organización eficaz de tareas.",
     },
     {
-      title: "Adaptabilidad",
+      title: "Aprendizaje autodidacta",
+      icon: (
+        <MotionSvg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+        </MotionSvg>
+      ),
+      description:
+        "Capacidad de aprender nuevas tecnologías de forma independiente.",
+    },
+    {
+      title: "Adaptabilidad tecnológica",
       icon: (
         <MotionSvg
           xmlns="http://www.w3.org/2000/svg"
@@ -1375,6 +1477,26 @@ const AboutMe: FunctionComponent = () => {
         </MotionSvg>
       ),
       description: "Rápido aprendizaje de nuevas tecnologías y metodologías.",
+    },
+    {
+      title: "Mentalidad ágil",
+      icon: (
+        <MotionSvg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <path d="M8 12l2 2 4-4" />
+        </MotionSvg>
+      ),
+      description: "Enfoque ágil en el desarrollo y resolución de problemas.",
     },
   ];
 
@@ -1451,7 +1573,7 @@ const AboutMe: FunctionComponent = () => {
       id="about"
       ref={sectionRef}
       className="py-20 px-4 sm:px-6 lg:px-8 container mx-auto relative min-h-screen perspective overflow-hidden"
-      aria-label="Acerca de mí"
+      aria-label={t("about.title")}
       data-optimize="true"
     >
       <BackgroundElements isMobile={isMobile} mousePosition={mousePosition} />
@@ -1462,7 +1584,7 @@ const AboutMe: FunctionComponent = () => {
         initial="hidden"
         animate={isVisible ? "visible" : "hidden"}
       >
-        <BioIntro personalInfo={personalInfo} />
+        <BioIntro personalInfo={personalInfo} t={t} />
 
         <ContactInfo personalInfo={personalInfo} />
 
@@ -1475,7 +1597,7 @@ const AboutMe: FunctionComponent = () => {
             tab="experience"
             activeTab={activeTab}
             setActiveTab={handleSetActiveTab}
-            label="Experiencia"
+            label={t("about.tabs.experience")}
             count={experiences.length}
             icon={
               <MotionSvg
@@ -1499,7 +1621,7 @@ const AboutMe: FunctionComponent = () => {
             tab="education"
             activeTab={activeTab}
             setActiveTab={handleSetActiveTab}
-            label="Educación"
+            label={t("about.tabs.education")}
             count={education.length + courses.length}
             icon={
               <svg
@@ -1523,7 +1645,7 @@ const AboutMe: FunctionComponent = () => {
             tab="skills"
             activeTab={activeTab}
             setActiveTab={handleSetActiveTab}
-            label="Habilidades"
+            label={t("about.tabs.skills")}
             count={skills.length}
             icon={
               <svg
@@ -1561,21 +1683,21 @@ const AboutMe: FunctionComponent = () => {
                   current={experienceFilter}
                   value="all"
                   onChange={handleSetExperienceFilter}
-                  label="Todos"
+                  label={t("about.experience.filters.all")}
                   count={experiences.length}
                 />
                 <FilterButton
                   current={experienceFilter}
                   value="job"
                   onChange={handleSetExperienceFilter}
-                  label="Empresas"
+                  label={t("about.experience.filters.companies")}
                   count={expJobsCount}
                 />
                 <FilterButton
                   current={experienceFilter}
                   value="freelance"
                   onChange={handleSetExperienceFilter}
-                  label="Freelance"
+                  label={t("about.experience.filters.freelance")}
                   count={expFreelanceCount}
                 />
               </div>
@@ -1583,6 +1705,7 @@ const AboutMe: FunctionComponent = () => {
               <ExperienceTimeline
                 experiences={experiences}
                 filter={experienceFilter}
+                t={t}
               />
             </>
           )}
@@ -1591,7 +1714,7 @@ const AboutMe: FunctionComponent = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-1">
                 <MotionH3 className="text-xl font-bold mb-4 text-gradient">
-                  Educación Formal
+                  {t("about.education.formal")}
                 </MotionH3>
 
                 {education.map((edu) => (
@@ -1604,7 +1727,7 @@ const AboutMe: FunctionComponent = () => {
 
               <div className="lg:col-span-2">
                 <MotionH3 className="text-xl font-bold mb-4 text-gradient">
-                  Cursos y Formación
+                  {t("about.education.courses")}
                 </MotionH3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -1627,57 +1750,57 @@ const AboutMe: FunctionComponent = () => {
                     current={skillFilter}
                     value="all"
                     onChange={setSkillFilter}
-                    label="Todas"
+                    label={t("about.skills.filters.all")}
                     count={skills.length}
                   />
                   <FilterButton
                     current={skillFilter}
                     value="frontend"
                     onChange={setSkillFilter}
-                    label="Frontend"
+                    label={t("about.skills.filters.frontend")}
                     count={skillCategoryCounts.frontend}
                   />
                   <FilterButton
                     current={skillFilter}
                     value="frameworks"
                     onChange={setSkillFilter}
-                    label="Frameworks"
+                    label={t("about.skills.filters.frameworks")}
                     count={skillCategoryCounts.frameworks}
                   />
                   <FilterButton
                     current={skillFilter}
                     value="design"
                     onChange={setSkillFilter}
-                    label="Diseño"
+                    label={t("about.skills.filters.design")}
                     count={skillCategoryCounts.design}
                   />
                   <FilterButton
                     current={skillFilter}
                     value="tools"
                     onChange={setSkillFilter}
-                    label="Herramientas"
+                    label={t("about.skills.filters.tools")}
                     count={skillCategoryCounts.tools}
                   />
                   <FilterButton
                     current={skillFilter}
                     value="languages"
                     onChange={setSkillFilter}
-                    label="Idiomas"
+                    label={t("about.skills.filters.languages")}
                     count={skillCategoryCounts.languages}
                   />
                   <FilterButton
                     current={skillFilter}
                     value="other"
                     onChange={setSkillFilter}
-                    label="Metodologías"
+                    label={t("about.skills.filters.methodologies")}
                     count={skillCategoryCounts.other}
                   />
                 </div>
               </div>
 
               <div key={skillFilter} className="skills-content">
-                <SkillsChart skills={skills} filter={skillFilter} />
-                <SoftSkillsSection softSkills={softSkills} />
+                <SkillsChart skills={skills} filter={skillFilter} t={t} />
+                <SoftSkillsSection softSkills={softSkills} t={t} />
               </div>
             </>
           )}

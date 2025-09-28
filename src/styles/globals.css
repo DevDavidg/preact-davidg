@@ -438,3 +438,92 @@
     padding-bottom: 0.75rem;
   }
 }
+
+/* Safari-specific fixes for theme switching */
+@supports (-webkit-appearance: none) {
+  /* Safari-specific CSS variable enforcement */
+  html[data-theme="light"] {
+    /* Force light mode colors for Safari */
+    --color-bg: #fafafa !important;
+    --color-bg-secondary: #f1f3f4 !important;
+    --color-bg-tertiary: #e8eaed !important;
+    --color-primary: #2d3436 !important;
+    --color-secondary: #636e72 !important;
+    --color-tertiary: #b2bec3 !important;
+    --color-accent: #0984e3 !important;
+    --color-accent-secondary: #00b894 !important;
+    --color-accent-tertiary: #e17055 !important;
+    --color-accent-rgb: 9, 132, 227 !important;
+    --color-accent-secondary-rgb: 0, 184, 148 !important;
+    --color-accent-tertiary-rgb: 225, 112, 85 !important;
+    --color-muted: #f8f9fa !important;
+    --color-border: #ddd !important;
+    --color-border-light: #e9ecef !important;
+    --color-success: #00b894 !important;
+    --color-warning: #fdcb6e !important;
+    --color-error: #e17055 !important;
+    --color-info: #74b9ff !important;
+    --color-surface: rgba(255, 255, 255, 0.9) !important;
+    --color-surface-hover: rgba(255, 255, 255, 0.95) !important;
+    --color-overlay: rgba(45, 52, 54, 0.1) !important;
+    --grain-opacity: 0.05 !important;
+  }
+
+  html[data-theme="dark"] {
+    /* Force dark mode colors for Safari */
+    --color-bg: #1d1616 !important;
+    --color-bg-secondary: #2a1f1f !important;
+    --color-bg-tertiary: #3d2828 !important;
+    --color-primary: #eeeeee !important;
+    --color-secondary: #c8c8c8 !important;
+    --color-tertiary: #a8a8a8 !important;
+    --color-accent: #d84040 !important;
+    --color-accent-secondary: #8e1616 !important;
+    --color-accent-tertiary: #ff6b6b !important;
+    --color-accent-rgb: 216, 64, 64 !important;
+    --color-accent-secondary-rgb: 142, 22, 22 !important;
+    --color-accent-tertiary-rgb: 255, 107, 107 !important;
+    --color-muted: #332626 !important;
+    --color-border: #4a3535 !important;
+    --color-border-light: #3d2828 !important;
+    --color-success: #51cf66 !important;
+    --color-warning: #ffd43b !important;
+    --color-error: #ff6b6b !important;
+    --color-info: #74c0fc !important;
+    --color-surface: rgba(29, 22, 22, 0.9) !important;
+    --color-surface-hover: rgba(29, 22, 22, 0.95) !important;
+    --color-overlay: rgba(238, 238, 238, 0.1) !important;
+    --grain-opacity: 0.1 !important;
+  }
+
+  /* Safari-specific theme transition fixes */
+  body {
+    -webkit-transition: background-color 0.3s ease, color 0.3s ease !important;
+    transition: background-color 0.3s ease, color 0.3s ease !important;
+  }
+
+  /* Force Safari to respect theme changes */
+  * {
+    -webkit-transition: background-color 0.3s ease, color 0.3s ease,
+      border-color 0.3s ease !important;
+    transition: background-color 0.3s ease, color 0.3s ease,
+      border-color 0.3s ease !important;
+  }
+}
+
+/* Additional Safari-specific fixes */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  /* Safari-only styles */
+  .theme-toggle {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+
+  /* Force hardware acceleration for theme transitions */
+  body {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+}

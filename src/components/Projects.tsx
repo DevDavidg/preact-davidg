@@ -1,14 +1,15 @@
 import {
   useState,
   useEffect,
-  useRef,
   useMemo,
   useCallback,
   useReducer,
+  useRef,
 } from "preact/hooks";
 import { memo, startTransition } from "preact/compat";
 import type { JSX } from "preact";
 import { MotionP, MotionSvg, MotionPath } from "../utils/motion-components";
+import { useTranslation } from "../hooks/useTranslation";
 
 interface ProjectCard {
   id: number;
@@ -467,7 +468,7 @@ const CategoryButton = memo(
   }
 );
 
-const LoadingSpinner = memo(() => (
+const LoadingSpinner = memo(({ t }: { t: (key: string) => string }) => (
   <div className="flex flex-col justify-center items-center py-16">
     <MotionSvg
       width="48"
@@ -500,13 +501,21 @@ const LoadingSpinner = memo(() => (
       />
     </MotionSvg>
     <p className="text-light-secondary dark:text-dark-secondary text-lg">
-      Cargando proyectos...
+      {t("projects.loading")}
     </p>
   </div>
 ));
 
 const ErrorMessage = memo(
-  ({ error, onRetry }: { error: string; onRetry: () => void }) => (
+  ({
+    error,
+    onRetry,
+    t,
+  }: {
+    error: string;
+    onRetry: () => void;
+    t: (key: string) => string;
+  }) => (
     <div className="p-8 bg-red-50 dark:bg-red-900/20 rounded-xl text-red-700 dark:text-red-300 text-center my-12 border border-red-200 dark:border-red-800">
       <MotionSvg
         className="w-12 h-12 mx-auto mb-4 text-red-500"
@@ -521,7 +530,9 @@ const ErrorMessage = memo(
           d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
         />
       </MotionSvg>
-      <h3 className="text-lg font-semibold mb-2">Error al cargar proyectos</h3>
+      <h3 className="text-lg font-semibold mb-2">
+        {t("projects.error.title")}
+      </h3>
       <p className="mb-4">{error}</p>
       <button
         className="bg-red-200 dark:bg-red-800 hover:bg-red-300 dark:hover:bg-red-700 px-6 py-2.5 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500"
@@ -533,38 +544,40 @@ const ErrorMessage = memo(
   )
 );
 
-const EmptyState = memo(({ onReset }: { onReset: () => void }) => (
-  <div className="text-center py-16">
-    <MotionSvg
-      className="w-16 h-16 mx-auto mb-6 text-light-muted dark:text-dark-muted"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-      />
-    </MotionSvg>
-    <h3 className="text-xl font-semibold mb-2 text-light-primary dark:text-dark-primary">
-      No se encontraron proyectos
-    </h3>
-    <p className="text-light-secondary dark:text-dark-secondary mb-6 max-w-md mx-auto">
-      No hay proyectos que coincidan con los filtros actuales. Intenta ajustar
-      los criterios de búsqueda.
-    </p>
-    <button
-      className="btn-outline px-6 py-2.5 hover:scale-105 hover:-translate-y-1 transition-all duration-200"
-      onClick={onReset}
-    >
-      Mostrar todos los proyectos
-    </button>
-  </div>
-));
+const EmptyState = memo(
+  ({ onReset, t }: { onReset: () => void; t: (key: string) => string }) => (
+    <div className="text-center py-16">
+      <MotionSvg
+        className="w-16 h-16 mx-auto mb-6 text-light-muted dark:text-dark-muted"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+        />
+      </MotionSvg>
+      <h3 className="text-xl font-semibold mb-2 text-light-primary dark:text-dark-primary">
+        {t("projects.empty.title")}
+      </h3>
+      <p className="text-light-secondary dark:text-dark-secondary mb-6 max-w-md mx-auto">
+        {t("projects.empty.description")}
+      </p>
+      <button
+        className="btn-outline px-6 py-2.5 hover:scale-105 hover:-translate-y-1 transition-all duration-200"
+        onClick={onReset}
+      >
+        {t("projects.empty.showAll")}
+      </button>
+    </div>
+  )
+);
 
 const Projects = () => {
+  const { t } = useTranslation();
   const [projects, setProjects] = useState<ProjectCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -720,11 +733,11 @@ const Projects = () => {
   }, [fetchProjects]);
 
   const renderContent = () => {
-    if (loading) return <LoadingSpinner />;
+    if (loading) return <LoadingSpinner t={t} />;
     if (error && projects.length === 0)
-      return <ErrorMessage error={error} onRetry={handleRetry} />;
+      return <ErrorMessage error={error} onRetry={handleRetry} t={t} />;
     if (filteredProjects.length === 0)
-      return <EmptyState onReset={resetFilters} />;
+      return <EmptyState onReset={resetFilters} t={t} />;
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
@@ -750,7 +763,7 @@ const Projects = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
-          Proyectos Destacados
+          {t("projects.title")}
         </MotionP>
 
         <MotionP
@@ -759,8 +772,7 @@ const Projects = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
         >
-          Explora la colección de proyectos en los que he trabajado, desde
-          aplicaciones web hasta diseños de interfaz.
+          {t("projects.subtitle")}
         </MotionP>
 
         <div className="flex justify-center gap-4 mb-8">
@@ -769,7 +781,7 @@ const Projects = () => {
             onClick={() => handleCategoryChange("all")}
             ariaLabel="Mostrar todos los proyectos"
           >
-            Todos
+            {t("projects.filters.all")}
           </CategoryButton>
 
           <CategoryButton
@@ -777,7 +789,7 @@ const Projects = () => {
             onClick={() => handleCategoryChange("dev")}
             ariaLabel="Mostrar solo proyectos de desarrollo"
           >
-            Desarrollo
+            {t("projects.filters.development")}
           </CategoryButton>
 
           <CategoryButton
@@ -785,7 +797,7 @@ const Projects = () => {
             onClick={() => handleCategoryChange("design")}
             ariaLabel="Mostrar solo proyectos de diseño"
           >
-            Diseño
+            {t("projects.filters.design")}
           </CategoryButton>
         </div>
 

@@ -1,5 +1,6 @@
 import { FunctionComponent, JSX } from "preact";
 import { useState, useEffect, useRef } from "preact/hooks";
+import { Link } from "preact-router";
 import clsx from "clsx";
 import {
   MotionA,
@@ -12,9 +13,11 @@ import {
   MotionSvg,
   MotionHeader,
   MotionPath,
+  MotionLink,
 } from "../utils/motion-components";
-import { fadeIn, initialFadeIn } from "../hooks/animations";
 import useTheme from "../hooks/useTheme";
+import { initialFadeIn, fadeIn } from "../hooks/animations";
+import { useTranslation } from "../hooks/useTranslation";
 
 const fastSpring = {
   type: "spring",
@@ -37,11 +40,74 @@ const bubbleBounce = {
 };
 
 const menuItems = [
-  { href: "#home", label: "Inicio" },
-  { href: "#about", label: "Acerca de" },
-  { href: "#projects", label: "Proyectos" },
-  { href: "#contact", label: "Contacto" },
+  { href: "/", labelKey: "navigation.home" },
+  { href: "/about", labelKey: "navigation.about" },
+  { href: "/projects", labelKey: "navigation.projects" },
+  { href: "/contact", labelKey: "navigation.contact" },
 ];
+
+const LanguageToggle: FunctionComponent<{
+  locale: string;
+  setLocale: (locale: string) => void;
+  isScrolled: boolean;
+}> = ({ locale, setLocale, isScrolled }) => (
+  <MotionButton
+    initial={initialFadeIn}
+    animate={{
+      ...fadeIn,
+      scale: isScrolled ? 0.9 : 1,
+      transition: smoothTransition,
+    }}
+    whileHover={{
+      scale: 1.1,
+      rotate: 5,
+      boxShadow:
+        "0 0 20px rgba(59, 130, 246, 0.8), 0 0 40px rgba(59, 130, 246, 0.4)",
+      transition: { duration: 0.2 },
+    }}
+    whileTap={{
+      scale: 0.9,
+      rotate: -5,
+      transition: { duration: 0.1 },
+    }}
+    onClick={() => setLocale(locale === "es" ? "en" : "es")}
+    className={clsx(
+      "p-3 rounded-full backdrop-blur-xl shadow-lg relative overflow-hidden border",
+      "bg-blue-50/95 text-blue-600 dark:bg-blue-950/95 dark:text-blue-200 shadow-blue-200/50 border-blue-200/30 dark:border-blue-500/20"
+    )}
+    style={{
+      boxShadow:
+        "0 4px 20px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.5)",
+    }}
+    aria-label={`Switch to ${locale === "es" ? "English" : "Spanish"}`}
+  >
+    <MotionSpan
+      className="text-sm font-bold uppercase tracking-wider"
+      animate={{
+        scale: [1, 1.1, 1],
+        transition: { duration: 0.3 },
+      }}
+    >
+      {locale === "es" ? "EN" : "ES"}
+    </MotionSpan>
+    <MotionSpan
+      className={clsx(
+        "absolute inset-0 pointer-events-none rounded-full",
+        "bg-gradient-radial from-blue-400/30 via-blue-300/20 to-transparent"
+      )}
+      animate={{
+        opacity: [0.3, 0.6, 0.3],
+        scale: [1, 1.1, 1],
+        rotate: [0, 180, 360],
+      }}
+      transition={{
+        duration: 6,
+        repeat: Infinity,
+        ease: "linear",
+      }}
+    />
+  </MotionButton>
+);
 
 const ThemeToggle: FunctionComponent<{
   theme: string;
@@ -71,7 +137,7 @@ const ThemeToggle: FunctionComponent<{
     }}
     onClick={toggleTheme}
     className={clsx(
-      "p-3 rounded-full backdrop-blur-xl shadow-lg relative overflow-hidden border",
+      "theme-toggle p-3 rounded-full backdrop-blur-xl shadow-lg relative overflow-hidden border",
       theme === "light"
         ? "bg-amber-50/95 text-amber-600 shadow-amber-200/50 border-amber-200/30"
         : "bg-violet-950/95 text-violet-200 shadow-violet-500/30 border-violet-500/20"
@@ -83,7 +149,9 @@ const ThemeToggle: FunctionComponent<{
           : "0 4px 20px rgba(124, 58, 237, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
     }}
     aria-label={
-      theme === "light" ? "Switch to dark mode" : "Switch to light mode"
+      theme === "light"
+        ? "accessibility.switchToDark"
+        : "accessibility.switchToLight"
     }
   >
     {theme === "light" ? (
@@ -193,7 +261,7 @@ const MobileMenuButton: FunctionComponent<{
       scale: 0.95,
       transition: { duration: 0.1 },
     }}
-    aria-label={isOpen ? "Close menu" : "Open menu"}
+    aria-label={isOpen ? "accessibility.closeMenu" : "accessibility.openMenu"}
     aria-expanded={isOpen}
   >
     <MotionSvg
@@ -251,10 +319,10 @@ const MobileMenuButton: FunctionComponent<{
 const LogoComponent: FunctionComponent<{
   isScrolled: boolean;
   setActiveLink: (link: string) => void;
-  scrollToSection: (sectionId: string, isFromMenu?: boolean) => boolean;
-}> = ({ isScrolled, setActiveLink, scrollToSection }) => (
-  <MotionA
-    href="#home"
+  t: (key: string) => string;
+}> = ({ isScrolled, setActiveLink, t }) => (
+  <MotionLink
+    href="/"
     className="text-2xl font-bold relative z-10 flex items-center group"
     initial={initialFadeIn}
     animate={{
@@ -267,10 +335,8 @@ const LogoComponent: FunctionComponent<{
       transition: fastSpring,
     }}
     whileTap={bubbleBounce}
-    onClick={(e: JSX.TargetedMouseEvent<HTMLAnchorElement>) => {
-      e.preventDefault();
-      setActiveLink("#home");
-      scrollToSection("home");
+    onClick={() => {
+      setActiveLink("/");
     }}
   >
     <MotionSpan
@@ -288,7 +354,7 @@ const LogoComponent: FunctionComponent<{
         textShadow: "0 0 8px rgba(var(--color-accent-rgb), 0.3)",
       }}
     >
-      Portfolio
+      {t("navigation.portfolio")}
     </MotionSpan>
     <MotionSpan
       initial={{ opacity: 0, width: 0, x: -10 }}
@@ -313,7 +379,7 @@ const LogoComponent: FunctionComponent<{
         ease: "easeInOut",
       }}
     />
-  </MotionA>
+  </MotionLink>
 );
 
 const NavLink: FunctionComponent<{
@@ -324,7 +390,7 @@ const NavLink: FunctionComponent<{
   index: number;
 }> = ({ href, isActive, onClick, children, index }) => (
   <MotionLi className="relative group">
-    <MotionA
+    <MotionLink
       href={href}
       className={clsx(
         "relative px-4 py-2 text-sm font-medium uppercase tracking-wider transition-all duration-300 inline-block rounded-lg",
@@ -352,12 +418,6 @@ const NavLink: FunctionComponent<{
       onClick={onClick}
     >
       {children}
-      <MotionSpan
-        className="absolute inset-0 bg-gradient-to-r from-light-accent/0 via-light-accent/10 to-light-accent/0 dark:from-dark-accent/0 dark:via-dark-accent/10 dark:to-dark-accent/0 rounded-lg opacity-0 group-hover:opacity-100"
-        initial={{ scale: 0.8 }}
-        whileHover={{ scale: 1 }}
-        transition={{ duration: 0.2 }}
-      />
       {isActive && (
         <MotionSpan
           className="absolute bottom-0 left-1/2 h-1 bg-gradient-to-r from-light-accent to-light-primary dark:from-dark-accent dark:to-dark-primary rounded-full"
@@ -376,7 +436,7 @@ const NavLink: FunctionComponent<{
           }}
         />
       )}
-    </MotionA>
+    </MotionLink>
   </MotionLi>
 );
 
@@ -407,7 +467,7 @@ const MobileNavLink: FunctionComponent<{
       transition: { duration: 0.2 },
     }}
   >
-    <MotionA
+    <MotionLink
       href={href}
       className={clsx(
         "text-xl font-medium uppercase tracking-wider block text-left p-4 relative rounded-xl border-l-4 group",
@@ -460,7 +520,7 @@ const MobileNavLink: FunctionComponent<{
           }}
         />
       )}
-    </MotionA>
+    </MotionLink>
   </MotionLi>
 );
 
@@ -534,45 +594,15 @@ const ProgressBar: FunctionComponent<{ isScrolled: boolean }> = ({
 };
 
 const Nav: FunctionComponent = () => {
+  const { t, locale, setLocale } = useTranslation();
   const { theme, toggleTheme } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [activeLink, setActiveLink] = useState("#home");
+  const [activeLink, setActiveLink] = useState("/");
   const [isVisible, setIsVisible] = useState(true);
   const menuRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef<number>(0);
   const scrollTimeout = useRef<NodeJS.Timeout>();
-
-  const scrollToSection = (sectionId: string, isFromMenu = false) => {
-    const element = document.getElementById(sectionId);
-    const delay = isFromMenu ? 300 : 0;
-
-    if (element) {
-      const navHeight = isScrolled ? 80 : 100;
-      const currentBodyScroll =
-        document.body.scrollTop || document.documentElement.scrollTop;
-      const elementPosition =
-        element.getBoundingClientRect().top + currentBodyScroll;
-      const offsetPosition = elementPosition - navHeight;
-
-      setTimeout(() => {
-        document.body.scrollTo({
-          top: Math.max(0, offsetPosition),
-          behavior: "smooth",
-        });
-      }, delay);
-
-      return true;
-    } else {
-      if (sectionId === "home") {
-        setTimeout(() => {
-          document.body.scrollTo({ top: 0, behavior: "smooth" });
-        }, delay);
-        return true;
-      }
-      return false;
-    }
-  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -684,29 +714,12 @@ const Nav: FunctionComponent = () => {
   }, [isMenuOpen]);
 
   const handleLinkClick = (e: JSX.TargetedMouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
     const href = e.currentTarget.getAttribute("href");
 
     if (href) {
       setActiveLink(href);
       setIsMenuOpen(false);
-
-      if (href.startsWith("#")) {
-        const element = document.querySelector(href);
-        if (element) {
-          const navHeight = isScrolled ? 80 : 100;
-          const currentBodyScroll =
-            document.body.scrollTop || document.documentElement.scrollTop;
-          const elementPosition =
-            element.getBoundingClientRect().top + currentBodyScroll;
-          const offsetPosition = elementPosition - navHeight;
-
-          document.body.scrollTo({
-            top: offsetPosition,
-            behavior: "smooth",
-          });
-        }
-      }
+      // Let the router handle the navigation
     }
   };
 
@@ -745,7 +758,7 @@ const Nav: FunctionComponent = () => {
           <LogoComponent
             isScrolled={isScrolled}
             setActiveLink={setActiveLink}
-            scrollToSection={scrollToSection}
+            t={t}
           />
 
           <MotionUl className="hidden md:flex items-center space-x-2">
@@ -757,12 +770,17 @@ const Nav: FunctionComponent = () => {
                 onClick={handleLinkClick}
                 index={index}
               >
-                {item.label}
+                {t(item.labelKey)}
               </NavLink>
             ))}
           </MotionUl>
 
           <div className="flex items-center space-x-3 pointer-events-auto">
+            <LanguageToggle
+              locale={locale}
+              setLocale={setLocale}
+              isScrolled={isScrolled}
+            />
             <ThemeToggle
               theme={theme}
               toggleTheme={toggleTheme}
@@ -818,7 +836,7 @@ const Nav: FunctionComponent = () => {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2 }}
                 >
-                  Menú
+                  {t("common.menu")}
                 </MotionSpan>
                 <MotionButton
                   className="p-2 rounded-full text-light-muted dark:text-dark-muted hover:text-light-accent dark:hover:text-dark-accent hover:bg-light-accent/10 dark:hover:bg-dark-accent/10 transition-colors duration-200"
@@ -862,7 +880,7 @@ const Nav: FunctionComponent = () => {
                     onClick={handleLinkClick}
                     index={index}
                   >
-                    {item.label}
+                    {t(item.labelKey)}
                   </MobileNavLink>
                 ))}
               </MotionUl>
@@ -873,6 +891,24 @@ const Nav: FunctionComponent = () => {
                 animate={{ scaleX: 1 }}
                 transition={{ delay: 0.8, duration: 0.5 }}
               />
+
+              <MotionDiv
+                className="flex justify-center space-x-4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.0, duration: 0.4 }}
+              >
+                <LanguageToggle
+                  locale={locale}
+                  setLocale={setLocale}
+                  isScrolled={isScrolled}
+                />
+                <ThemeToggle
+                  theme={theme}
+                  toggleTheme={toggleTheme}
+                  isScrolled={isScrolled}
+                />
+              </MotionDiv>
 
               <MotionDiv
                 className="absolute bottom-8 left-8 right-8"

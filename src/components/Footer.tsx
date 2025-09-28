@@ -15,6 +15,7 @@ import {
   MotionSvg,
   MotionPath,
 } from "../utils/motion-components";
+import { useTranslation } from "../hooks/useTranslation";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -223,6 +224,7 @@ const ParticleEffect: FunctionComponent = () => {
 };
 
 const Footer: FunctionComponent = () => {
+  const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
 
   const socialLinks = [
@@ -236,16 +238,16 @@ const Footer: FunctionComponent = () => {
   ];
 
   const quickLinks = [
-    { name: "Inicio", url: "/" },
-    { name: "Proyectos", url: "/proyectos" },
-    { name: "Servicios", url: "/servicios" },
-    { name: "Sobre mí", url: "/sobre-mi" },
-    { name: "Contacto", url: "/contacto" },
+    { nameKey: "footer.links.home", url: "/" },
+    { nameKey: "footer.links.projects", url: "/proyectos" },
+    { nameKey: "footer.links.services", url: "/servicios" },
+    { nameKey: "footer.links.about", url: "/sobre-mi" },
+    { nameKey: "footer.links.contact", url: "/contacto" },
   ];
 
   const handleSubscribe = (e: Event) => {
     e.preventDefault();
-    alert("¡Gracias por suscribirte!");
+    alert(t("footer.newsletter.success"));
   };
 
   return (
@@ -288,7 +290,7 @@ const Footer: FunctionComponent = () => {
               variants={itemVariants}
               className="text-2xl font-bold relative inline-block"
             >
-              Portfolio
+              {t("footer.title")}
               <MotionSpan
                 className="absolute -bottom-1 left-0 h-0.5 bg-light-accent dark:bg-dark-accent"
                 initial={{ width: 0 }}
@@ -301,14 +303,12 @@ const Footer: FunctionComponent = () => {
               variants={itemVariants}
               className="text-light-secondary dark:text-dark-secondary max-w-md leading-relaxed"
             >
-              Creando interfaces elegantes y funcionales con un enfoque en la
-              experiencia del usuario. Especializado en soluciones digitales que
-              combinan estética y usabilidad.
+              {t("footer.description")}
             </MotionP>
 
             <MotionDiv variants={itemVariants} className="mt-6">
               <MotionH3 className="text-lg font-semibold mb-4">
-                Sígueme en
+                {t("footer.follow")}
               </MotionH3>
               <MotionDiv className="flex space-x-4">
                 {socialLinks.map((link) => (
@@ -343,7 +343,7 @@ const Footer: FunctionComponent = () => {
               variants={itemVariants}
               className="text-lg font-semibold relative inline-block"
             >
-              Enlaces Rápidos
+              {t("footer.quickLinks")}
               <MotionSpan
                 className="absolute -bottom-1 left-0 h-0.5 bg-light-accent dark:bg-dark-accent"
                 initial={{ width: 0 }}
@@ -355,7 +355,7 @@ const Footer: FunctionComponent = () => {
             <MotionUl variants={itemVariants} className="space-y-2">
               {quickLinks.map((link, index) => (
                 <MotionLi
-                  key={link.name}
+                  key={link.nameKey}
                   custom={index}
                   variants={linkVariants}
                 >
@@ -370,7 +370,7 @@ const Footer: FunctionComponent = () => {
                       whileHover={{ scale: 1.5 }}
                       transition={{ duration: 0.2 }}
                     />
-                    {link.name}
+                    {t(link.nameKey)}
                   </MotionA>
                 </MotionLi>
               ))}
@@ -382,7 +382,7 @@ const Footer: FunctionComponent = () => {
               variants={itemVariants}
               className="text-lg font-semibold relative inline-block"
             >
-              Newsletter
+              {t("footer.newsletter.title")}
               <MotionSpan
                 className="absolute -bottom-1 left-0 h-0.5 bg-light-accent dark:bg-dark-accent"
                 initial={{ width: 0 }}
@@ -395,7 +395,7 @@ const Footer: FunctionComponent = () => {
               variants={itemVariants}
               className="text-light-secondary dark:text-dark-secondary"
             >
-              Suscríbete para recibir las últimas novedades y actualizaciones.
+              {t("footer.newsletter.description")}
             </MotionP>
 
             <MotionForm
@@ -406,7 +406,7 @@ const Footer: FunctionComponent = () => {
               <div className="flex flex-col sm:flex-row gap-2">
                 <MotionInput
                   type="email"
-                  placeholder="Tu email"
+                  placeholder={t("footer.newsletter.placeholder")}
                   required
                   className="px-4 py-2 rounded-lg bg-light-bg dark:bg-dark-bg border border-light-accent/20 dark:border-dark-accent/20 focus:outline-none focus:ring-2 focus:ring-light-accent dark:focus:ring-dark-accent text-light-primary dark:text-dark-primary transition-all duration-300"
                   whileFocus={{
@@ -455,7 +455,7 @@ const Footer: FunctionComponent = () => {
           className="flex flex-col sm:flex-row justify-between items-center text-center sm:text-left text-light-secondary dark:text-dark-secondary text-sm"
         >
           <MotionP className="mb-2 sm:mb-0">
-            © {currentYear} Portfolio. Todos los derechos reservados.
+            © {currentYear} {t("footer.title")}. {t("footer.copyright")}
           </MotionP>
 
           <MotionDiv
@@ -470,7 +470,7 @@ const Footer: FunctionComponent = () => {
               className="text-light-secondary dark:text-dark-secondary hover:text-light-primary dark:hover:text-dark-primary transition-colors"
               whileHover={{ scale: 1.05 }}
             >
-              Privacidad
+              {t("footer.legal.privacy")}
             </MotionA>
             <MotionSpan className="text-light-accent/50 dark:text-dark-accent/50">
               •
@@ -480,7 +480,7 @@ const Footer: FunctionComponent = () => {
               className="text-light-secondary dark:text-dark-secondary hover:text-light-primary dark:hover:text-dark-primary transition-colors"
               whileHover={{ scale: 1.05 }}
             >
-              Términos
+              {t("footer.legal.terms")}
             </MotionA>
             <MotionSpan className="text-light-accent/50 dark:text-dark-accent/50">
               •
@@ -490,7 +490,7 @@ const Footer: FunctionComponent = () => {
               className="text-light-secondary dark:text-dark-secondary hover:text-light-primary dark:hover:text-dark-primary transition-colors"
               whileHover={{ scale: 1.05 }}
             >
-              Sitemap
+              {t("footer.legal.sitemap")}
             </MotionA>
           </MotionDiv>
         </MotionDiv>

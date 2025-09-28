@@ -53,9 +53,7 @@ function createMotionComponent<T extends MotionElements>(
 export const MotionDiv = createMotionComponent("div");
 export const MotionNav = createMotionComponent("nav");
 export const MotionHeader = createMotionComponent("header");
-export const MotionMain = createMotionComponent("main");
 export const MotionSection = createMotionComponent("section");
-export const MotionFooter = createMotionComponent("footer");
 export const MotionA = createMotionComponent("a");
 export const MotionButton = createMotionComponent("button");
 export const MotionUl = createMotionComponent("ul");
@@ -65,11 +63,6 @@ export const MotionP = createMotionComponent("p");
 export const MotionH1 = createMotionComponent("h1");
 export const MotionH2 = createMotionComponent("h2");
 export const MotionH3 = createMotionComponent("h3");
-export const MotionH4 = createMotionComponent("h4");
-export const MotionH5 = createMotionComponent("h5");
-export const MotionH6 = createMotionComponent("h6");
-export const MotionImg = createMotionComponent("img");
-export const MotionArticle = createMotionComponent("article");
 export const MotionForm = createMotionComponent("form");
 export const MotionInput = createMotionComponent("input");
 export const MotionTextarea = createMotionComponent("textarea");
@@ -77,13 +70,27 @@ export const MotionTextarea = createMotionComponent("textarea");
 // SVG Motion Components
 export const MotionSvg = createMotionComponent("svg");
 export const MotionPath = createMotionComponent("path");
-export const MotionCircle = createMotionComponent("circle");
-export const MotionRect = createMotionComponent("rect");
-export const MotionLine = createMotionComponent("line");
-export const MotionPolygon = createMotionComponent("polygon");
-export const MotionPolyline = createMotionComponent("polyline");
-export const MotionEllipse = createMotionComponent("ellipse");
 export const MotionG = createMotionComponent("g");
+
+// MotionLink component that combines Link with motion properties
+export const MotionLink: FunctionComponent<
+  HTMLMotionProps<"a"> & { href: string }
+> = (props) => {
+  const { href, className, style, ...motionProps } = props;
+  const MotionA = createMotionComponent("a");
+
+  return createElement(MotionA, {
+    ...motionProps,
+    className,
+    style,
+    onClick: (e: Event) => {
+      e.preventDefault();
+      // Use history API to navigate
+      window.history.pushState(null, "", href);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    },
+  });
+};
 
 // Generic prop type for consumers
 export type MotionComponentProps<T extends MotionElements = "div"> =

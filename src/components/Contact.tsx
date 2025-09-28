@@ -11,27 +11,7 @@ import {
   MotionSpan,
   MotionP,
 } from "../utils/motion-components";
-
-interface Vector2D {
-  x: number;
-  y: number;
-}
-
-interface FlowField {
-  cols: number;
-  rows: number;
-  resolution: number;
-  field: number[][];
-  time: number;
-}
-
-interface ThemeColors {
-  bg: string;
-  primary: string;
-  secondary: string;
-  accent: string;
-  muted: string;
-}
+import { useTranslation } from "../hooks/useTranslation";
 
 interface Vector2D {
   x: number;
@@ -980,6 +960,7 @@ const ContactCanvas: FunctionComponent = () => {
 };
 
 const Contact: FunctionComponent = () => {
+  const { t } = useTranslation();
   const [formState, setFormState] = useState({
     name: "",
     email: "",
@@ -1125,9 +1106,7 @@ const Contact: FunctionComponent = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.7, delay: 0.1 }}
           >
-            <span className="block">
-              Hablemos <span className="text-gradient">Juntos</span>
-            </span>
+            <span className="block">{t("contact.title")}</span>
           </MotionH2>
 
           <MotionP
@@ -1137,8 +1116,7 @@ const Contact: FunctionComponent = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            ¿Tienes un proyecto en mente o quieres colaborar? ¡Me encantaría
-            saber de ti!
+            {t("contact.subtitle")}
           </MotionP>
         </MotionDiv>
 
@@ -1154,11 +1132,10 @@ const Contact: FunctionComponent = () => {
               <div className="h-full flex flex-col justify-between">
                 <div>
                   <h3 className="text-2xl font-bold mb-6 text-gradient">
-                    Conectemos
+                    {t("contact.connect")}
                   </h3>
                   <p className="text-light-secondary dark:text-dark-secondary mb-8">
-                    Listo para transformar tus ideas en realidad. Creemos algo
-                    increíble juntos. No dudes en contactarme.
+                    {t("contact.description")}
                   </p>
 
                   <div className="space-y-6">
@@ -1180,7 +1157,9 @@ const Contact: FunctionComponent = () => {
                         </svg>
                       </div>
                       <div>
-                        <h4 className="font-medium">Email</h4>
+                        <h4 className="font-medium">
+                          {t("contact.contactInfo.email")}
+                        </h4>
                         <a
                           href="mailto:dev.davidg@gmail.com"
                           className="text-light-accent dark:text-dark-accent hover:underline"
@@ -1214,7 +1193,9 @@ const Contact: FunctionComponent = () => {
                         </svg>
                       </div>
                       <div>
-                        <h4 className="font-medium">Ubicación</h4>
+                        <h4 className="font-medium">
+                          {t("contact.contactInfo.location")}
+                        </h4>
                         <p className="text-light-secondary dark:text-dark-secondary">
                           Villa Crespo, CABA, Argentina
                         </p>
@@ -1224,7 +1205,9 @@ const Contact: FunctionComponent = () => {
                 </div>
 
                 <div className="mt-8">
-                  <h4 className="text-lg font-medium mb-4">Sígueme</h4>
+                  <h4 className="text-lg font-medium mb-4">
+                    {t("contact.follow")}
+                  </h4>
                   <div className="flex space-x-3">
                     <a
                       href="#"
@@ -1298,7 +1281,9 @@ const Contact: FunctionComponent = () => {
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.3 }}
             >
-              <h3 className="text-2xl font-bold mb-6">Envíame un Mensaje</h3>
+              <h3 className="text-2xl font-bold mb-6">
+                {t("contact.form.title")}
+              </h3>
 
               <MotionForm
                 onSubmit={handleSubmit}
@@ -1314,7 +1299,7 @@ const Contact: FunctionComponent = () => {
                       htmlFor="name"
                       className="block text-sm font-medium text-light-secondary dark:text-dark-secondary"
                     >
-                      Nombre
+                      {t("contact.form.name")}
                     </label>
                     <div className="relative">
                       <MotionInput
@@ -1328,7 +1313,7 @@ const Contact: FunctionComponent = () => {
                             ? "border-red-500"
                             : "border-light-accent/20 dark:border-dark-accent/20"
                         } focus:outline-none focus:ring-2 focus:ring-light-accent dark:focus:ring-dark-accent transition-all duration-300`}
-                        placeholder="Tu nombre"
+                        placeholder={t("contact.form.namePlaceholder")}
                         whileFocus={{ scale: 1.01 }}
                         transition={{ duration: 0.2 }}
                       />
@@ -1364,7 +1349,7 @@ const Contact: FunctionComponent = () => {
                             ? "border-red-500"
                             : "border-light-accent/20 dark:border-dark-accent/20"
                         } focus:outline-none focus:ring-2 focus:ring-light-accent dark:focus:ring-dark-accent transition-all duration-300`}
-                        placeholder="Tu email"
+                        placeholder={t("contact.form.emailPlaceholder")}
                         whileFocus={{ scale: 1.01 }}
                         transition={{ duration: 0.2 }}
                       />
@@ -1387,7 +1372,7 @@ const Contact: FunctionComponent = () => {
                     htmlFor="subject"
                     className="block text-sm font-medium text-light-secondary dark:text-dark-secondary"
                   >
-                    Asunto (Opcional)
+                    {t("contact.form.subject")}
                   </label>
                   <MotionInput
                     id="subject"
@@ -1407,7 +1392,7 @@ const Contact: FunctionComponent = () => {
                     htmlFor="message"
                     className="block text-sm font-medium text-light-secondary dark:text-dark-secondary"
                   >
-                    Mensaje
+                    {t("contact.form.message")}
                   </label>
                   <div className="relative">
                     <MotionTextarea
@@ -1421,7 +1406,7 @@ const Contact: FunctionComponent = () => {
                           ? "border-red-500"
                           : "border-light-accent/20 dark:border-dark-accent/20"
                       } focus:outline-none focus:ring-2 focus:ring-light-accent dark:focus:ring-dark-accent transition-all duration-300`}
-                      placeholder="Tu mensaje..."
+                      placeholder={t("contact.form.messagePlaceholder")}
                       whileFocus={{ scale: 1.01 }}
                       transition={{ duration: 0.2 }}
                     />
@@ -1447,7 +1432,9 @@ const Contact: FunctionComponent = () => {
                     whileTap={{ scale: 0.98 }}
                   >
                     <span className="relative z-10">
-                      {isSubmitting ? "Enviando..." : "Enviar Mensaje"}
+                      {isSubmitting
+                        ? t("contact.form.submitting")
+                        : t("contact.form.submit")}
                     </span>
                     <MotionSpan
                       className="absolute inset-0 bg-gradient-to-r from-light-primary to-light-accent dark:from-dark-primary dark:to-dark-accent"

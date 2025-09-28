@@ -1,25 +1,18 @@
 import { FunctionComponent } from "preact";
 import { useEffect, useState, useRef } from "preact/hooks";
 
-import Hero from "./components/Hero";
 import Footer from "./components/Footer";
 import "./styles/globals.css";
 import "./styles/3d-effects.css";
 import "./styles/decorative-elements.css";
 
-import Projects from "./components/Projects";
-import AboutMe from "./components/AboutMe";
-import Contact from "./components/Contact";
 import { PerformancePanel } from "./components/PerformancePanel";
 import PerformanceNotifier from "./components/PerformanceNotifier";
 import PerformanceMonitor from "./utils/PerformanceMonitor";
 import Nav from "./components/Nav";
 import { ENV } from "./config/env";
 import { createNoiseTexture } from "./utils/noiseTexture";
-import {
-  scanForPerformanceIssues,
-  downloadPerformanceReport,
-} from "./utils/diagnosePerfIssues";
+import { scanForPerformanceIssues } from "./utils/diagnosePerfIssues";
 declare global {
   interface Window {
     removeInitialLoader?: () => void;
@@ -31,7 +24,11 @@ declare global {
   }
 }
 
-export const App: FunctionComponent = () => {
+interface AppProps {
+  children?: any;
+}
+
+export const App: FunctionComponent<AppProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [showPerformancePanel, setShowPerformancePanel] = useState(false);
   const loadingTimeout = useRef<number | null>(null);
@@ -123,12 +120,7 @@ export const App: FunctionComponent = () => {
       ) : (
         <div className="content">
           <Nav />
-          <main className="flex-grow">
-            <Hero />
-            <Projects />
-            <AboutMe />
-            <Contact />
-          </main>
+          <main className="flex-grow">{children}</main>
           <Footer />
           {showPerformancePanel && ENV.PERFORMANCE_MONITOR_ENABLED && (
             <PerformancePanel onClose={() => setShowPerformancePanel(false)} />
