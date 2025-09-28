@@ -944,8 +944,7 @@ const Hero = () => {
               <span
                 className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                 style={{
-                  boxShadow:
-                    "inset 0 0 0 1px rgba(var(--color-accent-rgb), 0.5)",
+                  boxShadow: "inset 0 0 0 1px rgba(9, 132, 227, 0.5)",
                   transform: "translateZ(-1px)",
                 }}
               />
