@@ -7,7 +7,6 @@
     --transition-fast: 0.15s ease;
     --transition-medium: 0.3s ease;
     --transition-slow: 0.5s ease;
-    --grain-opacity: 0.05;
 
     --space-xs: 0.25rem;
     --space-sm: 0.5rem;
@@ -63,7 +62,6 @@
     --color-warning: #ffd43b;
     --color-error: #ff6b6b;
     --color-info: #74c0fc;
-    --grain-opacity: 0.1;
 
     /* Surface colors for glass effects */
     --color-surface: rgba(29, 22, 22, 0.9);
@@ -366,25 +364,6 @@
   backface-visibility: hidden;
 }
 
-.grain-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 1000;
-  mix-blend-mode: overlay;
-  opacity: var(--grain-opacity);
-  transition: opacity var(--transition-medium);
-}
-
-.grain-overlay-high-contrast {
-  background-image: repeating-conic-gradient(#000 0%, transparent 0.00005%);
-  mix-blend-mode: overlay;
-  opacity: var(--grain-opacity);
-}
-
 @media (max-width: 767px) {
   .highlight-text {
     @apply text-base px-1.5 py-0.5;
@@ -466,7 +445,6 @@
     --color-surface: rgba(255, 255, 255, 0.9) !important;
     --color-surface-hover: rgba(255, 255, 255, 0.95) !important;
     --color-overlay: rgba(45, 52, 54, 0.1) !important;
-    --grain-opacity: 0.05 !important;
   }
 
   html[data-theme="dark"] {
@@ -493,7 +471,6 @@
     --color-surface: rgba(29, 22, 22, 0.9) !important;
     --color-surface-hover: rgba(29, 22, 22, 0.95) !important;
     --color-overlay: rgba(238, 238, 238, 0.1) !important;
-    --grain-opacity: 0.1 !important;
   }
 
   /* Safari-specific theme transition fixes */

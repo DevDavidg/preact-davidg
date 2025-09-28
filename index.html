@@ -43,7 +43,6 @@
     </noscript>
 
     <link rel="modulepreload" href="/src/main.tsx" />
-    <link rel="preload" href="/assets/grain-texture.png" as="image" />
 
     <style>
       :root {
@@ -135,20 +134,6 @@
       #app,
       #app * {
         transform-style: flat !important;
-      }
-
-      .noise-overlay {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        pointer-events: none !important;
-        z-index: 1000 !important;
-        transform: none !important;
-        backface-visibility: visible !important;
-        mix-blend-mode: overlay !important;
-        will-change: auto !important;
       }
 
       .real-fixed {

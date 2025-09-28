@@ -546,21 +546,6 @@ const Hero = () => {
       </div>
 
       <MotionDiv
-        className="grain-overlay absolute inset-0 pointer-events-none z-20"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1 }}
-        style={{
-          backgroundImage: "url('/assets/grain-texture.png')",
-          backgroundRepeat: "repeat",
-          opacity: "var(--grain-opacity)",
-          mixBlendMode: "overlay",
-          width: "100%",
-          height: "100%",
-        }}
-      ></MotionDiv>
-
-      <MotionDiv
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1.5 }}

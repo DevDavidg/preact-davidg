@@ -1,5 +1,4 @@
 import { useState, useEffect } from "preact/hooks";
-import { updateNoiseOpacity } from "../utils/noiseTexture";
 
 type Theme = "light" | "dark";
 
@@ -65,11 +64,9 @@ export const useTheme = () => {
     if (theme === "dark") {
       document.documentElement.classList.add("dark");
       document.documentElement.setAttribute("data-theme", "dark");
-      updateNoiseOpacity(true);
     } else {
       document.documentElement.classList.remove("dark");
       document.documentElement.setAttribute("data-theme", "light");
-      updateNoiseOpacity(false);
     }
 
     // Safari-specific CSS variable enforcement

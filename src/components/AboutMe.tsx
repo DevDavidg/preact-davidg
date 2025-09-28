@@ -586,19 +586,6 @@ const BackgroundElements = memo(
             animate={{ opacity: 0.1 }}
             transition={{ duration: 1.5 }}
           />
-
-          <MotionDiv
-            className="grain-overlay absolute inset-0 pointer-events-none z-20"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.08 }}
-            transition={{ duration: 1 }}
-            style={{
-              backgroundImage: "url('/assets/grain-texture.png')",
-              backgroundRepeat: "repeat",
-              opacity: "var(--grain-opacity)",
-              mixBlendMode: "overlay",
-            }}
-          />
         </>
       )}
     </div>

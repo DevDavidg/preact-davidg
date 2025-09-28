@@ -34,82 +34,6 @@ interface ThemeColors {
   muted: string;
 }
 
-class NoiseGenerator {
-  private static readonly permutation = Array.from({ length: 256 }, () =>
-    Math.floor(Math.random() * 256)
-  );
-  private static readonly p = [
-    ...NoiseGenerator.permutation,
-    ...NoiseGenerator.permutation,
-  ];
-
-  private static fade(t: number): number {
-    return t * t * t * (t * (t * 6 - 15) + 10);
-  }
-
-  private static lerp(t: number, a: number, b: number): number {
-    return a + t * (b - a);
-  }
-
-  private static grad(hash: number, x: number, y: number, z: number): number {
-    const h = hash & 15;
-    const u = h < 8 ? x : y;
-    const v = h < 4 ? y : h === 12 || h === 14 ? x : z;
-    return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
-  }
-
-  static noise(x: number, y: number, z: number): number {
-    const X = Math.floor(x) & 255;
-    const Y = Math.floor(y) & 255;
-    const Z = Math.floor(z) & 255;
-
-    x -= Math.floor(x);
-    y -= Math.floor(y);
-    z -= Math.floor(z);
-
-    const u = this.fade(x);
-    const v = this.fade(y);
-    const w = this.fade(z);
-
-    const A = this.p[X] + Y;
-    const AA = this.p[A] + Z;
-    const AB = this.p[A + 1] + Z;
-    const B = this.p[X + 1] + Y;
-    const BA = this.p[B] + Z;
-    const BB = this.p[B + 1] + Z;
-
-    return this.lerp(
-      w,
-      this.lerp(
-        v,
-        this.lerp(
-          u,
-          this.grad(this.p[AA], x, y, z),
-          this.grad(this.p[BA], x - 1, y, z)
-        ),
-        this.lerp(
-          u,
-          this.grad(this.p[AB], x, y - 1, z),
-          this.grad(this.p[BB], x - 1, y - 1, z)
-        )
-      ),
-      this.lerp(
-        v,
-        this.lerp(
-          u,
-          this.grad(this.p[AA + 1], x, y, z - 1),
-          this.grad(this.p[BA + 1], x - 1, y, z - 1)
-        ),
-        this.lerp(
-          u,
-          this.grad(this.p[AB + 1], x, y - 1, z - 1),
-          this.grad(this.p[BB + 1], x - 1, y - 1, z - 1)
-        )
-      )
-    );
-  }
-}
-
 class ParticleEntity {
   id: number;
   position: Vector2D;
@@ -135,9 +59,6 @@ class ParticleEntity {
   targetPosition: Vector2D | null;
   repelForce: number;
   attractForce: number;
-  noiseOffset: Vector2D;
-  noiseScale: number;
-  noiseStrength: number;
   glow: boolean;
   glowStrength: number;
   rotationAngle: number;
@@ -189,19 +110,13 @@ class ParticleEntity {
     this.targetPosition = null;
     this.repelForce = Math.random() * 0.5 + 0.1;
     this.attractForce = Math.random() * 0.1 + 0.05;
-    this.noiseOffset = {
-      x: Math.random() * 1000,
-      y: Math.random() * 1000,
-    };
-    this.noiseScale = 0.003 + Math.random() * 0.005;
-    this.noiseStrength = Math.random() * 0.5 + 0.1;
     this.glow = Math.random() > 0.7;
     this.glowStrength = Math.random() * 15 + 5;
     this.rotationAngle = Math.random() * Math.PI * 2;
     this.rotationSpeed =
       (Math.random() * 0.02 + 0.01) * (Math.random() > 0.5 ? 1 : -1);
-    this.patternType = ["wave", "spiral", "orbit", "noise"][
-      Math.floor(Math.random() * 4)
+    this.patternType = ["wave", "spiral", "orbit"][
+      Math.floor(Math.random() * 3)
     ];
     this.patternScale = Math.random() * 0.1 + 0.05;
     this.targetEntity = null;
@@ -220,8 +135,8 @@ class ParticleEntity {
     if (x >= 0 && x < flowfield.cols && y >= 0 && y < flowfield.rows) {
       const angle = flowfield.field[y][x];
       const force = {
-        x: Math.cos(angle) * this.noiseStrength,
-        y: Math.sin(angle) * this.noiseStrength,
+        x: Math.cos(angle) * 0.02,
+        y: Math.sin(angle) * 0.02,
       };
       this.applyForce(force);
     }
@@ -303,20 +218,6 @@ class ParticleEntity {
             y: ((centerY - this.position.y) / distToCenter) * 0.01,
           });
         }
-        break;
-      case "noise":
-        this.noiseOffset.x += 0.01;
-        this.noiseOffset.y += 0.01;
-        const noiseVal = NoiseGenerator.noise(
-          this.position.x * this.noiseScale + this.noiseOffset.x,
-          this.position.y * this.noiseScale + this.noiseOffset.y,
-          performance.now() * 0.0001
-        );
-        const noiseAngle = noiseVal * Math.PI * 2;
-        this.applyForce({
-          x: Math.cos(noiseAngle) * 0.02,
-          y: Math.sin(noiseAngle) * 0.02,
-        });
         break;
     }
 
@@ -576,7 +477,7 @@ const ContactCanvas: FunctionComponent = () => {
     for (let y = 0; y < rows; y++) {
       field[y] = [];
       for (let x = 0; x < cols; x++) {
-        const angle = NoiseGenerator.noise(x * 0.1, y * 0.1, 0) * Math.PI * 2;
+        const angle = Math.random() * Math.PI * 2;
         field[y][x] = angle;
       }
     }
@@ -594,8 +495,11 @@ const ContactCanvas: FunctionComponent = () => {
     flowField.time = time;
     for (let y = 0; y < flowField.rows; y++) {
       for (let x = 0; x < flowField.cols; x++) {
-        const noise = NoiseGenerator.noise(x * 0.1, y * 0.1, time * 0.0002);
-        flowField.field[y][x] = noise * Math.PI * 2;
+        const angle =
+          (Math.sin(time * 0.001 + x * 0.1) +
+            Math.cos(time * 0.001 + y * 0.1)) *
+          Math.PI;
+        flowField.field[y][x] = angle;
       }
     }
   };
