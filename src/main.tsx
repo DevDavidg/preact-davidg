@@ -64,6 +64,8 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import ColorShowcase from "./pages/ColorShowcase";
 import Sitemap from "./pages/Sitemap";
+import Terminos from "./pages/Terminos";
+import Privacidad from "./pages/Privacidad";
 import NotFound from "./pages/NotFound";
 
 Object.defineProperty(window, "perfTools", {
@@ -99,6 +101,8 @@ render(
       <Contact path="/contact" />
       <ColorShowcase path="/colors" />
       <Sitemap path="/sitemap" />
+      <Terminos path="/terminos" />
+      <Privacidad path="/privacidad" />
       <NotFound default />
     </Router>
   </App>,

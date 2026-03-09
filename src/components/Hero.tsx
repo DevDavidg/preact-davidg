@@ -16,25 +16,27 @@ const containerVariants = {
     opacity: 1,
     transition: {
       when: "beforeChildren",
-      staggerChildren: 0.05,
-      duration: 0.5,
-      ease: [0.25, 0.1, 0.25, 1],
+      staggerChildren: 0.04,
+      delayChildren: 0.02,
+      type: "spring",
+      damping: 18,
+      stiffness: 85,
     },
   },
 };
 
 const titleVariants = {
-  hidden: { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 36 },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
       type: "spring",
-      damping: 10,
+      damping: 16,
       stiffness: 100,
       when: "beforeChildren",
-      staggerChildren: 0.015,
-      delayChildren: 0.1,
+      staggerChildren: 0.012,
+      delayChildren: 0.06,
     },
   },
 };
@@ -72,15 +74,15 @@ const characterVariants = {
 };
 
 const slideUpVariants = {
-  hidden: { opacity: 0, y: 30, rotateX: 10 },
+  hidden: { opacity: 0, y: 32, rotateX: 8 },
   visible: (delay = 0) => ({
     opacity: 1,
     y: 0,
     rotateX: 0,
     transition: {
       type: "spring",
-      damping: 15,
-      stiffness: 80,
+      damping: 18,
+      stiffness: 90,
       delay: delay,
     },
   }),
@@ -136,86 +138,6 @@ const scrollIndicatorVariants = {
   },
 };
 
-const ParticleCanvas = () => {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  useEffect(() => {
-    if (!canvasRef.current) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    let particles: {
-      x: number;
-      y: number;
-      size: number;
-      speedX: number;
-      speedY: number;
-      color: string;
-      alpha: number;
-    }[] = [];
-
-    const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
-
-    const createParticles = () => {
-      const particleCount = Math.min(window.innerWidth / 10, 100);
-
-      for (let i = 0; i < particleCount; i++) {
-        particles.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          size: Math.random() * 2 + 0.5,
-          speedX: (Math.random() - 0.5) * 0.3,
-          speedY: (Math.random() - 0.5) * 0.3,
-          color: "#888888",
-          alpha: Math.random() * 0.6 + 0.2,
-        });
-      }
-    };
-
-    const drawParticles = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      particles.forEach((p) => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(136, 136, 136, ${p.alpha})`;
-        ctx.fill();
-
-        p.x += p.speedX;
-        p.y += p.speedY;
-
-        if (p.x < 0 || p.x > canvas.width) p.speedX *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.speedY *= -1;
-      });
-
-      requestAnimationFrame(drawParticles);
-    };
-
-    createParticles();
-    drawParticles();
-
-    return () => {
-      window.removeEventListener("resize", resizeCanvas);
-    };
-  }, []);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 z-0 opacity-40"
-      style={{ mixBlendMode: "soft-light" }}
-    />
-  );
-};
-
 const AnimatedTitle: FunctionComponent<{
   text: string;
   className: string;
@@ -258,35 +180,26 @@ const AnimatedTitle: FunctionComponent<{
 };
 
 const Hero = () => {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [scrollY, setScrollY] = useState(0);
   const heroRef = useRef<HTMLElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
-  const cardRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const [scrollY, setScrollY] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const [isInView, setIsInView] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  const refElementsAssigned = useRef(false);
 
   useEffect(() => {
-    cardRefs.current = Array(5).fill(null);
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
-    const checkDarkMode = () => {
-      setIsDarkMode(document.documentElement.classList.contains("dark"));
-    };
-
-    checkDarkMode();
-    window
-      .matchMedia("(prefers-color-scheme: dark)")
-      .addEventListener("change", checkDarkMode);
-
+  useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         setIsInView(entry.isIntersecting);
       },
-      { threshold: 0.1 }
+      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" },
     );
 
     if (heroRef.current) {
@@ -294,9 +207,6 @@ const Hero = () => {
     }
 
     return () => {
-      window
-        .matchMedia("(prefers-color-scheme: dark)")
-        .removeEventListener("change", checkDarkMode);
       if (heroRef.current) observer.disconnect();
     };
   }, []);
@@ -318,15 +228,14 @@ const Hero = () => {
       if (!heroRef.current) return;
 
       const rect = heroRef.current.getBoundingClientRect();
-      const newPosition = {
+      setMousePosition({
         x: e.clientX - rect.left,
         y: e.clientY - rect.top,
-      };
-      setMousePosition(newPosition);
-
-      if (refElementsAssigned.current) {
-        applyTiltEffectToElements(newPosition, rect);
-      }
+      });
+      applyTiltEffectToElements(
+        { x: e.clientX - rect.left, y: e.clientY - rect.top },
+        rect,
+      );
     };
 
     const currentRef = heroRef.current;
@@ -341,78 +250,30 @@ const Hero = () => {
     };
   }, [isMobile]);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
-      if (refElementsAssigned.current) {
-        applyScrollParallax();
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
   const applyTiltEffectToElements = (
     mousePos: { x: number; y: number },
-    containerRect: DOMRect
+    containerRect: DOMRect,
   ) => {
     const centerX = containerRect.width / 2;
     const centerY = containerRect.height / 2;
-
     const normalizedX = (mousePos.x - centerX) / centerX;
     const normalizedY = (mousePos.y - centerY) / centerY;
-
-    for (let index = 0; index < cardRefs.current.length; index++) {
-      const ref = cardRefs.current[index];
-      if (!ref?.style) continue;
-
-      try {
-        const sensitivityX = 5 - index * 0.5;
-        const sensitivityY = 5 - index * 0.5;
-        const rotateY = -normalizedX * sensitivityX;
-        const rotateX = normalizedY * sensitivityY;
-
-        ref.style.transform = `
-          perspective(1200px)
-          rotateX(${rotateX}deg)
-          rotateY(${rotateY}deg)
-          scale3d(1, 1, 1)
-        `;
-      } catch (e) {
-        console.error("Error applying tilt effect to element", e);
-      }
-    }
 
     if (contentRef.current?.style) {
       try {
         contentRef.current.style.transform = `
           perspective(1500px) 
-          rotateX(${normalizedY * 1}deg) 
-          rotateY(${-normalizedX * 1}deg)
-          translateZ(10px)        `;
-      } catch (e) {
-        console.error("Error applying tilt effect to content", e);
+          rotateX(${normalizedY}deg) 
+          rotateY(${-normalizedX}deg)
+          translateZ(10px)
+        `;
+      } catch {
+        //
       }
     }
   };
 
   const resetTiltEffect = () => {
-    for (const ref of cardRefs.current) {
-      if (!ref?.style) continue;
-
-      try {
-        ref.style.transform = `
-          perspective(1200px)
-          rotateX(0deg)
-          rotateY(0deg)
-          scale3d(1, 1, 1)
-        `;
-      } catch (e) {
-        console.error("Error resetting tilt effect", e);
-      }
-    }
-
     if (contentRef.current?.style) {
       try {
         contentRef.current.style.transform = `
@@ -421,111 +282,30 @@ const Hero = () => {
           rotateY(0deg)
           translateZ(0)
         `;
-      } catch (e) {
-        console.error("Error resetting tilt effect", e);
+      } catch {
+        //
       }
     }
   };
 
-  const applyScrollParallax = () => {
-    const scrollFactor = window.scrollY * 0.003;
-
-    for (let index = 0; index < cardRefs.current.length; index++) {
-      const ref = cardRefs.current[index];
-      if (!ref?.style) continue;
-
-      try {
-        const speed = 0.1 * (index + 1);
-        const yOffset = window.scrollY * speed;
-        const rotate = Math.sin(scrollFactor) * (index + 1) * 2;
-
-        ref.style.transform = `translateY(${-yOffset}px) rotate(${rotate}deg)`;
-      } catch (e) {
-        console.error("Error applying scroll parallax", e);
-      }
-    }
-  };
-
-  const calculateMouseParallax = (strength = 0.02, inverted = false) => {
-    if (!heroRef.current || isMobile) return { x: 0, y: 0, z: 0 };
-
+  const parallax = (strength = 0.02, inverted = false) => {
+    if (!heroRef.current || isMobile) return { x: 0, y: 0 };
     const rect = heroRef.current.getBoundingClientRect();
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
-
-    const deltaX = (mousePosition.x - centerX) * strength;
-    const deltaY = (mousePosition.y - centerY) * strength;
-    const deltaZ =
-      Math.abs((mousePosition.x - centerX) * (mousePosition.y - centerY)) *
-      0.0001;
-
+    const dx = (mousePosition.x - centerX) * strength;
+    const dy = (mousePosition.y - centerY) * strength;
     return {
-      x: inverted ? -deltaX : deltaX,
-      y: inverted ? -deltaY : deltaY,
-      z: deltaZ,
+      x: inverted ? -dx : dx,
+      y: inverted ? -dy : dy,
     };
   };
 
   const titleText = t("hero.title");
-  const specialWords = ["experiencias", "digitales", "impacto"];
-
-  const shapes3D = [
-    {
-      id: 3,
-      type: "cube",
-      className: "absolute w-32 h-32 md:w-40 md:h-40 perspective preserve-3d",
-      style: { right: "15%", top: "20%", opacity: 0.15 },
-      faces: [
-        {
-          transform: "translateZ(20px)",
-          className: "bg-light-primary/20 dark:bg-dark-primary/20",
-        },
-        {
-          transform: "rotateY(180deg) translateZ(20px)",
-          className: "bg-light-primary/20 dark:bg-dark-primary/20",
-        },
-        {
-          transform: "rotateY(90deg) translateZ(20px)",
-          className: "bg-light-accent/20 dark:bg-dark-accent/20",
-        },
-        {
-          transform: "rotateY(-90deg) translateZ(20px)",
-          className: "bg-light-accent/20 dark:bg-dark-accent/20",
-        },
-        {
-          transform: "rotateX(90deg) translateZ(20px)",
-          className: "bg-light-secondary/20 dark:bg-dark-secondary/20",
-        },
-        {
-          transform: "rotateX(-90deg) translateZ(20px)",
-          className: "bg-light-secondary/20 dark:bg-dark-secondary/20",
-        },
-      ],
-    },
-    {
-      type: "pyramid",
-      className: "absolute w-24 h-24 md:w-32 md:h-32 perspective preserve-3d",
-      style: { left: "10%", bottom: "25%", opacity: 0.15 },
-      faces: [
-        {
-          transform: "translateZ(16px)",
-          className: "bg-light-accent/20 dark:bg-dark-accent/20",
-        },
-        {
-          transform: "rotateY(120deg) translateZ(16px)",
-          className: "bg-light-primary/20 dark:bg-dark-primary/20",
-        },
-        {
-          transform: "rotateY(240deg) translateZ(16px)",
-          className: "bg-light-secondary/20 dark:bg-dark-secondary/20",
-        },
-        {
-          transform: "rotateX(90deg) translateZ(-16px)",
-          className: "bg-light-muted/20 dark:bg-dark-muted/20",
-        },
-      ],
-    },
-  ];
+  const specialWords =
+    locale === "es"
+      ? ["experiencias", "digitales", "impacto"]
+      : ["digital", "experiences", "impact"];
 
   return (
     <section
@@ -534,167 +314,95 @@ const Hero = () => {
       ref={heroRef}
       onMouseLeave={resetTiltEffect}
     >
-      <ParticleCanvas />
-
-      <div className="absolute inset-0 z-0 opacity-5 dark:opacity-10">
-        <div
-          className="absolute inset-0 bg-dots"
-          style={{
-            color: "var(--color-primary)",
-          }}
-        ></div>
-      </div>
-
       <MotionDiv
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1.5 }}
         className="absolute inset-0 z-0 bg-gradient-radial from-light-accent/10 to-transparent dark:from-dark-accent/15 dark:to-transparent"
         style={{
-          transform: `translate3d(${calculateMouseParallax(0.005).x}px, ${
-            calculateMouseParallax(0.005).y
-          }px, 0)`,
+          transform: `translate3d(${parallax(0.008).x}px, ${parallax(0.008).y}px, 0)`,
           width: "100%",
           height: "100%",
         }}
-      ></MotionDiv>
+      />
 
       <div className="absolute inset-0 z-0 overflow-hidden">
-        {shapes3D.map((shape, shapeIndex) => (
-          <MotionDiv
-            key={shape.id}
-            initial={{ opacity: 0, scale: 0.8, rotateX: 45, rotateY: 45 }}
-            animate={{
-              opacity: shape.style.opacity || 0.15,
-              scale: 1,
-              rotateX: 0,
-              rotateY: 0,
-            }}
-            transition={{
-              delay: 0.2 + shapeIndex * 0.1,
-              duration: 0.6,
-              type: "spring",
-              damping: 15,
-            }}
-            className={shape.className}
-            style={{
-              ...shape.style,
-              transform: `translate3d(
-                ${
-                  calculateMouseParallax(0.03).x *
-                  (shapeIndex % 2 === 0 ? 1 : -1)
-                }px, 
-                ${
-                  calculateMouseParallax(0.02).y *
-                  (shapeIndex % 2 === 0 ? 1 : -1)
-                }px,
-                ${calculateMouseParallax(0.01).z}px
-              ) translateY(${scrollY * (shapeIndex % 2 === 0 ? 0.05 : -0.05)}px)
-              rotate(${scrollY * 0.02}deg)`,
-              transformStyle: "preserve-3d",
-              animation: `spin-slow ${10 + shapeIndex * 5}s linear infinite${
-                shapeIndex % 2 === 0 ? "" : " reverse"
-              }`,
-            }}
-            ref={(el: HTMLDivElement | null) => {
-              if (el && shapeIndex < cardRefs.current.length) {
-                cardRefs.current[shapeIndex] = el;
-                if (!refElementsAssigned.current) {
-                  const allAssigned = cardRefs.current.every(
-                    (ref, i) => i >= 2 || ref !== null
-                  );
-                  if (allAssigned && contentRef.current) {
-                    refElementsAssigned.current = true;
-                  }
-                }
-              }
-            }}
-          >
-            {shape.faces.map((face, faceIndex) => (
-              <div
-                key={`face-${shapeIndex}-${faceIndex}`}
-                className={`absolute inset-0 ${face.className}`}
-                style={{
-                  transform: face.transform,
-                  transformStyle: "preserve-3d",
-                  backfaceVisibility: "hidden",
-                }}
-              />
-            ))}
-          </MotionDiv>
-        ))}
+        <div
+          className="absolute w-32 h-32 md:w-40 md:h-40 right-[15%] top-[20%]"
+          style={{
+            transform: `translate3d(${parallax(0.03).x}px, ${parallax(0.02).y}px, 0) translateY(${scrollY * 0.05}px) rotate(${scrollY * 0.02}deg)`,
+          }}
+        >
+          <div className="w-full h-full perspective preserve-3d animate-spin-slow" style={{ transformStyle: "preserve-3d", animationDuration: "10s" }}>
+          {[
+            { transform: "translateZ(20px)", className: "bg-light-primary/20 dark:bg-dark-primary/20" },
+            { transform: "rotateY(180deg) translateZ(20px)", className: "bg-light-primary/20 dark:bg-dark-primary/20" },
+            { transform: "rotateY(90deg) translateZ(20px)", className: "bg-light-accent/20 dark:bg-dark-accent/20" },
+            { transform: "rotateY(-90deg) translateZ(20px)", className: "bg-light-accent/20 dark:bg-dark-accent/20" },
+            { transform: "rotateX(90deg) translateZ(20px)", className: "bg-light-secondary/20 dark:bg-dark-secondary/20" },
+            { transform: "rotateX(-90deg) translateZ(20px)", className: "bg-light-secondary/20 dark:bg-dark-secondary/20" },
+          ].map((face, i) => (
+            <div
+              key={i}
+              className={`absolute inset-0 ${face.className}`}
+              style={{ transform: face.transform, transformStyle: "preserve-3d", backfaceVisibility: "hidden" }}
+            />
+          ))}
+          </div>
+        </div>
+
+        <div
+          className="absolute w-24 h-24 md:w-32 md:h-32 left-[10%] bottom-[25%]"
+          style={{
+            transform: `translate3d(${parallax(0.03, true).x}px, ${parallax(0.02, true).y}px, 0) translateY(${scrollY * -0.05}px) rotate(${scrollY * -0.02}deg)`,
+          }}
+        >
+          <div className="w-full h-full perspective preserve-3d animate-spin-slow" style={{ transformStyle: "preserve-3d", animationDuration: "15s", animationDirection: "reverse" }}>
+          {[
+            { transform: "translateZ(16px)", className: "bg-light-accent/20 dark:bg-dark-accent/20" },
+            { transform: "rotateY(120deg) translateZ(16px)", className: "bg-light-primary/20 dark:bg-dark-primary/20" },
+            { transform: "rotateY(240deg) translateZ(16px)", className: "bg-light-secondary/20 dark:bg-dark-secondary/20" },
+            { transform: "rotateX(90deg) translateZ(-16px)", className: "bg-light-muted/20 dark:bg-dark-muted/20" },
+          ].map((face, i) => (
+            <div
+              key={i}
+              className={`absolute inset-0 ${face.className}`}
+              style={{ transform: face.transform, transformStyle: "preserve-3d", backfaceVisibility: "hidden" }}
+            />
+          ))}
+          </div>
+        </div>
 
         <MotionDiv
-          initial={{ opacity: 0, scale: 0.8, rotateZ: -10 }}
-          animate={{ opacity: 0.15, scale: 1, rotateZ: 0 }}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 0.15, scale: 1 }}
           transition={{ delay: 0.2, duration: 0.7 }}
           className="absolute right-[10%] top-1/4 w-64 h-64 md:w-72 md:h-72 rounded-full bg-light-primary/10 dark:bg-dark-primary/10 animate-float"
           style={{
-            transform: `translate3d(
-              ${calculateMouseParallax(0.05).x}px, 
-              ${calculateMouseParallax(0.05).y}px, 
-              ${calculateMouseParallax(0.01).z * 2}px
-            ) translateY(${scrollY * 0.05}px)`,
-            boxShadow: isDarkMode
-              ? "inset 0 0 40px rgba(255,255,255,0.1), 0 0 20px rgba(255,255,255,0.05)"
-              : "inset 0 0 40px rgba(0,0,0,0.05), 0 0 20px rgba(0,0,0,0.02)",
-            contain: "paint layout",
-          }}
-          ref={(el: HTMLDivElement | null) => {
-            if (el) {
-              cardRefs.current[3] = el;
-              if (!refElementsAssigned.current) {
-                const allAssigned = cardRefs.current.every(
-                  (ref, i) => i >= 4 || ref !== null
-                );
-                if (allAssigned && contentRef.current) {
-                  refElementsAssigned.current = true;
-                }
-              }
-            }
+            transform: `translate3d(${parallax(0.05).x}px, ${parallax(0.05).y}px, 0) translateY(${scrollY * 0.05}px)`,
+            boxShadow: "inset 0 0 40px rgba(0,0,0,0.05), 0 0 20px rgba(0,0,0,0.02)",
           }}
         >
           <div className="absolute inset-0 overflow-hidden rounded-full opacity-20">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <div
-                key={"line-" + i.toString()}
-                className="absolute top-1/2 left-1/2 h-full w-0.5 bg-light-primary dark:bg-dark-primary origin-bottom"
-                style={{
-                  transform: `translate(-50%, -50%) rotate(${i * 30}deg)`,
-                }}
-              />
-            ))}
+            <div className="absolute inset-0 animate-clock-rotate" style={{ animationDuration: "30s" }}>
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute top-1/2 left-1/2 h-full w-0.5 bg-light-primary dark:bg-dark-primary origin-bottom"
+                  style={{ transform: `translate(-50%, -50%) rotate(${i * 30}deg)` }}
+                />
+              ))}
+            </div>
           </div>
         </MotionDiv>
 
         <MotionDiv
-          initial={{ opacity: 0, scale: 0.8, rotate: -10 }}
-          animate={{ opacity: 0.2, scale: 1, rotate: 0 }}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 0.2, scale: 1 }}
           transition={{ delay: 0.3, duration: 0.7 }}
           className="absolute left-[5%] bottom-1/3 w-36 h-36 md:w-48 md:h-48 rounded-md bg-light-accent/10 dark:bg-dark-accent/10 animate-float-reverse backdrop-blur-sm"
           style={{
-            transform: `translate3d(
-              ${calculateMouseParallax(0.03, true).x}px, 
-              ${calculateMouseParallax(0.03, true).y}px, 
-              ${calculateMouseParallax(0.01).z}px
-            ) translateY(${scrollY * -0.03}px) rotate(-5deg)`,
-            boxShadow: isDarkMode
-              ? "0 0 30px rgba(255,255,255,0.05)"
-              : "0 0 30px rgba(0,0,0,0.03)",
-            contain: "paint layout",
-          }}
-          ref={(el: HTMLDivElement | null) => {
-            if (el) {
-              cardRefs.current[4] = el;
-              if (!refElementsAssigned.current) {
-                const allAssigned = cardRefs.current.every(
-                  (ref) => ref !== null
-                );
-                if (allAssigned && contentRef.current) {
-                  refElementsAssigned.current = true;
-                }
-              }
-            }
+            transform: `translate3d(${parallax(0.03, true).x}px, ${parallax(0.03, true).y}px, 0) translateY(${scrollY * -0.03}px)`,
           }}
         >
           <div
@@ -704,17 +412,11 @@ const Hero = () => {
         </MotionDiv>
 
         <MotionDiv
-          initial={{ opacity: 0, y: 100, scale: 0.5 }}
-          animate={{
-            opacity: 0.25,
-            y: 0,
-            scale: 1,
-          }}
-          transition={{
-            duration: 1,
-            ease: "easeOut",
-          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.25 }}
+          transition={{ duration: 1 }}
           className="absolute left-[15%] bottom-10 w-36 h-36 md:w-56 md:h-56"
+          style={{ transform: `translateY(${scrollY * 0.02}px)` }}
         >
           <MotionDiv
             animate={{
@@ -726,39 +428,29 @@ const Hero = () => {
               duration: 12,
               repeat: Infinity,
               ease: "easeInOut",
-              times: [0, 0.2, 0.5, 0.8, 1],
+              times: [0, 0.25, 0.5, 0.75, 1],
             }}
             className="w-full h-full"
-          >
-            <div
-              className="w-full h-full"
-              style={{
-                clipPath: "polygon(50% 10%, 10% 90%, 90% 90%)",
-                backgroundColor: "var(--color-primary)",
-                opacity: 0.2,
-              }}
-            />
-          </MotionDiv>
+            style={{
+              clipPath: "polygon(50% 10%, 10% 90%, 90% 90%)",
+              backgroundColor: "var(--color-primary)",
+              opacity: 0.2,
+            }}
+          />
         </MotionDiv>
 
         <MotionDiv
-          initial={{ opacity: 0, x: 100, rotateZ: -30 }}
-          animate={{
-            opacity: 0.15,
-            x: 0,
-            rotateZ: 0,
-            transition: {
-              duration: 1.2,
-              ease: "easeOut",
-            },
-          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.15 }}
+          transition={{ duration: 1.2 }}
           className="absolute right-0 top-1/3 w-32 h-32 md:w-48 md:h-48"
           style={{
-            transformOrigin: "center right",
+            transformOrigin: "right center",
+            transform: `translate3d(${parallax(0.02).x}px, ${parallax(0.02).y}px, 0) translateY(${scrollY * -0.02}px)`,
           }}
         >
           <div
-            className="absolute inset-0"
+            className="absolute inset-0 w-full h-full"
             style={{
               clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)",
               backgroundColor: "#555555",
@@ -771,28 +463,49 @@ const Hero = () => {
               scale: [1, 1.05, 0.98, 1],
             }}
             transition={{
-              duration: 8,
+              duration: 9,
               repeat: Infinity,
               ease: "easeInOut",
               times: [0, 0.4, 0.7, 1],
             }}
-            className="w-full h-full"
+            className="absolute inset-0"
           />
         </MotionDiv>
+      </div>
+
+      <MotionDiv
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.6 }}
+        transition={{ delay: 0.5, duration: 0.8 }}
+        className="absolute top-0 right-0 w-1/2 md:w-1/3 h-1/3 bg-gradient-to-bl from-light-accent/20 dark:from-dark-accent/20 to-transparent z-0"
+        style={{
+          transform: `translate3d(${parallax(0.01, true).x}px, ${parallax(0.01, true).y}px, 0)`,
+          width: "50%",
+          height: "33.333%",
+        }}
+      />
+
+      <MotionDiv
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.6 }}
+        transition={{ delay: 0.6, duration: 0.8 }}
+        className="absolute bottom-0 left-0 w-1/2 md:w-1/3 h-1/3 bg-gradient-to-tr from-light-primary/20 dark:from-dark-primary/20 to-transparent z-0"
+        style={{
+          transform: `translate3d(${parallax(0.01).x}px, ${parallax(0.01).y}px, 0) translateY(${scrollY * 0.04}px)`,
+          width: "50%",
+          height: "33.333%",
+        }}
+      />
+
+      <div className="absolute bottom-0 left-0 w-full overflow-hidden z-[1]">
+        <div className="dot-pattern" style={{ bottom: "40px", left: "10%", transform: "rotate(10deg)" }} />
+        <div className="dot-pattern" style={{ bottom: "20px", right: "5%", transform: "rotate(-5deg)" }} />
       </div>
 
       <div className="container relative z-10 px-4 md:px-6 pt-28">
         <MotionDiv
           ref={(el: HTMLDivElement | null) => {
             contentRef.current = el;
-            if (el && !refElementsAssigned.current) {
-              const allAssigned = cardRefs.current.every(
-                (ref, i) => i >= 3 || ref !== null
-              );
-              if (allAssigned) {
-                refElementsAssigned.current = true;
-              }
-            }
           }}
           variants={containerVariants}
           initial="hidden"
@@ -980,42 +693,6 @@ const Hero = () => {
       </div>
 
       <MotionDiv
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.6 }}
-        transition={{ delay: 0.5, duration: 0.8 }}
-        className="absolute top-0 right-0 w-1/2 md:w-1/3 h-1/3 bg-gradient-to-bl from-light-accent/20 dark:from-dark-accent/20 to-transparent -z-10"
-        style={{
-          transform: `translate3d(
-            ${calculateMouseParallax(0.01, true).x}px, 
-            ${calculateMouseParallax(0.01, true).y}px, 
-            0
-          ) translateY(${scrollY * -0.02}px) skewY(${scrollY * 0.005}deg)`,
-          filter: `blur(${scrollY * 0.01}px)`,
-          contain: "paint layout",
-          width: "50%",
-          height: "33.333%",
-        }}
-      />
-
-      <MotionDiv
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.6 }}
-        transition={{ delay: 0.6, duration: 0.8 }}
-        className="absolute bottom-0 left-0 w-1/2 md:w-1/3 h-1/3 bg-gradient-to-tr from-light-primary/20 dark:from-dark-primary/20 to-transparent -z-10"
-        style={{
-          transform: `translate3d(
-            ${calculateMouseParallax(0.01).x}px, 
-            ${calculateMouseParallax(0.01).y}px, 
-            0
-          ) translateY(${scrollY * 0.04}px) skewY(${-scrollY * 0.003}deg)`,
-          filter: `blur(${scrollY * 0.005}px)`,
-          contain: "paint layout",
-          width: "50%",
-          height: "33.333%",
-        }}
-      />
-
-      <MotionDiv
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.8, duration: 0.6, type: "spring" }}
@@ -1041,20 +718,6 @@ const Hero = () => {
           </MotionSvg>
         </span>
       </MotionDiv>
-
-      <div
-        className="absolute bottom-0 left-0 w-full overflow-hidden"
-        style={{ zIndex: 1 }}
-      >
-        <div
-          className="dot-pattern"
-          style={{ bottom: "40px", left: "10%", transform: "rotate(10deg)" }}
-        ></div>
-        <div
-          className="dot-pattern"
-          style={{ bottom: "20px", right: "5%", transform: "rotate(-5deg)" }}
-        ></div>
-      </div>
     </section>
   );
 };

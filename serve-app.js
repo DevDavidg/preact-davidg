@@ -8,7 +8,6 @@ import fs from "fs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DIST_DIR = path.join(__dirname, "dist");
-const SERVE_CONFIG = path.join(__dirname, "serve.json");
 
 const app = express();
 const PORT = process.env.PORT || 4173;
@@ -106,25 +105,3 @@ if (!fs.existsSync(DIST_DIR)) {
 }
 
 export default app;
-
-function getBrowserCommand(url) {
-  if (process.platform === "win32") return `start "" "${url}"`;
-  if (process.platform === "darwin") return `open "${url}"`;
-  return `xdg-open "${url}"`;
-}
-
-function openBrowser(port) {
-  const url = `http://localhost:${port}`;
-  console.log(`\n\x1b[32mAbriendo navegador en ${url}\x1b[0m`);
-
-  const command = getBrowserCommand(url);
-
-  exec(command, (error) => {
-    if (error) {
-      console.log(
-        "\x1b[33mNo se pudo abrir el navegador automáticamente. Por favor, visita:\x1b[0m"
-      );
-      console.log(`\x1b[36m${url}\x1b[0m`);
-    }
-  });
-}

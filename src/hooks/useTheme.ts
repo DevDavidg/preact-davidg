@@ -53,31 +53,39 @@ export const useTheme = () => {
 
     localStorage.setItem("theme", theme);
 
-    // Safari-specific DOM manipulation
-    if (isSafari()) {
-      // Force reflow for Safari
-      document.documentElement.style.display = "none";
-      document.documentElement.offsetHeight; // Trigger reflow
-      document.documentElement.style.display = "";
-    }
+    const root = document.documentElement;
+    root.classList.add("theme-transition");
 
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-      document.documentElement.setAttribute("data-theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      document.documentElement.setAttribute("data-theme", "light");
-    }
+    const rafId = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (theme === "dark") {
+          root.classList.add("dark");
+          root.dataset.theme = "dark";
+        } else {
+          root.classList.remove("dark");
+          root.dataset.theme = "light";
+        }
+      });
+    });
 
-    // Safari-specific CSS variable enforcement
+    const duration = 420;
+    const timeoutId = setTimeout(() => {
+      root.classList.remove("theme-transition");
+    }, duration);
+
     if (isSafari()) {
       setTimeout(() => {
-        const event = new CustomEvent("theme-changed", {
-          detail: { theme },
-        });
-        window.dispatchEvent(event);
+        window.dispatchEvent(
+          new CustomEvent("theme-changed", { detail: { theme } })
+        );
       }, 100);
     }
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(timeoutId);
+      root.classList.remove("theme-transition");
+    };
   }, [theme]);
 
   // Listen for system theme changes (especially important for Safari)

@@ -1,4 +1,5 @@
 import { FunctionComponent } from "preact";
+import { useRef } from "preact/hooks";
 import { Variants } from "framer-motion";
 import {
   MotionDiv,
@@ -16,28 +17,33 @@ import {
   MotionPath,
 } from "../utils/motion-components";
 import { useTranslation } from "../hooks/useTranslation";
+import { useSectionReveal } from "../hooks/useSectionReveal";
 
 const containerVariants: Variants = {
-  hidden: { opacity: 0 },
+  hidden: { opacity: 0, y: 36 },
   visible: {
     opacity: 1,
+    y: 0,
     transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.2,
+      staggerChildren: 0.06,
+      delayChildren: 0.08,
       when: "beforeChildren",
+      type: "spring",
+      damping: 18,
+      stiffness: 85,
     },
   },
 };
 
 const itemVariants: Variants = {
-  hidden: { y: 30, opacity: 0 },
+  hidden: { y: 28, opacity: 0 },
   visible: {
     y: 0,
     opacity: 1,
     transition: {
       type: "spring",
-      stiffness: 100,
-      damping: 15,
+      stiffness: 95,
+      damping: 18,
     },
   },
   hover: {
@@ -225,6 +231,8 @@ const ParticleEffect: FunctionComponent = () => {
 
 const Footer: FunctionComponent = () => {
   const { t } = useTranslation();
+  const sectionRef = useRef<HTMLElement>(null);
+  const isVisible = useSectionReveal(sectionRef);
   const currentYear = new Date().getFullYear();
 
   const socialLinks = [
@@ -239,10 +247,10 @@ const Footer: FunctionComponent = () => {
 
   const quickLinks = [
     { nameKey: "footer.links.home", url: "/" },
-    { nameKey: "footer.links.projects", url: "/proyectos" },
-    { nameKey: "footer.links.services", url: "/servicios" },
-    { nameKey: "footer.links.about", url: "/sobre-mi" },
-    { nameKey: "footer.links.contact", url: "/contacto" },
+    { nameKey: "footer.links.projects", url: "/projects" },
+    { nameKey: "footer.links.services", url: "/projects" },
+    { nameKey: "footer.links.about", url: "/about" },
+    { nameKey: "footer.links.contact", url: "/contact" },
   ];
 
   const handleSubscribe = (e: Event) => {
@@ -252,6 +260,7 @@ const Footer: FunctionComponent = () => {
 
   return (
     <footer
+      ref={sectionRef}
       id="contact"
       className="relative overflow-hidden bg-light-bg dark:bg-dark-bg pt-16"
       data-always-visible="true"
@@ -278,8 +287,7 @@ const Footer: FunctionComponent = () => {
         <MotionDiv
           variants={containerVariants}
           initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
+          animate={isVisible ? "visible" : "hidden"}
           className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12"
         >
           <MotionDiv
@@ -294,7 +302,7 @@ const Footer: FunctionComponent = () => {
               <MotionSpan
                 className="absolute -bottom-1 left-0 h-0.5 bg-light-accent dark:bg-dark-accent"
                 initial={{ width: 0 }}
-                whileInView={{ width: "100%" }}
+                animate={isVisible ? { width: "100%" } : { width: 0 }}
                 transition={{ duration: 0.5, delay: 0.5 }}
               />
             </MotionH2>
@@ -347,7 +355,7 @@ const Footer: FunctionComponent = () => {
               <MotionSpan
                 className="absolute -bottom-1 left-0 h-0.5 bg-light-accent dark:bg-dark-accent"
                 initial={{ width: 0 }}
-                whileInView={{ width: "100%" }}
+                animate={isVisible ? { width: "100%" } : { width: 0 }}
                 transition={{ duration: 0.5, delay: 0.7 }}
               />
             </MotionH3>
@@ -386,7 +394,7 @@ const Footer: FunctionComponent = () => {
               <MotionSpan
                 className="absolute -bottom-1 left-0 h-0.5 bg-light-accent dark:bg-dark-accent"
                 initial={{ width: 0 }}
-                whileInView={{ width: "100%" }}
+                animate={isVisible ? { width: "100%" } : { width: 0 }}
                 transition={{ duration: 0.5, delay: 0.9 }}
               />
             </MotionH3>
@@ -441,16 +449,14 @@ const Footer: FunctionComponent = () => {
 
         <MotionDiv
           initial={{ opacity: 0, scaleX: 0 }}
-          whileInView={{ opacity: 1, scaleX: 1 }}
-          viewport={{ once: true }}
+          animate={isVisible ? { opacity: 1, scaleX: 1 } : { opacity: 0, scaleX: 0 }}
           transition={{ duration: 0.7, ease: "easeInOut" }}
           className="h-px bg-gradient-to-r from-transparent via-light-accent/30 dark:via-dark-accent/30 to-transparent my-8"
         />
 
         <MotionDiv
           initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+          animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{ duration: 0.5, delay: 0.3 }}
           className="flex flex-col sm:flex-row justify-between items-center text-center sm:text-left text-light-secondary dark:text-dark-secondary text-sm"
         >
@@ -461,9 +467,8 @@ const Footer: FunctionComponent = () => {
           <MotionDiv
             className="flex items-center space-x-4"
             initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.4, staggerChildren: 0.1 }}
+            animate={isVisible ? { opacity: 1 } : { opacity: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
           >
             <MotionA
               href="/privacidad"

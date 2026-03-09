@@ -10,6 +10,7 @@ import { PerformancePanel } from "./components/PerformancePanel";
 import PerformanceNotifier from "./components/PerformanceNotifier";
 import PerformanceMonitor from "./utils/PerformanceMonitor";
 import Nav from "./components/Nav";
+import MainBackground from "./components/MainBackground";
 import { ENV } from "./config/env";
 import { scanForPerformanceIssues } from "./utils/diagnosePerfIssues";
 declare global {
@@ -107,7 +108,10 @@ export const App: FunctionComponent<AppProps> = ({ children }) => {
       ) : (
         <div className="content">
           <Nav />
-          <main className="flex-grow">{children}</main>
+          <main id="main-content" className="flex-grow relative" tabIndex={-1}>
+            <MainBackground />
+            <div className="relative z-10">{children}</div>
+          </main>
           <Footer />
           {showPerformancePanel && ENV.PERFORMANCE_MONITOR_ENABLED && (
             <PerformancePanel onClose={() => setShowPerformancePanel(false)} />

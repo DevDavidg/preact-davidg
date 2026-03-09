@@ -51,9 +51,7 @@ function createMotionComponent<T extends MotionElements>(
 
 // HTML Motion Components
 export const MotionDiv = createMotionComponent("div");
-export const MotionNav = createMotionComponent("nav");
 export const MotionHeader = createMotionComponent("header");
-export const MotionSection = createMotionComponent("section");
 export const MotionA = createMotionComponent("a");
 export const MotionButton = createMotionComponent("button");
 export const MotionUl = createMotionComponent("ul");
@@ -70,27 +68,6 @@ export const MotionTextarea = createMotionComponent("textarea");
 // SVG Motion Components
 export const MotionSvg = createMotionComponent("svg");
 export const MotionPath = createMotionComponent("path");
-export const MotionG = createMotionComponent("g");
-
-// MotionLink component that combines Link with motion properties
-export const MotionLink: FunctionComponent<
-  HTMLMotionProps<"a"> & { href: string }
-> = (props) => {
-  const { href, className, style, ...motionProps } = props;
-  const MotionA = createMotionComponent("a");
-
-  return createElement(MotionA, {
-    ...motionProps,
-    className,
-    style,
-    onClick: (e: Event) => {
-      e.preventDefault();
-      // Use history API to navigate
-      window.history.pushState(null, "", href);
-      window.dispatchEvent(new PopStateEvent("popstate"));
-    },
-  });
-};
 
 // Generic prop type for consumers
 export type MotionComponentProps<T extends MotionElements = "div"> =

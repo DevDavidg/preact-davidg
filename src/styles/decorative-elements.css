@@ -26,6 +26,40 @@
   opacity: 0.06;
 }
 
+.gradient-divider {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  margin-top: -140px;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    color-mix(in srgb, var(--color-bg) 8%) 15%,
+    color-mix(in srgb, var(--color-bg) 18%) 28%,
+    color-mix(in srgb, var(--color-bg) 32%) 42%,
+    color-mix(in srgb, var(--color-bg) 50%) 58%,
+    color-mix(in srgb, var(--color-bg) 72%) 75%,
+    color-mix(in srgb, var(--color-bg) 88%) 90%,
+    var(--color-bg) 100%
+  );
+}
+
+.dark .gradient-divider {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    color-mix(in srgb, var(--color-bg) 10%) 18%,
+    color-mix(in srgb, var(--color-bg) 22%) 32%,
+    color-mix(in srgb, var(--color-bg) 38%) 48%,
+    color-mix(in srgb, var(--color-bg) 58%) 65%,
+    color-mix(in srgb, var(--color-bg) 78%) 82%,
+    color-mix(in srgb, var(--color-bg) 92%) 95%,
+    var(--color-bg) 100%
+  );
+}
+
 .wave-divider {
   position: relative;
   width: 100%;
@@ -51,13 +85,18 @@
 
 .dot-pattern {
   position: absolute;
-  width: 300px;
-  height: 300px;
-  background-image: radial-gradient(circle, currentColor 1px, transparent 2px);
-  background-size: 20px 20px;
-  opacity: 0.08;
+  width: 320px;
+  height: 320px;
+  background-image: radial-gradient(circle at center, currentColor 1.5px, transparent 1.5px);
+  background-size: 18px 18px;
+  opacity: 0.12;
   z-index: 1;
   pointer-events: none;
+  animation: dots-pulse 6s ease-in-out infinite;
+}
+
+.dot-pattern:last-child {
+  animation-delay: 2s;
 }
 
 .light-theme .dot-pattern {

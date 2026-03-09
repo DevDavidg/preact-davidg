@@ -16,6 +16,7 @@ import {
   MotionSvg,
 } from "../utils/motion-components";
 import { useTranslation } from "../hooks/useTranslation";
+import { useSectionReveal } from "../hooks/useSectionReveal";
 
 type TabType = "experience" | "education" | "skills";
 type ExperienceFilterType = "all" | "job" | "freelance";
@@ -83,37 +84,40 @@ interface FilterButtonProps<T extends string> {
 
 const animations = {
   section: {
-    hidden: { opacity: 0 },
+    hidden: { opacity: 0, y: 40 },
     visible: {
       opacity: 1,
+      y: 0,
       transition: {
         when: "beforeChildren",
-        staggerChildren: 0.08,
-        duration: 0.4,
+        staggerChildren: 0.06,
+        delayChildren: 0.06,
+        type: "spring",
+        damping: 18,
+        stiffness: 80,
       },
     },
   },
   item: {
-    hidden: { y: 30, opacity: 0 },
+    hidden: { y: 32, opacity: 0 },
     visible: {
       y: 0,
       opacity: 1,
-      transition: { type: "spring", damping: 15, stiffness: 70 },
+      transition: { type: "spring", damping: 18, stiffness: 90 },
     },
   },
   card: {
-    hidden: { opacity: 0, y: 20, scale: 0.95 },
+    hidden: { opacity: 0, y: 28, scale: 0.96 },
     visible: (delay = 0) => ({
       opacity: 1,
       y: 0,
       scale: 1,
-      transition: { type: "spring", damping: 15, stiffness: 70, delay },
+      transition: { type: "spring", damping: 16, stiffness: 90, delay },
     }),
     hover: {
-      y: -8,
+      y: -6,
       scale: 1.02,
-      boxShadow: "0 20px 40px rgba(0, 0, 0, 0.1)",
-      transition: { type: "spring", damping: 12, stiffness: 100 },
+      transition: { type: "spring", damping: 14, stiffness: 120 },
     },
   },
   floatingShape: {
@@ -148,7 +152,7 @@ function getLevelLabel(level: number): string {
 
 function getExperienceDescription(
   company: string,
-  t: (key: string) => string
+  t: (key: string) => string,
 ): string {
   // Create a mapping of company names to their translation keys
   const companyKeyMap: { [key: string]: string } = {
@@ -162,6 +166,8 @@ function getExperienceDescription(
     Nolock: "nolock",
     "GOOHAUS (Walmart & Goohaus)": "goohaus",
     "Marketing Digital EMD": "marketing_emd",
+    REID: "reid",
+    "Moto Ledger": "moto_ledger",
   };
 
   const companyKey =
@@ -200,7 +206,7 @@ const GradientBlob = memo(
         transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
       />
     );
-  }
+  },
 );
 
 const GradientBorder = memo(({ position = "left" }: { position?: string }) => {
@@ -221,42 +227,57 @@ const GradientBorder = memo(({ position = "left" }: { position?: string }) => {
 
 const Badge = memo(({ type, text }: { type: string; text: string }) => (
   <MotionDiv
-    className={`absolute top-3 right-3 badge ${
+    className={`absolute top-4 right-4 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider ${
       type === "primary"
-        ? "bg-light-primary/10 dark:bg-dark-primary/10"
-        : "bg-light-accent/10 dark:bg-dark-accent/10"
+        ? "bg-light-primary/15 dark:bg-dark-primary/15 text-light-primary dark:text-dark-primary border border-light-border-light/50 dark:border-dark-border-light/50"
+        : "bg-light-accent/15 dark:bg-dark-accent/15 text-light-accent dark:text-dark-accent border border-light-accent/30 dark:border-dark-accent/30"
     }`}
-    initial={{ opacity: 0, y: -10 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: 0.3 }}
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ delay: 0.25, type: "spring", damping: 18, stiffness: 150 }}
   >
     {text}
   </MotionDiv>
 ));
 
-const Tag = memo(({ text }: { text: string }) => (
+const Tag = memo(({ text, index }: { text: string; index?: number }) => (
   <MotionSpan
     key={text}
-    className="px-2.5 py-1 text-xs rounded-full bg-light-muted/40 dark:bg-dark-muted/40 text-light-primary dark:text-dark-primary relative overflow-hidden group"
-    initial={{ opacity: 0, scale: 0.8 }}
-    animate={{ opacity: 1, scale: 1 }}
-    transition={{ delay: 0.2 + Math.random() * 0.3 }}
-    whileHover={{ y: -2, scale: 1.05 }}
+    className="px-3 py-1.5 text-xs rounded-lg bg-light-muted/50 dark:bg-dark-muted/50 text-light-primary dark:text-dark-primary relative overflow-hidden group border border-light-border-light/50 dark:border-dark-border-light/50 hover:border-light-accent/50 dark:hover:border-dark-accent/50 transition-colors"
+    initial={{ opacity: 0, scale: 0.85, y: 4 }}
+    animate={{ opacity: 1, scale: 1, y: 0 }}
+    transition={{
+      delay: 0.15 + (index ?? 0) * 0.03,
+      type: "spring",
+      damping: 18,
+      stiffness: 150,
+    }}
+    whileHover={{ y: -2, scale: 1.05, transition: { duration: 0.2 } }}
   >
-    <span className="relative z-10">{text}</span>
+    <span className="relative z-10 font-medium">{text}</span>
     <MotionSpan
-      className="absolute inset-0 bg-light-accent/20 dark:bg-dark-accent/20"
+      className="absolute inset-0 bg-light-accent/15 dark:bg-dark-accent/15"
       initial={{ x: "-100%" }}
       whileHover={{ x: "0" }}
-      transition={{ duration: 0.3 }}
+      transition={{ duration: 0.25 }}
     />
   </MotionSpan>
 ));
 
 const TagsList = memo(({ tags }: { tags: string[] }) => (
-  <MotionDiv className="flex flex-wrap gap-2 mt-3">
-    {tags.map((tag) => (
-      <Tag key={tag} text={tag} />
+  <MotionDiv
+    className="flex flex-wrap gap-2 mt-4"
+    initial="hidden"
+    animate="visible"
+    variants={{
+      hidden: {},
+      visible: {
+        transition: { staggerChildren: 0.03, delayChildren: 0.1 },
+      },
+    }}
+  >
+    {tags.map((tag, i) => (
+      <Tag key={tag} text={tag} index={i} />
     ))}
   </MotionDiv>
 ));
@@ -282,32 +303,33 @@ const BaseCard = memo(
     <MotionDiv
       variants={animations.card}
       whileHover="hover"
-      className="glass-card overflow-hidden p-6 relative depth-effect card-3d mb-6"
-      custom={Math.random() * 0.3}
+      className="glass-card overflow-hidden p-6 relative depth-effect card-3d shine-3d experience-card-hover mb-6 group"
+      custom={0}
       data-animate="true"
     >
       <GradientBlob position="bottom-right" />
       <GradientBorder position="left" />
+      <div className="absolute inset-0 bg-gradient-to-br from-light-accent/5 via-transparent to-transparent dark:from-dark-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
       {badge && <Badge type={badge.type} text={badge.text} />}
 
-      <MotionH3 className="text-xl font-bold mb-2 flex items-center">
+      <MotionH3 className="text-xl font-bold mb-2 flex items-center tracking-tight">
         {title}
       </MotionH3>
 
-      <MotionDiv className="flex justify-between flex-wrap mb-3">
-        <MotionP className="text-light-accent dark:text-dark-accent font-medium">
+      <MotionDiv className="flex justify-between flex-wrap gap-2 mb-3">
+        <MotionP className="text-light-accent dark:text-dark-accent font-semibold text-base">
           {subtitle}
         </MotionP>
         {period && (
-          <MotionSpan className="text-sm text-light-secondary dark:text-dark-secondary">
+          <MotionSpan className="text-sm text-light-secondary dark:text-dark-secondary font-medium tabular-nums">
             {period}
           </MotionSpan>
         )}
       </MotionDiv>
 
       {description && (
-        <MotionP className="mb-4 text-light-secondary dark:text-dark-secondary">
+        <MotionP className="mb-4 text-light-secondary dark:text-dark-secondary text-sm leading-relaxed">
           {description}
         </MotionP>
       )}
@@ -316,7 +338,7 @@ const BaseCard = memo(
 
       {children}
     </MotionDiv>
-  )
+  ),
 );
 
 const ExperienceCard = memo(
@@ -341,7 +363,7 @@ const ExperienceCard = memo(
         type: experience.type === "job" ? "primary" : "accent",
       }}
     />
-  )
+  ),
 );
 
 const EducationCard = memo(({ item }: { item: Education }) => (
@@ -410,7 +432,7 @@ const TabButton = memo(
         />
       )}
     </MotionDiv>
-  )
+  ),
 );
 
 function FilterButton<T extends string>({
@@ -423,29 +445,43 @@ function FilterButton<T extends string>({
   const isActive = current === value;
 
   return (
-    <button
-      type="button"
+    <MotionDiv
+      role="button"
+      tabIndex={0}
       className={`
-        px-3 py-1.5 text-sm rounded-full transition-all duration-300
+        relative px-4 py-2.5 text-sm rounded-full cursor-pointer font-medium
+        overflow-hidden
         ${
           isActive
-            ? "bg-light-accent/20 dark:bg-dark-accent/20 text-light-primary dark:text-dark-primary shadow-md"
-            : "bg-light-muted/40 dark:bg-dark-muted/40 hover:bg-light-muted/60 dark:hover:bg-dark-muted/60"
+            ? "bg-light-accent/20 dark:bg-dark-accent/20 text-light-primary dark:text-dark-primary shadow-lg shadow-light-accent/10 dark:shadow-dark-accent/20"
+            : "bg-light-muted/30 dark:bg-dark-muted/30 text-light-secondary dark:text-dark-secondary hover:bg-light-muted/50 dark:hover:bg-dark-muted/50"
         }
-        cursor-pointer
       `}
       onClick={() => onChange(value)}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onChange(value)}
       aria-pressed={isActive}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.96 }}
+      transition={{ type: "spring", damping: 18, stiffness: 200 }}
     >
-      <span className="flex items-center">
+      <span className="relative z-10 flex items-center gap-2">
         {label}
         {count != null && (
-          <span className="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-light-primary/10 dark:bg-dark-primary/10">
+          <span
+            className={`
+              px-2 py-0.5 text-xs rounded-full font-semibold
+              ${
+                isActive
+                  ? "bg-light-accent/30 dark:bg-dark-accent/30"
+                  : "bg-light-primary/10 dark:bg-dark-primary/10"
+              }
+            `}
+          >
             {count}
           </span>
         )}
       </span>
-    </button>
+    </MotionDiv>
   );
 }
 
@@ -484,7 +520,7 @@ const ParticleEffect = memo(() => {
           delay: delay,
           ease: "easeInOut",
         }}
-      />
+      />,
     );
   }
 
@@ -589,7 +625,7 @@ const BackgroundElements = memo(
         </>
       )}
     </div>
-  )
+  ),
 );
 
 const ContactItem = memo(
@@ -598,146 +634,136 @@ const ContactItem = memo(
     label,
     value,
     href,
-    gradient = "accent",
   }: {
     icon: JSX.Element;
     label: string;
     value: string;
     href: string;
-    gradient?: string;
   }) => (
     <MotionDiv
-      className="glass-card p-4 flex items-center shadow-3d-hover hover-float relative overflow-hidden group"
-      whileHover={{ y: -5, boxShadow: "0px 15px 30px rgba(0,0,0,0.1)" }}
+      className="glass-card p-4 flex items-center gap-3 shadow-3d-hover hover-float group"
+      whileHover={{ y: -4, boxShadow: "0px 12px 24px rgba(0,0,0,0.08)" }}
     >
-      <div className="w-10 h-10 rounded-full bg-light-accent/10 dark:bg-dark-accent/10 flex items-center justify-center mr-3 group-hover:bg-light-accent/20 dark:group-hover:bg-dark-accent/20 transition-colors duration-300">
+      <div className="shrink-0 w-10 h-10 rounded-full bg-light-accent/10 dark:bg-dark-accent/10 flex items-center justify-center group-hover:bg-light-accent/20 dark:group-hover:bg-dark-accent/20 transition-colors">
         {cloneElement(icon, {
           className:
-            "text-light-accent dark:text-dark-accent group-hover:scale-110 transition-transform duration-300",
+            "text-light-accent dark:text-dark-accent group-hover:scale-105 transition-transform",
           width: 18,
           height: 18,
         })}
       </div>
-      <div>
-        <div className="text-xs text-light-secondary dark:text-dark-secondary mb-1">
+      <div className="min-w-0">
+        <div className="text-xs text-light-secondary dark:text-dark-secondary mb-0.5">
           {label}
         </div>
         <a
           href={href}
           target={href.startsWith("http") ? "_blank" : undefined}
           rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
-          className="font-medium text-sm hover:text-light-accent dark:hover:text-dark-accent transition-colors"
+          className="font-medium text-sm hover:text-light-accent dark:hover:text-dark-accent transition-colors truncate block"
         >
           {value}
         </a>
       </div>
-      <MotionDiv
-        className={`absolute -bottom-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-tr from-light-${gradient}/10 to-transparent dark:from-dark-${gradient}/10 dark:to-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-300`}
-        animate={{
-          scale: [1, 1.1, 1],
-          rotate: [0, gradient === "accent" ? 10 : -10, 0],
-        }}
-        transition={{
-          duration: 6,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-      />
     </MotionDiv>
-  )
+  ),
 );
 
-const ContactInfo = memo(({ personalInfo }: { personalInfo: PersonalInfo }) => (
-  <MotionDiv
-    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-16"
-    variants={animations.item}
-  >
-    <ContactItem
-      icon={
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-        </svg>
-      }
-      label="Teléfono"
-      value={personalInfo.phone}
-      href={`tel:${personalInfo.phone}`}
-      gradient="accent"
-    />
+const ContactInfo = memo(
+  ({
+    personalInfo,
+    t,
+  }: {
+    personalInfo: PersonalInfo;
+    t: (key: string) => string;
+  }) => (
+    <MotionDiv
+      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-16"
+      variants={animations.item}
+    >
+      <ContactItem
+        icon={
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+          </svg>
+        }
+        label={t("about.contact.phone")}
+        value={personalInfo.phone}
+        href={`tel:${personalInfo.phone}`}
+      />
 
-    <ContactItem
-      icon={
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-          <polyline points="22,6 12,13 2,6" />
-        </svg>
-      }
-      label="Email"
-      value={personalInfo.email}
-      href={`mailto:${personalInfo.email}`}
-      gradient="primary"
-    />
+      <ContactItem
+        icon={
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+            <polyline points="22,6 12,13 2,6" />
+          </svg>
+        }
+        label={t("about.contact.email")}
+        value={personalInfo.email}
+        href={`mailto:${personalInfo.email}`}
+      />
 
-    <ContactItem
-      icon={
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
-          <rect x="2" y="9" width="4" height="12" />
-          <circle cx="4" cy="4" r="2" />
-        </svg>
-      }
-      label="LinkedIn"
-      value={personalInfo.linkedin.replace("https://linkedin.com/in/", "@")}
-      href={personalInfo.linkedin}
-      gradient="accent"
-    />
+      <ContactItem
+        icon={
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+            <rect x="2" y="9" width="4" height="12" />
+            <circle cx="4" cy="4" r="2" />
+          </svg>
+        }
+        label={t("about.contact.linkedin")}
+        value={t("about.contact.viewProfile")}
+        href={personalInfo.linkedin}
+      />
 
-    <ContactItem
-      icon={
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-          <circle cx="8.5" cy="8.5" r="1.5" />
-          <polyline points="21 15 16 10 5 21" />
-        </svg>
-      }
-      label="Portfolio"
-      value={personalInfo.portfolio.replace("https://", "")}
-      href={personalInfo.portfolio}
-      gradient="primary"
-    />
-  </MotionDiv>
-));
+      <ContactItem
+        icon={
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+            <polyline points="15 3 21 3 21 9" />
+            <line x1="10" y1="14" x2="21" y2="3" />
+          </svg>
+        }
+        label={t("about.contact.portfolio")}
+        value={t("about.contact.viewSite")}
+        href={personalInfo.portfolio}
+      />
+    </MotionDiv>
+  ),
+);
 
 const BioIntro = memo(
   ({
@@ -792,7 +818,7 @@ const BioIntro = memo(
         <p className="text-lg">{t("about.bio.specialization")}</p>
       </MotionDiv>
     </MotionDiv>
-  )
+  ),
 );
 
 const SkillsChart = memo(
@@ -806,7 +832,7 @@ const SkillsChart = memo(
     t: (key: string) => string;
   }) => {
     const filteredSkills = skills.filter(
-      (skill) => filter === "all" || skill.category === filter
+      (skill) => filter === "all" || skill.category === filter,
     );
 
     const skillsByLevel = [5, 4, 3, 2, 1].map((level) => ({
@@ -875,7 +901,7 @@ const SkillsChart = memo(
         </div>
       </div>
     );
-  }
+  },
 );
 
 const SoftSkillCard = memo(({ skill }: { skill: SoftSkill }) => (
@@ -933,7 +959,7 @@ const SoftSkillsSection = memo(
         ))}
       </div>
     </MotionDiv>
-  )
+  ),
 );
 
 const ExperienceTimeline = memo(
@@ -949,7 +975,7 @@ const ExperienceTimeline = memo(
     const filteredExperiences = useMemo(
       () =>
         experiences.filter((exp) => filter === "all" || exp.type === filter),
-      [experiences, filter]
+      [experiences, filter],
     );
 
     const experiencesByYear = useMemo(() => {
@@ -973,7 +999,7 @@ const ExperienceTimeline = memo(
           periodString.trim() === "Actualidad" ||
           periodString.trim() === "Presente"
         ) {
-          return new Date(8640000000000000); // Max Date
+          return new Date(8640000000000000);
         }
         const [monthStr, yearStr] = periodString.split(" ");
         const month = monthMap[monthStr];
@@ -981,7 +1007,7 @@ const ExperienceTimeline = memo(
         if (month !== undefined && !isNaN(year)) {
           return new Date(year, month, 1);
         }
-        return new Date(0); // Min Date for parsing errors
+        return new Date(0);
       };
 
       const sortedExperiences = [...filteredExperiences].sort((a, b) => {
@@ -996,7 +1022,7 @@ const ExperienceTimeline = memo(
         const year =
           exp.period.includes("Actualidad") || exp.period.includes("Presente")
             ? t("about.experience.current")
-            : exp.period.split(" ").pop() ?? "Desconocido";
+            : (exp.period.split(" ").pop() ?? "Desconocido");
         if (!groupedByYear[year]) {
           groupedByYear[year] = [];
         }
@@ -1013,48 +1039,102 @@ const ExperienceTimeline = memo(
     return (
       <div className="relative">
         <MotionDiv
-          className="absolute left-0 md:left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-light-accent via-light-primary to-light-muted dark:from-dark-accent dark:via-dark-primary dark:to-dark-muted"
+          className="absolute left-0 md:left-1/2 top-0 bottom-0 w-1 rounded-full bg-gradient-to-b from-light-accent via-light-primary/80 to-light-muted dark:from-dark-accent dark:via-dark-primary/80 dark:to-dark-muted"
           style={{ transform: "translateX(-50%)" }}
-          initial={{ height: 0 }}
-          animate={{ height: "100%" }}
-          transition={{ duration: 1.5, ease: "easeOut" }}
+          initial={{ height: 0, opacity: 0.5 }}
+          animate={{ height: "100%", opacity: 1 }}
+          transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
         />
 
         <div className="relative z-10">
           {experiencesByYear.map(([year, exps], yearIndex) => (
-            <div key={year} className="mb-12">
+            <MotionDiv
+              key={year}
+              className="mb-14"
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: {},
+                visible: {
+                  transition: {
+                    staggerChildren: 0.08,
+                    delayChildren: yearIndex * 0.15,
+                  },
+                },
+              }}
+            >
               <MotionDiv
-                className="relative mb-8 md:left-1/2 md:w-auto md:transform md:-translate-x-1/2 bg-light-bg dark:bg-dark-bg px-4 py-2 rounded-full shadow-md inline-block"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: yearIndex * 0.2, duration: 0.5 }}
+                className="relative mb-10 md:left-1/2 md:-translate-x-1/2 w-fit"
+                variants={{
+                  hidden: { opacity: 0, y: -24, scale: 0.9 },
+                  visible: {
+                    opacity: 1,
+                    y: 0,
+                    scale: 1,
+                    transition: {
+                      type: "spring",
+                      damping: 18,
+                      stiffness: 120,
+                    },
+                  },
+                }}
               >
-                <h3 className="text-xl font-bold text-gradient text-center">
-                  {year}
-                </h3>
+                <div className="relative px-6 py-3 rounded-2xl bg-light-surface dark:bg-dark-surface border border-light-border-light dark:border-dark-border-light shadow-lg shadow-light-primary/5 dark:shadow-dark-primary/5 overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-light-accent/5 to-transparent dark:from-dark-accent/5" />
+                  <h3 className="relative text-lg font-bold text-gradient tracking-tight">
+                    {year}
+                  </h3>
+                </div>
               </MotionDiv>
 
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {exps.map((exp, expIndex) => (
                   <MotionDiv
                     key={`${exp.company}-${exp.role}`}
-                    className="relative md:grid md:grid-cols-2 md:gap-8"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                      delay: yearIndex * 0.2 + expIndex * 0.1,
-                      duration: 0.5,
+                    className="relative md:grid md:grid-cols-2 md:gap-10 md:items-start"
+                    variants={{
+                      hidden: {
+                        opacity: 0,
+                        y: 28,
+                        x: expIndex % 2 === 0 ? -16 : 16,
+                      },
+                      visible: {
+                        opacity: 1,
+                        y: 0,
+                        x: 0,
+                        transition: {
+                          type: "spring",
+                          damping: 20,
+                          stiffness: 100,
+                          delay: expIndex * 0.06,
+                        },
+                      },
                     }}
                   >
                     <MotionDiv
-                      className="hidden md:block absolute left-1/2 w-4 h-4 bg-light-accent dark:bg-dark-accent rounded-full"
-                      style={{ transform: "translate(-50%, 2rem)" }}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
+                      className="hidden md:block absolute left-1/2 top-8 w-5 h-5 rounded-full border-2 border-light-accent dark:border-dark-accent bg-light-bg dark:bg-dark-bg z-20 shadow-md"
+                      style={{ transform: "translate(-50%, 0)" }}
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
                       transition={{
-                        delay: yearIndex * 0.2 + expIndex * 0.1 + 0.3,
-                        duration: 0.3,
+                        delay: yearIndex * 0.15 + expIndex * 0.08 + 0.25,
                         type: "spring",
+                        damping: 14,
+                        stiffness: 200,
+                      }}
+                    />
+                    <MotionDiv
+                      className="hidden md:block absolute left-1/2 top-8 w-2 h-2 rounded-full bg-light-accent dark:bg-dark-accent"
+                      style={{ transform: "translate(-50%, 0)" }}
+                      animate={{
+                        scale: [1, 1.4, 1],
+                        opacity: [0.6, 1, 0.6],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: yearIndex * 0.15 + expIndex * 0.08,
                       }}
                     />
 
@@ -1064,7 +1144,9 @@ const ExperienceTimeline = memo(
 
                     <div
                       className={`hidden md:block ${
-                        expIndex % 2 === 0 ? "md:col-start-1" : "md:col-start-2"
+                        expIndex % 2 === 0
+                          ? "md:col-start-1 md:pr-4"
+                          : "md:col-start-2 md:pl-4"
                       }`}
                     >
                       <ExperienceCard experience={exp} t={t} />
@@ -1072,17 +1154,16 @@ const ExperienceTimeline = memo(
                   </MotionDiv>
                 ))}
               </div>
-            </div>
+            </MotionDiv>
           ))}
         </div>
       </div>
     );
-  }
+  },
 );
 
 const AboutMe: FunctionComponent = () => {
   const { t } = useTranslation();
-  const [isVisible, setIsVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("experience");
   const [experienceFilter, setExperienceFilter] =
     useState<ExperienceFilterType>("all");
@@ -1093,13 +1174,13 @@ const AboutMe: FunctionComponent = () => {
 
   const personalInfo: PersonalInfo = {
     name: "David Guillen",
-    age: 22,
-    location: "Villa Crespo, Buenos Aires, Argentina",
-    title: "Front-End Specialist & Fullstack Dev",
+    age: 23,
+    location: "Villa Crespo, CABA, Buenos Aires, Argentina",
+    title: "Front-End Dev & Mobile Dev",
     email: "dev.davidg@gmail.com",
     phone: "+54 011 70030947",
     linkedin: "https://www.linkedin.com/in/david-guillen-5074281b8/",
-    portfolio: "https://dev-davidg.web.app/",
+    portfolio: "https://preact-davidg.vercel.app/",
   };
 
   const skills: Skill[] = [
@@ -1113,6 +1194,10 @@ const AboutMe: FunctionComponent = () => {
     { name: "Nuxt.js", level: 3, category: "frontend" },
     { name: "RxJS", level: 3, category: "frontend" },
     { name: "React Native", level: 4, category: "frontend" },
+    { name: "Svelte", level: 2, category: "frontend" },
+    { name: "Flutter", level: 2, category: "frontend" },
+    { name: "Pinia", level: 3, category: "frontend" },
+    { name: "VueX", level: 3, category: "frontend" },
     { name: "TypeScript", level: 5, category: "frontend" },
     { name: "JavaScript", level: 5, category: "frontend" },
     { name: "HTML5", level: 5, category: "frontend" },
@@ -1133,25 +1218,28 @@ const AboutMe: FunctionComponent = () => {
     { name: "Styled Components", level: 4, category: "frameworks" },
     { name: "Bootstrap", level: 5, category: "frameworks" },
     { name: "Material UI", level: 4, category: "frameworks" },
+    { name: "Angular Material", level: 4, category: "frameworks" },
     { name: "Tailwind CSS", level: 4, category: "frameworks" },
+    { name: "Quasar", level: 3, category: "frameworks" },
+    { name: "ChartJS", level: 3, category: "frameworks" },
 
-    // Backend Technologies
     { name: "Node.js", level: 4, category: "tools" },
     { name: "Express", level: 4, category: "tools" },
     { name: "Python", level: 3, category: "tools" },
-
-    // Databases
     { name: "MySQL", level: 4, category: "tools" },
     { name: "SQLite", level: 4, category: "tools" },
     { name: "PostgreSQL", level: 3, category: "tools" },
     { name: "MongoDB", level: 3, category: "tools" },
     { name: "Firebase", level: 4, category: "tools" },
+    { name: "Supabase", level: 3, category: "tools" },
     { name: "SQL", level: 4, category: "tools" },
-
-    // Testing & Tools
+    { name: "GraphQL", level: 3, category: "tools" },
     { name: "Jest", level: 3, category: "tools" },
     { name: "Cucumber", level: 3, category: "tools" },
+    { name: "Cypress", level: 3, category: "tools" },
+    { name: "Puppeteer", level: 3, category: "tools" },
     { name: "Git", level: 4, category: "tools" },
+    { name: "Webpack", level: 3, category: "tools" },
     { name: "Jira", level: 4, category: "tools" },
     { name: "Trello", level: 5, category: "tools" },
     { name: "Slack", level: 5, category: "tools" },
@@ -1183,63 +1271,47 @@ const AboutMe: FunctionComponent = () => {
   const experiences: Experience[] = [
     {
       company: "Nonconformist",
-      role: "Full-Stack & Mobile Developer",
+      role: "Front End & Mobile Dev",
       period: "Oct 2024 - Presente",
-      description: "", // Will be filled by translation
-      technologies: [
-        "React",
-        "React Native",
-        "TypeScript",
-        "Bootstrap",
-        "Node.js",
-        "Angular",
-        "Express",
-        "SQL",
-        "NextJS",
-      ],
+      description: "",
+      technologies: ["React", "React Native", "TypeScript", "Bootstrap"],
       type: "job",
     },
     {
       company: "Santander España",
       role: "Front-End Developer",
-      period: "Mar 2025 - Ago 2025",
-      description: "", // Will be filled by translation
+      period: "Mar 2025 - Jul 2025",
+      description: "",
       technologies: ["Angular", "TypeScript", "Gluon", "Flame UI"],
       type: "job",
     },
     {
       company: "GlobalLogic",
-      role: "Front-End",
+      role: "Front End",
       period: "Jul 2022 - Oct 2024",
-      description: "", // Will be filled by translation
-      technologies: [
-        "React",
-        "StyledComponents",
-        "TypeScript",
-        "Jenkins",
-        "APIs",
-      ],
+      description: "",
+      technologies: ["React", "StyledComponents", "TypeScript", "Jenkins"],
       type: "job",
     },
     {
       company: "Skyblue Analytics",
-      role: "Front-End",
+      role: "Front End",
       period: "Abr 2023 - Sep 2023",
-      description: "", // Will be filled by translation
+      description: "",
       technologies: ["Vue", "Quasar", "TypeScript", "GraphQL"],
       type: "job",
     },
     {
       company: "VinciU",
-      role: "Full-Stack Developer",
+      role: "Front End & UX",
       period: "Jul 2022 - Abr 2023",
-      description: "", // Will be filled by translation
+      description: "",
       technologies: [
         "Angular",
         "Firebase",
-        "Node.js",
         "SCSS",
         "Bootstrap",
+        "Material UI",
         "Storybook",
         "TypeScript",
         "Figma",
@@ -1248,56 +1320,88 @@ const AboutMe: FunctionComponent = () => {
     },
     {
       company: "Orion2Pay",
-      role: "Full-Stack Developer",
+      role: "Front End & UX",
       period: "Ene 2020 - Oct 2021",
-      description: "", // Will be filled by translation
-      technologies: ["React", "TypeScript", "Figma", "Firebase"],
+      description: "",
+      technologies: ["React", "TypeScript", "Figma"],
       type: "job",
     },
     {
-      company: "Ludela Analytics",
-      role: "Full-Stack Developer",
-      period: "Dic 2021 - Jul 2022",
-      description: "", // Will be filled by translation
-      technologies: ["Angular", "Firebase", "Node.js", "SCSS"],
-      type: "job",
-    },
-    {
-      company: "Nolock",
-      role: "Front-End & QA",
-      period: "Oct 2021 - Dic 2021",
-      description: "", // Will be filled by translation
-      technologies: ["React", "React Native", "Next.js", "Jest", "Cucumber"],
-      type: "job",
-    },
-    {
-      company: "GOOHAUS (Walmart & Goohaus)",
+      company: "REID",
       role: "Front-End Developer",
-      period: "Abr 2023 - May 2023",
-      description: "", // Will be filled by translation
-      technologies: ["FlutterFlow", "Flutter", "Angular", "Figma"],
+      period: "Oct 2024 - Ene 2025",
+      description: "",
+      technologies: [
+        "Vue",
+        "Cypress",
+        "Pinia",
+        "Composition API",
+        "ChartJS",
+        "Puppeteer",
+        "Express",
+        "Webpack",
+      ],
+      type: "freelance",
+    },
+    {
+      company: "Moto Ledger",
+      role: "Front-End Developer",
+      period: "Sep 2023 - Ago 2024",
+      description: "",
+      technologies: [
+        "Vue",
+        "VueX",
+        "Quasar",
+        "TypeScript",
+        "JavaScript",
+        "Supabase",
+      ],
       type: "freelance",
     },
     {
       company: "Marketing Digital EMD",
       role: "Front-End Developer",
       period: "Ene 2024 - Jul 2024",
-      description: "", // Will be filled by translation
-      technologies: ["React.js", "CSS", "i18n", "Bootstrap", "Node.js"],
-      type: "job",
+      description: "",
+      technologies: ["React.js", "CSS", "i18n", "Bootstrap"],
+      type: "freelance",
+    },
+    {
+      company: "Ludela Analytics",
+      role: "Full Stack & UI Designer",
+      period: "Dic 2021 - Jul 2022",
+      description: "",
+      technologies: ["Angular", "Firebase", "Node.js", "SCSS"],
+      type: "freelance",
+    },
+    {
+      company: "Nolock",
+      role: "Front End & QA Manual",
+      period: "Oct 2021 - Dic 2021",
+      description: "",
+      technologies: ["React", "React Native", "Next.js", "Jest", "Cucumber"],
+      type: "freelance",
+    },
+    {
+      company: "GOOHAUS (Walmart & Goohaus)",
+      role: "Mobile Dev & UX/UI Designer",
+      period: "Abr 2023 - May 2023",
+      description: "",
+      technologies: ["FlutterFlow", "Flutter", "Figma", "Angular"],
+      type: "freelance",
     },
   ];
 
   const education: Education[] = [
     {
+      institution: "Da Vinci",
+      degree: "Certificación Profesional en Gestión de Medios Digitales",
+      period: "2025",
+    },
+    {
       institution: "UNAJ",
       degree: "Ingeniería Informática",
       period: "2021-2023",
-    },
-    {
-      institution: "Escuela secundaria completa",
-      degree: "Educación secundaria completa",
-      period: "2015-2020",
     },
   ];
 
@@ -1497,13 +1601,7 @@ const AboutMe: FunctionComponent = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(true);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, []);
+  const isSectionVisible = useSectionReveal(sectionRef);
 
   useEffect(() => {
     if (isMobile) return;
@@ -1528,12 +1626,12 @@ const AboutMe: FunctionComponent = () => {
 
   const expJobsCount = useMemo(
     () => experiences.filter((exp) => exp.type === "job").length,
-    [experiences]
+    [experiences],
   );
 
   const expFreelanceCount = useMemo(
     () => experiences.filter((exp) => exp.type === "freelance").length,
-    [experiences]
+    [experiences],
   );
 
   const skillCategoryCounts = useMemo(() => {
@@ -1552,7 +1650,7 @@ const AboutMe: FunctionComponent = () => {
     (filter: ExperienceFilterType) => {
       setExperienceFilter(filter);
     },
-    []
+    [],
   );
 
   return (
@@ -1569,11 +1667,11 @@ const AboutMe: FunctionComponent = () => {
         className="w-full h-full"
         variants={animations.section}
         initial="hidden"
-        animate={isVisible ? "visible" : "hidden"}
+        animate={isSectionVisible ? "visible" : "hidden"}
       >
         <BioIntro personalInfo={personalInfo} t={t} />
 
-        <ContactInfo personalInfo={personalInfo} />
+        <ContactInfo personalInfo={personalInfo} t={t} />
 
         <MotionDiv
           className="flex justify-center space-x-2 md:space-x-8 mb-8 overflow-x-auto py-2 px-4"
@@ -1665,7 +1763,12 @@ const AboutMe: FunctionComponent = () => {
         >
           {activeTab === "experience" && (
             <>
-              <div className="flex justify-center mb-6 space-x-2 overflow-x-auto py-2">
+              <MotionDiv
+                className="flex justify-center gap-3 mb-10 overflow-x-auto py-3 px-2"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, duration: 0.4 }}
+              >
                 <FilterButton
                   current={experienceFilter}
                   value="all"
@@ -1687,7 +1790,7 @@ const AboutMe: FunctionComponent = () => {
                   label={t("about.experience.filters.freelance")}
                   count={expFreelanceCount}
                 />
-              </div>
+              </MotionDiv>
 
               <ExperienceTimeline
                 experiences={experiences}

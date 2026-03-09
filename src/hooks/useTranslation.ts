@@ -1,5 +1,5 @@
 import { useState, useEffect } from "preact/hooks";
-import { i18n, useTranslation as useI18n } from "../utils/i18n";
+import { i18n } from "../utils/i18n";
 
 export const useTranslation = () => {
   const [locale, setLocaleState] = useState(i18n.getLocale());
@@ -30,7 +30,6 @@ export const useTranslation = () => {
     t: i18n.t.bind(i18n),
     locale,
     setLocale,
-    translations: i18n.getTranslations(),
   };
 };
 

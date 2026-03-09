@@ -39,7 +39,9 @@ export interface Translations {
       phone: string;
       email: string;
       linkedin: string;
+      viewProfile: string;
       portfolio: string;
+      viewSite: string;
     };
     tabs: {
       experience: string;
@@ -183,6 +185,7 @@ export interface Translations {
     instagram: string;
   };
   accessibility: {
+    skipToContent: string;
     openMenu: string;
     closeMenu: string;
     switchToDark: string;
@@ -230,7 +233,7 @@ class I18nManager {
       localStorage.setItem("locale", locale);
       // Dispatch custom event for components to react to locale changes
       window.dispatchEvent(
-        new CustomEvent("localeChanged", { detail: { locale } })
+        new CustomEvent("localeChanged", { detail: { locale } }),
       );
     }
   }
@@ -244,7 +247,7 @@ class I18nManager {
         value = value[k];
       } else {
         console.warn(
-          `Translation key "${key}" not found for locale "${this.currentLocale}"`
+          `Translation key "${key}" not found for locale "${this.currentLocale}"`,
         );
         return key; // Return the key itself as fallback
       }
@@ -258,36 +261,6 @@ class I18nManager {
   }
 }
 
-// Create singleton instance
 export const i18n = new I18nManager();
-
-// Hook for React/Preact components
-export const useTranslation = () => {
-  return {
-    t: i18n.t.bind(i18n),
-    locale: i18n.getLocale(),
-    setLocale: i18n.setLocale.bind(i18n),
-    translations: i18n.getTranslations(),
-  };
-};
-
-// Utility function for getting nested translation values
-export const getTranslation = (
-  key: string,
-  locale: Locale = i18n.getLocale()
-): string => {
-  const keys = key.split(".");
-  let value: any = translations[locale];
-
-  for (const k of keys) {
-    if (value && typeof value === "object" && k in value) {
-      value = value[k];
-    } else {
-      return key;
-    }
-  }
-
-  return typeof value === "string" ? value : key;
-};
 
 export default i18n;

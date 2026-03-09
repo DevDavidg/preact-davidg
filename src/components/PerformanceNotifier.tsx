@@ -10,8 +10,6 @@ const PerformanceNotifier: FunctionComponent<PerformanceNotifierProps> = ({
   threshold = 30,
 }) => {
   const [showNotification, setShowNotification] = useState(false);
-  const [fpsIssue, setFpsIssue] = useState(false);
-  const [memoryIssue, setMemoryIssue] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [issueDescription, setIssueDescription] = useState("");
 
@@ -55,9 +53,6 @@ const PerformanceNotifier: FunctionComponent<PerformanceNotifierProps> = ({
           const hasMemoryIssue = memoryGrowth > 15;
 
           if (hasFpsIssue || hasMemoryIssue) {
-            setFpsIssue(hasFpsIssue);
-            setMemoryIssue(hasMemoryIssue);
-
             let description = "";
             if (hasFpsIssue) {
               description += `Low frame rate detected (${Math.round(
