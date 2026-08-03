@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<!-- v3 — Espacio persistente + reconstrucción (wire→beauty) · atelier A + build metaphor C -->
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+html{scroll-behavior:smooth}
+body{margin:0;background:#0A0A0B;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#F2F0EC}
+a{color:#F2F0EC;text-decoration:none}a:hover{color:#FF5C38}
+::selection{background:#FF5C38;color:#0A0A0B}
+@keyframes dg-blink{0%,55%{opacity:1}56%,100%{opacity:.15}}
+@keyframes dg-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+@keyframes dg-pulse{0%,100%{opacity:.45}50%{opacity:1}}
+.v3-stage{position:fixed;inset:0;z-index:0;pointer-events:none}
+.v3-hud{position:fixed;z-index:120;pointer-events:none}
+.v3-ui{position:relative;z-index:10;pointer-events:none}
+.v3-ui a,[data-mag],.v3-hit{pointer-events:auto}
+.v3-sec{min-height:100vh;box-sizing:border-box;padding:120px 64px 80px}
+.v3-panel{background:rgba(19,19,22,.72);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(12px);padding:28px 32px;max-width:420px}
+.v3-art{position:absolute;pointer-events:auto;transition:border-color .35s,transform .45s cubic-bezier(.22,1,.36,1)}
+.v3-art:hover{border-color:rgba(255,92,56,.55)!important;transform:translateY(-4px)}
+</style>
+</helmet>
+
+<!-- Persistent scene stage -->
+<canvas id="v3-canvas" class="v3-stage" aria-hidden="true"></canvas>
+<div id="v3-vignette" class="v3-stage" style="background:radial-gradient(ellipse 70% 55% at 50% 42%,transparent 0%,rgba(10,10,11,.55) 100%);opacity:.9"></div>
+<div id="v3-portal" class="v3-stage" style="background:radial-gradient(ellipse 40% 35% at 50% 55%,rgba(255,92,56,.22) 0%,transparent 70%);opacity:0;transition:opacity .6s ease"></div>
+
+<!-- HUD -->
+<div id="v3-progress" style="position:fixed;top:0;left:0;right:0;height:2px;background:#FF5C38;transform:scaleX(0);transform-origin:left;z-index:300"></div>
+<div class="v3-hud" style="top:88px;left:64px;display:flex;flex-direction:column;gap:6px">
+<span style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.2em;color:rgba(242,240,236,.35)">SIGNATURE</span>
+<span style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.55)">v3 — ESPACIO PERSISTENTE + RECONSTRUCCIÓN</span>
+<span id="v3-phase" style="font:600 12px 'IBM Plex Mono',monospace;letter-spacing:.22em;color:#FF5C38;margin-top:4px">SCANNING</span>
+<span id="v3-build" style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:rgba(242,240,236,.4)">BUILD 000%</span>
+</div>
+<div class="v3-hud" style="bottom:28px;right:64px;text-align:right">
+<span style="font:400 10px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:rgba(242,240,236,.35)">WIRE → SOLID → LIT</span>
+</div>
+
+<nav style="position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:0 64px;height:76px;background:rgba(10,10,11,.4);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.08);pointer-events:auto">
+<div style="display:flex;align-items:baseline;gap:12px"><a href="#v3-hero" style="font:700 20px 'Space Grotesk',sans-serif;letter-spacing:-.02em">DG<span style="color:#FF5C38">®</span></a><span style="font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">atelier · rebuild</span></div>
+<div style="display:flex;gap:28px;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.14em">
+<a href="#v3-work" style="color:rgba(242,240,236,.55)">PROYECTOS</a>
+<a href="#v3-serv" style="color:rgba(242,240,236,.55)">SERVICIOS</a>
+<a href="#v3-proc" style="color:rgba(242,240,236,.55)">PROCESO</a>
+<a href="#v3-about" style="color:rgba(242,240,236,.55)">SOBRE MÍ</a>
+</div>
+<div style="display:flex;align-items:center;gap:24px">
+<span style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.1em"><span style="color:#F2F0EC">ES</span><span style="color:rgba(242,240,236,.35)"> ⁄ EN</span></span>
+<a href="#v3-contact" data-mag="1" style="display:inline-flex;align-items:center;gap:8px;background:#FF5C38;color:#0A0A0B;font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:13px 20px" style-hover="background:#FF7657;color:#0A0A0B">HABLEMOS ↗</a>
+</div>
+</nav>
+
+<div class="v3-ui">
+<!-- HERO -->
+<section id="v3-hero" data-screen-label="HERO" data-phase="SCANNING" class="v3-sec" style="position:relative;display:flex;flex-direction:column;justify-content:center;min-height:100vh;padding-top:140px">
+<div data-rv="1" style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:rgba(242,240,236,.55)"><span data-anim="1" style="color:#FF5C38;animation:dg-blink 1.8s ease infinite">●</span>&nbsp;&nbsp;CREATIVE DEVELOPER — FULL STACK SENIOR</div>
+<h1 style="font:700 clamp(52px,7vw,104px)/1 'Space Grotesk',sans-serif;letter-spacing:-.035em;margin:28px 0 0;max-width:1100px;min-height:1em">{{ heroTitle }}</h1>
+<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:48px;margin-top:48px;flex-wrap:wrap;max-width:1100px">
+<div data-rv="1" style="max-width:520px">
+<p style="font:400 18px/1.55 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.6);margin:0">Un espacio que se reconstruye mientras scrolleás: del wireframe al objeto vivo. 3D, motion y full-stack — una sola firma.</p>
+<div style="display:flex;gap:14px;margin-top:34px">
+<a href="#v3-contact" data-mag="1" style="display:inline-flex;align-items:center;gap:10px;background:#FF5C38;color:#0A0A0B;font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:18px 28px" style-hover="background:#FF7657;color:#0A0A0B">RESERVÁ 15 MIN ↗</a>
+<a href="#v3-work" data-mag="1" style="display:inline-flex;align-items:center;gap:10px;color:#F2F0EC;border:1px solid rgba(255,255,255,.22);font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:17px 27px" style-hover="border:1px solid rgba(255,255,255,.5);color:#F2F0EC">EXPLORAR ESCENA</a>
+</div>
+</div>
+<div data-rv="1" style="font:400 11px/2.1 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.45);text-align:right">8+ AÑOS · 40+ LANZAMIENTOS<br>REACT · THREE.JS · NODE · GSAP<br><span style="color:#F2F0EC"><span style="color:#FF5C38">●</span> DISPONIBLE — Q1 2027</span></div>
+</div>
+<div data-anim="1" style="position:absolute;bottom:32px;left:50%;margin-left:-36px;display:flex;flex-direction:column;align-items:center;gap:8px;animation:dg-bob 2.2s ease-in-out infinite"><span style="font:500 9.5px 'IBM Plex Mono',monospace;letter-spacing:.2em;color:rgba(242,240,236,.4)">SCROLL TO BUILD</span><span style="width:36px;height:36px;border:1px solid rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font:400 13px 'IBM Plex Mono',monospace">↓</span></div>
+</section>
+
+<!-- WORK — spatial objects + overlays -->
+<section id="v3-work" data-screen-label="PROYECTOS" data-phase="ASSEMBLING" class="v3-sec" style="position:relative;min-height:160vh;padding-bottom:120px">
+<div data-rv="1" style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:48px">
+<span style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:rgba(242,240,236,.55)">01 — PROYECTOS ⁄ ARTIFACTS IN SPACE</span>
+<span style="font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">objetos en la escena · shots en foco</span>
+</div>
+<div style="position:relative;min-height:110vh">
+<!-- Artifact 01 -->
+<article class="v3-art v3-hit" data-rv="1" data-artifact="0" style="left:4%;top:8%;width:min(380px,42vw);border:1px solid rgba(255,255,255,.14);background:rgba(19,19,22,.55);backdrop-filter:blur(10px);padding:0;overflow:hidden">
+<div style="height:200px;position:relative;overflow:hidden;border-bottom:1px solid rgba(255,255,255,.08)"><image-slot id="im-v3-p1" shape="rect" placeholder="Artifact 01 — shot"></image-slot></div>
+<div style="padding:22px 24px 26px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 42px/1 'Space Grotesk',sans-serif;color:transparent;-webkit-text-stroke:1px rgba(242,240,236,.35)">01</span><span style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.4)">WEBGL · 3D</span></div>
+<div style="font:600 22px 'Space Grotesk',sans-serif;letter-spacing:-.02em;margin-top:10px">Objeto destacado</div>
+<p style="font:400 14px/1.55 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:10px 0 0">Un artefacto espacial — no una card plana. Contexto y resultado en dos líneas.</p>
+</div>
+</article>
+<!-- Artifact 02 -->
+<article class="v3-art v3-hit" data-rv="1" data-artifact="1" style="right:6%;top:28%;width:min(340px,38vw);border:1px solid rgba(255,255,255,.14);background:rgba(19,19,22,.55);backdrop-filter:blur(10px);overflow:hidden">
+<div style="height:170px;position:relative;overflow:hidden;border-bottom:1px solid rgba(255,255,255,.08)"><image-slot id="im-v3-p2" shape="rect" placeholder="Artifact 02 — shot"></image-slot></div>
+<div style="padding:20px 22px 24px">
+<div style="display:flex;justify-content:space-between"><span style="font:700 36px/1 'Space Grotesk',sans-serif;color:transparent;-webkit-text-stroke:1px rgba(242,240,236,.35)">02</span><span style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.4)">MOTION</span></div>
+<div style="font:600 20px 'Space Grotesk',sans-serif;margin-top:8px">Scroll narrativo</div>
+<p style="font:400 13px/1.55 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:8px 0 0">Historia que se arma con el scroll — scrollytelling con peso.</p>
+</div>
+</article>
+<!-- Artifact 03 -->
+<article class="v3-art v3-hit" data-rv="1" data-artifact="2" style="left:18%;top:62%;width:min(360px,40vw);border:1px solid rgba(255,255,255,.14);background:rgba(19,19,22,.55);backdrop-filter:blur(10px);overflow:hidden">
+<div style="height:180px;position:relative;overflow:hidden;border-bottom:1px solid rgba(255,255,255,.08)"><image-slot id="im-v3-p3" shape="rect" placeholder="Artifact 03 — shot"></image-slot></div>
+<div style="padding:20px 22px 24px">
+<div style="display:flex;justify-content:space-between"><span style="font:700 36px/1 'Space Grotesk',sans-serif;color:transparent;-webkit-text-stroke:1px rgba(242,240,236,.35)">03</span><span style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.4)">FULL-STACK</span></div>
+<div style="font:600 20px 'Space Grotesk',sans-serif;margin-top:8px">Producto SaaS</div>
+<p style="font:400 13px/1.55 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:8px 0 0">Del shader al servidor — un objeto sólido en el atelier.</p>
+</div>
+</article>
+</div>
+</section>
+
+<!-- SERVICES -->
+<section id="v3-serv" data-screen-label="SERVICIOS" data-phase="ASSEMBLING" class="v3-sec" style="min-height:auto;padding:100px 64px">
+<span data-rv="1" style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:rgba(242,240,236,.55);display:block">02 — SERVICIOS ⁄ CAPABILITIES</span>
+<div data-rv="1" class="v3-panel" style="max-width:920px;margin-top:40px;padding:0;overflow:hidden">
+<div style="display:grid;grid-template-columns:90px 1fr 300px;gap:24px;align-items:center;padding:30px 28px;border-bottom:1px solid rgba(255,255,255,.08)" style-hover="background:#1B1B20">
+<span style="font:400 13px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">01</span>
+<div><div style="font:600 24px 'Space Grotesk',sans-serif;letter-spacing:-.02em">Experiencias inmersivas</div><div style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.45);margin-top:8px">WEBGL · THREE.JS ⁄ R3F · GLSL</div></div>
+<p style="font:400 14px/1.55 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:0">Escenas que se exploran: wire → beauty a 60fps.</p>
+</div>
+<div style="display:grid;grid-template-columns:90px 1fr 300px;gap:24px;align-items:center;padding:30px 28px;border-bottom:1px solid rgba(255,255,255,.08)" style-hover="background:#1B1B20">
+<span style="font:400 13px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">02</span>
+<div><div style="font:600 24px 'Space Grotesk',sans-serif">Producto full-stack</div><div style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.45);margin-top:8px">REACT · NODE · TYPESCRIPT</div></div>
+<p style="font:400 14px/1.55 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:0">Arquitectura y APIs para que la escena también sea producto.</p>
+</div>
+<div style="display:grid;grid-template-columns:90px 1fr 300px;gap:24px;align-items:center;padding:30px 28px;border-bottom:1px solid rgba(255,255,255,.08)" style-hover="background:#1B1B20">
+<span style="font:400 13px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">03</span>
+<div><div style="font:600 24px 'Space Grotesk',sans-serif">Motion &amp; interacción</div><div style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.45);margin-top:8px">GSAP · LENIS · WEB AUDIO</div></div>
+<p style="font:400 14px/1.55 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:0">Cada scroll reconstruye una capa de la historia.</p>
+</div>
+<div style="display:grid;grid-template-columns:90px 1fr 300px;gap:24px;align-items:center;padding:30px 28px" style-hover="background:#1B1B20">
+<span style="font:400 13px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">04</span>
+<div><div style="font:600 24px 'Space Grotesk',sans-serif">Performance &amp; lanzamiento</div><div style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.45);margin-top:8px">CORE WEB VITALS · A11Y</div></div>
+<p style="font:400 14px/1.55 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:0">Lo memorable también carga en 0.4s.</p>
+</div>
+</div>
+</section>
+
+<!-- PROCESS — morphing numbers -->
+<section id="v3-proc" data-screen-label="PROCESO" data-phase="BEAUTY" class="v3-sec" style="min-height:auto;padding:100px 64px 80px">
+<span data-rv="1" style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:rgba(242,240,236,.55);display:block">03 — PROCESO ⁄ METHOD</span>
+<div style="display:grid;grid-template-columns:380px 1fr;gap:72px;margin-top:48px;align-items:start">
+<div style="position:sticky;top:140px" class="v3-panel">
+<div id="v3-ph-num" style="font:700 160px/1 'Space Grotesk',sans-serif;letter-spacing:-.04em;color:transparent;-webkit-text-stroke:2px rgba(242,240,236,.5);transition:opacity .35s,transform .45s cubic-bezier(.22,1,.36,1)">01</div>
+<div id="v3-ph-title" style="font:600 26px 'Space Grotesk',sans-serif;letter-spacing:-.02em;margin-top:16px">Descubrimiento</div>
+<p style="font:400 13px/1.65 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.4);margin:12px 0 0;max-width:280px">El número es el héroe visual de la fase — morph al scrollear.</p>
+</div>
+<div>
+<div data-step="01" data-step-title="Descubrimiento" style="padding:48px 0;border-top:1px solid rgba(255,255,255,.14);min-height:280px">
+<div style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.4)">FASE 01 — SCAN</div>
+<div style="font:600 22px 'Space Grotesk',sans-serif;margin-top:14px">Objetivos, referencias y narrativa</div>
+<p style="font:400 15px/1.65 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:12px 0 0;max-width:520px">Qué debe sentir el usuario antes de decidir qué va a ver. Concepto, historia del scroll, métrica de éxito.</p>
+</div>
+<div data-step="02" data-step-title="Prototipo técnico" style="padding:48px 0;border-top:1px solid rgba(255,255,255,.14);min-height:280px">
+<div style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.4)">FASE 02 — ASSEMBLE</div>
+<div style="font:600 22px 'Space Grotesk',sans-serif;margin-top:14px">La interacción clave, probada en días</div>
+<p style="font:400 15px/1.65 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:12px 0 0;max-width:520px">Prototipo navegable de la escena: si no impresiona en wire, no impresiona en beauty.</p>
+</div>
+<div data-step="03" data-step-title="Build" style="padding:48px 0;border-top:1px solid rgba(255,255,255,.14);min-height:280px">
+<div style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.4)">FASE 03 — SOLID</div>
+<div style="font:600 22px 'Space Grotesk',sans-serif;margin-top:14px">Diseño y código avanzan juntos</div>
+<p style="font:400 15px/1.65 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:12px 0 0;max-width:520px">Demos semanales. Front inmersivo + backend en paralelo, sin handoffs eternos.</p>
+</div>
+<div data-step="04" data-step-title="Launch + medición" style="padding:48px 0;border-top:1px solid rgba(255,255,255,.14);min-height:280px">
+<div style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.4)">FASE 04 — LIVE</div>
+<div style="font:600 22px 'Space Grotesk',sans-serif;margin-top:14px">Se lanza, se mide, se afina</div>
+<p style="font:400 15px/1.65 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:12px 0 0;max-width:520px">QA, Core Web Vitals, analítica. Lo memorable también corre en un teléfono medio.</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- ABOUT -->
+<section id="v3-about" data-screen-label="SOBRE MI" data-phase="BEAUTY" class="v3-sec" style="min-height:auto;padding:100px 64px">
+<span data-rv="1" style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:rgba(242,240,236,.55);display:block">04 — SOBRE MÍ ⁄ ABOUT</span>
+<div style="display:grid;grid-template-columns:minmax(280px,400px) 1fr;gap:64px;margin-top:44px;align-items:start">
+<div data-rv="1" class="v3-panel" style="padding:0;overflow:hidden;max-width:400px">
+<div style="height:420px;position:relative"><image-slot id="im-v3-portrait" shape="rect" placeholder="Retrato — arrastrá tu foto"></image-slot></div>
+</div>
+<div data-rv="1" class="v3-panel" style="max-width:560px">
+<div style="font:500 30px/1.3 'Space Grotesk',sans-serif;letter-spacing:-.02em">"Un atelier persistente: el mundo no se resetea — se reconstruye con cada scroll."</div>
+<p style="font:400 15px/1.7 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.55);margin:24px 0 0">Soy David Guillen. Diseño y construyo de punta a punta: del concepto y el wireframe hasta la infraestructura que sostiene la escena.</p>
+<div style="margin-top:32px;border-top:1px solid rgba(255,255,255,.08)">
+<div style="display:grid;grid-template-columns:140px 1fr;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.08);font:400 12px 'IBM Plex Mono',monospace;letter-spacing:.08em"><span style="color:rgba(242,240,236,.4)">BASE</span><span>[ tu ciudad ] — remoto global</span></div>
+<div style="display:grid;grid-template-columns:140px 1fr;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.08);font:400 12px 'IBM Plex Mono',monospace;letter-spacing:.08em"><span style="color:rgba(242,240,236,.4)">STACK</span><span>React · Three.js · Node · TypeScript</span></div>
+<div style="display:grid;grid-template-columns:140px 1fr;padding:12px 0;font:400 12px 'IBM Plex Mono',monospace;letter-spacing:.08em"><span style="color:rgba(242,240,236,.4)">ESTADO</span><span><span style="color:#FF5C38">●</span> Disponible — 2027</span></div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- CONTACT — portal / power-on -->
+<section id="v3-contact" data-screen-label="CONTACTO" data-phase="LIVE" class="v3-sec" style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:120px 64px 100px">
+<span data-rv="1" style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:rgba(242,240,236,.55);display:block">05 — CONTACTO ⁄ POWER ON</span>
+<div data-rv="1" style="margin-top:12px;font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.2em;color:#FF5C38;animation:dg-pulse 2s ease infinite">● SCENE LIVE — ACCENT LIGHT ONLINE</div>
+<h2 data-rv="1" style="font:700 clamp(44px,5.4vw,80px)/1.02 'Space Grotesk',sans-serif;letter-spacing:-.03em;margin:28px 0 0;max-width:960px">¿Encendemos la escena?</h2>
+<p data-rv="1" style="font:400 17px/1.55 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.55);margin:20px 0 0;max-width:520px">El atelier pasa a LIVE: acento naranja como portal. Contame qué queremos construir.</p>
+<div data-rv="1" style="margin-top:48px"><a href="mailto:hola@davidguillen.dev" data-mag="1" style="display:inline-block;font:700 clamp(28px,3.2vw,48px) 'Space Grotesk',sans-serif;letter-spacing:-.02em;border-bottom:2px solid #FF5C38;padding-bottom:8px" style-hover="color:#FF5C38">hola@davidguillen.dev&nbsp;↗</a></div>
+<div data-rv="1" style="display:flex;gap:28px;margin-top:56px;font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.14em">
+<a href="#v3-hero" style="color:rgba(242,240,236,.5)">GITHUB ↗</a>
+<a href="#v3-hero" style="color:rgba(242,240,236,.5)">LINKEDIN ↗</a>
+<a href="#v3-hero" style="color:rgba(242,240,236,.5)">X ↗</a>
+</div>
+</section>
+
+<footer style="display:flex;justify-content:space-between;padding:22px 64px;border-top:1px solid rgba(255,255,255,.08);font:400 10.5px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:rgba(242,240,236,.35);pointer-events:auto">
+<span>© 2026 DAVID GUILLEN</span><span>V3 · WIRE → BEAUTY</span><span>ES ⁄ EN</span>
+</footer>
+</div>
+</x-dc>
+
+<script type="text/x-dc" data-dc-script data-props="{&quot;motionFx&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Efectos&quot;},&quot;sceneDepth&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1,&quot;min&quot;:0.5,&quot;max&quot;:1.5,&quot;step&quot;:0.1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Efectos&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    if (!this._title) {
+      const R = React, words = 'Experiencias web que no se olvidan.'.split(' '), kids = [];
+      words.forEach((w, i) => {
+        kids.push(R.createElement('span', { key: i, style: { display: 'inline-block', whiteSpace: 'nowrap' } },
+          Array.from(w).map((c, j) => R.createElement('span', { key: j, style: { display: 'inline-block', fontWeight: 700 } }, c))));
+        if (i < words.length - 1) kids.push(' ');
+      });
+      this._title = R.createElement('span', { id: 'v3-h1' }, kids);
+    }
+    return { heroTitle: this._title };
+  }
+  componentDidMount() { this._c = []; this._init(); }
+  componentDidUpdate() { this._teardown(); this._init(); }
+  componentWillUnmount() { this._teardown(); }
+  _on(t, e, f, o) { t.addEventListener(e, f, o); this._c.push(() => t.removeEventListener(e, f, o)); }
+  _teardown() { (this._c || []).forEach(f => f()); this._c = []; if (this._raf) cancelAnimationFrame(this._raf); this._raf = null; }
+  _init() {
+    const fx = this.props.motionFx ?? true, depth = this.props.sceneDepth ?? 1;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const coarse = window.matchMedia('(pointer: coarse)').matches;
+    const $ = id => document.getElementById(id);
+    if (reduced || !fx) document.querySelectorAll('[data-anim]').forEach(n => { n.style.animation = 'none'; });
+
+    const bar = $('v3-progress'), phaseEl = $('v3-phase'), buildEl = $('v3-build'), portal = $('v3-portal'), de = document.documentElement;
+    const phases = ['SCANNING', 'ASSEMBLING', 'BEAUTY', 'LIVE'];
+    const phaseFromP = p => p < .18 ? 0 : p < .48 ? 1 : p < .78 ? 2 : 3;
+    let progress = 0, mx = window.innerWidth / 2, my = window.innerHeight / 3, smx = 0, smy = 0;
+
+    const syncScroll = () => {
+      const m = de.scrollHeight - de.clientHeight;
+      progress = m > 0 ? Math.min(1, Math.max(0, de.scrollTop / m)) : 0;
+      if (bar) bar.style.transform = 'scaleX(' + progress + ')';
+      const pi = phaseFromP(progress);
+      if (phaseEl) phaseEl.textContent = phases[pi];
+      if (buildEl) buildEl.textContent = 'BUILD ' + String(Math.round(progress * 100)).padStart(3, '0') + '%';
+      if (portal) portal.style.opacity = String(Math.max(0, (progress - .72) / .28) * .95);
+      // Active section phase override when in view
+      document.querySelectorAll('[data-phase]').forEach(sec => {
+        const r = sec.getBoundingClientRect();
+        if (r.top < window.innerHeight * .45 && r.bottom > window.innerHeight * .35 && phaseEl) {
+          phaseEl.textContent = sec.dataset.phase;
+        }
+      });
+    };
+    this._on(window, 'scroll', syncScroll, { passive: true }); syncScroll();
+    this._on(window, 'mousemove', e => { mx = e.clientX; my = e.clientY; }, { passive: true });
+
+    const rvs = Array.from(document.querySelectorAll('[data-rv]'));
+    if (fx && !reduced) {
+      rvs.forEach(n => { if (!n.dataset.rvOn) { n.style.opacity = '0'; n.style.transform = 'translateY(24px)'; } });
+      const io = new IntersectionObserver(es => es.forEach(e => {
+        if (!e.isIntersecting) return;
+        const n = e.target; n.dataset.rvOn = '1';
+        n.style.transition = 'opacity .85s cubic-bezier(.22,1,.36,1), transform .85s cubic-bezier(.22,1,.36,1)';
+        n.style.opacity = '1'; n.style.transform = 'none'; io.unobserve(n);
+      }), { threshold: .1 });
+      rvs.forEach(n => io.observe(n)); this._c.push(() => io.disconnect());
+    } else rvs.forEach(n => { n.style.opacity = '1'; n.style.transform = 'none'; });
+
+    const num = $('v3-ph-num'), tit = $('v3-ph-title'), steps = Array.from(document.querySelectorAll('[data-step]'));
+    if (num && steps.length) {
+      const io2 = new IntersectionObserver(es => es.forEach(e => {
+        if (!e.isIntersecting) return;
+        num.style.opacity = '0'; num.style.transform = 'translateY(12px) scale(.96)';
+        setTimeout(() => {
+          num.textContent = e.target.dataset.step; tit.textContent = e.target.dataset.stepTitle;
+          num.style.opacity = '1'; num.style.transform = 'none';
+        }, 180);
+      }), { threshold: .45 });
+      steps.forEach(s => io2.observe(s)); this._c.push(() => io2.disconnect());
+    }
+
+    const magEls = Array.from(document.querySelectorAll('[data-mag]'));
+    if (fx && !reduced && !coarse) magEls.forEach(m => {
+      this._on(m, 'mousemove', e => {
+        const r = m.getBoundingClientRect();
+        const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+        m.style.transform = 'translate(' + (dx * .2).toFixed(1) + 'px,' + (dy * .2).toFixed(1) + 'px)';
+      });
+      this._on(m, 'mouseleave', () => {
+        m.style.transition = 'transform .5s cubic-bezier(.22,1,.36,1)'; m.style.transform = 'none';
+        setTimeout(() => { m.style.transition = ''; }, 500);
+      });
+    });
+
+    const h1 = $('v3-h1');
+    const chars = (fx && !reduced && !coarse && h1) ? Array.from(h1.querySelectorAll('span span')) : [];
+
+    // Fake 3D atelier scene
+    const cv = $('v3-canvas');
+    let ctx = null, W = 0, H = 0, t0 = performance.now();
+    const boxes = [
+      { x: -1.2, y: 0, z: 4.5, w: .9, h: 1.1, d: .9, kind: 'artifact' },
+      { x: 1.4, y: 0, z: 5.2, w: .7, h: .85, d: .7, kind: 'artifact' },
+      { x: -.2, y: 0, z: 6.8, w: 1.1, h: .55, d: 1.1, kind: 'artifact' },
+      { x: -2.1, y: 0, z: 7.5, w: .5, h: 1.4, d: .5, kind: 'prop' },
+      { x: 2.2, y: 0, z: 8.2, w: .6, h: .6, d: .6, kind: 'prop' },
+      { x: .8, y: 0, z: 9.5, w: 1.4, h: .35, d: .9, kind: 'prop' },
+    ];
+    const sizeCv = () => {
+      if (!cv) return;
+      const d = Math.min(window.devicePixelRatio || 1, 2);
+      W = window.innerWidth; H = window.innerHeight;
+      cv.width = W * d; cv.height = H * d;
+      ctx = cv.getContext('2d'); ctx.setTransform(d, 0, 0, d, 0, 0);
+    };
+    if (cv && fx && !reduced) { sizeCv(); this._on(window, 'resize', sizeCv); }
+
+    const project = (x, y, z, camZ, fov) => {
+      const zz = z - camZ; if (zz <= .2) return null;
+      const s = (H * .55 * fov) / zz;
+      return { x: W / 2 + x * s, y: H * .58 - y * s, s, z: zz };
+    };
+
+    const drawBox = (b, fillA, strokeA, camZ, yaw, pitch, lit) => {
+      const cos = Math.cos(yaw), sin = Math.sin(yaw);
+      const rx = b.x * cos - b.z * sin, rz = b.x * sin + b.z * cos;
+      const ry = b.y + Math.sin(pitch) * .15;
+      const hw = b.w / 2, hd = b.d / 2, h = b.h;
+      const corners = [
+        [rx - hw, ry, rz - hd], [rx + hw, ry, rz - hd], [rx + hw, ry, rz + hd], [rx - hw, ry, rz + hd],
+        [rx - hw, ry + h, rz - hd], [rx + hw, ry + h, rz - hd], [rx + hw, ry + h, rz + hd], [rx - hw, ry + h, rz + hd],
+      ];
+      const pts = corners.map(c => project(c[0], c[1], c[2], camZ, depth));
+      if (pts.some(p => !p)) return;
+      const edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+      const faces = [[0,1,5,4],[1,2,6,5],[2,3,7,6],[3,0,4,7],[4,5,6,7]];
+      if (fillA > .02) {
+        faces.forEach((f, fi) => {
+          ctx.beginPath();
+          f.forEach((i, k) => { const p = pts[i]; if (k === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+          ctx.closePath();
+          const accent = lit && b.kind === 'artifact';
+          const a = fillA * (fi === 4 ? 1 : .55 + fi * .08);
+          ctx.fillStyle = accent
+            ? 'rgba(255,92,56,' + (a * .35).toFixed(3) + ')'
+            : 'rgba(242,240,236,' + (a * .12).toFixed(3) + ')';
+          ctx.fill();
+        });
+      }
+      ctx.strokeStyle = lit
+        ? 'rgba(255,92,56,' + Math.min(1, strokeA + .25).toFixed(3) + ')'
+        : 'rgba(242,240,236,' + strokeA.toFixed(3) + ')';
+      ctx.lineWidth = b.kind === 'artifact' ? 1.35 : 1;
+      edges.forEach(([a, c]) => {
+        ctx.beginPath(); ctx.moveTo(pts[a].x, pts[a].y); ctx.lineTo(pts[c].x, pts[c].y); ctx.stroke();
+      });
+    };
+
+    const drawGrid = (camZ, yaw, alpha) => {
+      ctx.strokeStyle = 'rgba(242,240,236,' + alpha.toFixed(3) + ')';
+      ctx.lineWidth = 1;
+      const span = 10, step = .7;
+      for (let i = -span; i <= span; i += step) {
+        const a1 = project(i, 0, 2.5, camZ, depth), a2 = project(i, 0, 14, camZ, depth);
+        if (a1 && a2) { ctx.beginPath(); ctx.moveTo(a1.x + yaw * 40, a1.y); ctx.lineTo(a2.x + yaw * 40, a2.y); ctx.stroke(); }
+        const b1 = project(-span, 0, 3 + (i + span) * .55, camZ, depth), b2 = project(span, 0, 3 + (i + span) * .55, camZ, depth);
+        if (b1 && b2) { ctx.beginPath(); ctx.moveTo(b1.x, b1.y); ctx.lineTo(b2.x, b2.y); ctx.stroke(); }
+      }
+      // Horizon line
+      ctx.strokeStyle = 'rgba(242,240,236,' + (alpha * 1.4).toFixed(3) + ')';
+      ctx.beginPath(); ctx.moveTo(0, H * .42); ctx.lineTo(W, H * .42); ctx.stroke();
+    };
+
+    const loop = () => {
+      smx += (mx - smx) * .06; smy += (my - smy) * .06;
+      const yaw = ((smx / W) - .5) * .55;
+      const pitch = ((smy / H) - .4) * .25;
+      const camZ = 1.2 + progress * 2.8;
+      const wire = Math.max(0, 1 - progress * 1.35);
+      const fill = Math.min(1, Math.max(0, (progress - .12) / .55));
+      const lit = progress > .72;
+
+      if (ctx) {
+        ctx.clearRect(0, 0, W, H);
+        // Void atmosphere
+        const g = ctx.createRadialGradient(W * (.5 + yaw * .08), H * .4, 40, W * .5, H * .5, Math.max(W, H) * .7);
+        g.addColorStop(0, lit ? 'rgba(255,92,56,.06)' : 'rgba(19,19,22,.35)');
+        g.addColorStop(1, 'rgba(10,10,11,0)');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+        drawGrid(camZ, yaw, .06 + wire * .1);
+        const sorted = boxes.slice().sort((a, b) => b.z - a.z);
+        const time = (performance.now() - t0) / 1000;
+        sorted.forEach((b, i) => {
+          const bob = Math.sin(time * .7 + i) * .04 * (1 - reduced);
+          const bb = { ...b, y: bob, z: b.z - progress * 1.6 };
+          const strokeA = .18 + wire * .35 + (b.kind === 'artifact' ? .12 : 0);
+          const fillA = fill * (b.kind === 'artifact' ? .85 : .4);
+          drawBox(bb, fillA, strokeA, camZ + pitch * .3, yaw, pitch, lit && b.kind === 'artifact');
+        });
+
+        // Reconstruction scan line
+        if (progress < .85) {
+          const sy = H * (.25 + progress * .5);
+          ctx.fillStyle = 'rgba(255,92,56,' + (.08 + wire * .12).toFixed(3) + ')';
+          ctx.fillRect(0, sy, W, 1.5);
+        }
+      }
+
+      if (chars.length) {
+        const hr = h1.getBoundingClientRect();
+        if (hr.bottom > 0 && hr.top < window.innerHeight) chars.forEach(s => {
+          const r = s.getBoundingClientRect(), d = Math.hypot(mx - (r.left + r.width / 2), my - (r.top + r.height / 2));
+          s.style.fontWeight = d < 260 ? Math.round(300 + Math.min(1, d / 260) * 400) : 700;
+        });
+      }
+
+      if (ctx || chars.length) this._raf = requestAnimationFrame(loop);
+    };
+    if ((cv && fx && !reduced) || chars.length) this._raf = requestAnimationFrame(loop);
+    else if (cv) {
+      // Static fallback frame for reduced motion
+      sizeCv();
+      if (ctx) {
+        ctx.clearRect(0, 0, W, H);
+        drawGrid(2.5, 0, .1);
+        boxes.forEach(b => drawBox(b, .5, .35, 2.5, 0, 0, false));
+      }
+    }
+  }
+}
+</script>
+</body>
+</html>

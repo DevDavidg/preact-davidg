@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Instrument+Serif:ital@0;1&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+body{margin:0;background:#202023;font-family:'IBM Plex Sans',system-ui,sans-serif}
+a{color:#F2F0EC;text-decoration:none}a:hover{color:#FF5C38}
+.dv-turn{padding:40px 44px 32px;scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 6px}
+.dv-tid{font:600 10px 'IBM Plex Mono',monospace;padding:3px 7px;background:#F2F0EC;color:#18181A;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 'Space Grotesk',sans-serif;color:#F2F0EC}
+.dv-note{font:400 11.5px/1.5 'IBM Plex Sans',sans-serif;color:rgba(255,255,255,.5);max-width:760px;margin:0 0 8px}
+.dv-row{display:flex;gap:12px;align-items:center;margin:36px 0 16px;font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:rgba(255,255,255,.45)}
+.dv-row::after{content:"";flex:1;height:1px;background:rgba(255,255,255,.12)}
+.dv-opts{display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px 'IBM Plex Mono',monospace;padding:3px 7px;background:rgba(255,255,255,.12);color:#F2F0EC;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 'IBM Plex Sans',sans-serif;color:rgba(255,255,255,.55)}
+.dv-card{max-width:100%;background:#0A0A0B;border:1px solid rgba(255,255,255,.14);border-radius:10px;box-shadow:0 24px 60px rgba(0,0,0,.45);overflow:hidden}
+.dv-opt:target .dv-oid{background:#FF5C38;color:#0A0A0B}
+.dv-next{margin:26px 0 0;font:12px/1.6 'IBM Plex Sans',sans-serif;color:rgba(255,255,255,.5)}
+@keyframes dg-marq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes dg-float{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(50px,-36px) scale(1.1)}}
+@keyframes dg-blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+@keyframes dg-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(9px)}}
+@media (prefers-reduced-motion:reduce){.dg-motion{animation:none!important}}
+</style>
+</helmet>
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Portfolio David Guillen — sistema, pantallas y variantes</span></div>
+<p class="dv-note">Base según tu doc: dark premium 60-30-10 (#0A0A0B / #131316 / acento único #FF5C38 solo en CTAs y estados), Space Grotesk + IBM Plex, whitespace como directiva principal, hero con los 5 elementos. Copy ES con etiquetas EN. Los recuadros punteados aceptan tus imágenes reales: arrastrá y soltá.</p>
+<div class="dv-row">SISTEMA DE DISEÑO</div>
+<div class="dv-opts">
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Design system v1 — tokens, tipografía, componentes y reglas</div>
+<div class="dv-card" style="width:1200px">
+<div style="padding:40px 48px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:baseline">
+<div style="font:700 26px 'Space Grotesk',sans-serif;color:#F2F0EC;letter-spacing:-.02em">DG<span style="color:#FF5C38">®</span> Design System <span style="font:400 13px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.4)">v1.0</span></div>
+<div style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.45)">DARK PREMIUM · 60-30-10 · ES/EN</div>
+</div>
+<div style="padding:36px 48px 44px">
+<div style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:rgba(242,240,236,.45)">01 — COLOR</div>
+<div style="display:grid;grid-template-columns:repeat(8,1fr);gap:12px;margin-top:22px">
+<div><div style="height:84px;background:#0A0A0B;border:1px solid rgba(255,255,255,.12)"></div><div style="font:500 10.5px 'IBM Plex Mono',monospace;color:#F2F0EC;margin-top:8px">BASE</div><div style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.4);margin-top:3px">#0A0A0B · fondo</div></div>
+<div><div style="height:84px;background:#131316;border:1px solid rgba(255,255,255,.12)"></div><div style="font:500 10.5px 'IBM Plex Mono',monospace;color:#F2F0EC;margin-top:8px">SURFACE</div><div style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.4);margin-top:3px">#131316 · cards</div></div>
+<div><div style="height:84px;background:#1B1B20;border:1px solid rgba(255,255,255,.12)"></div><div style="font:500 10.5px 'IBM Plex Mono',monospace;color:#F2F0EC;margin-top:8px">SURFACE 2</div><div style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.4);margin-top:3px">#1B1B20 · hover</div></div>
+<div><div style="height:84px;background:#0A0A0B;border:1px solid rgba(255,255,255,.12);position:relative"><div style="position:absolute;inset:41px 0 auto;height:1px;background:rgba(255,255,255,.08)"></div></div><div style="font:500 10.5px 'IBM Plex Mono',monospace;color:#F2F0EC;margin-top:8px">LÍNEA</div><div style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.4);margin-top:3px">white 8%</div></div>
+<div><div style="height:84px;background:#F2F0EC"></div><div style="font:500 10.5px 'IBM Plex Mono',monospace;color:#F2F0EC;margin-top:8px">TINTA</div><div style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.4);margin-top:3px">#F2F0EC · texto</div></div>
+<div><div style="height:84px;background:rgba(242,240,236,.55)"></div><div style="font:500 10.5px 'IBM Plex Mono',monospace;color:#F2F0EC;margin-top:8px">TINTA 55</div><div style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.4);margin-top:3px">secundario</div></div>
+<div><div style="height:84px;background:#FF5C38"></div><div style="font:500 10.5px 'IBM Plex Mono',monospace;color:#FF5C38;margin-top:8px">ACENTO</div><div style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.4);margin-top:3px">#FF5C38 · solo CTA</div></div>
+<div><div style="height:84px;background:#FF7657"></div><div style="font:500 10.5px 'IBM Plex Mono',monospace;color:#F2F0EC;margin-top:8px">ACENTO HOVER</div><div style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.4);margin-top:3px">#FF7657</div></div>
+</div>
+<div style="display:flex;height:36px;margin-top:22px;border:1px solid rgba(255,255,255,.12)">
+<div style="width:60%;background:#0A0A0B;display:flex;align-items:center;padding:0 14px;font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:rgba(242,240,236,.5)">60% — BASE</div>
+<div style="width:30%;background:#17171B;display:flex;align-items:center;padding:0 14px;font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:rgba(242,240,236,.5)">30% — SUPERFICIES</div>
+<div style="width:10%;background:#FF5C38;display:flex;align-items:center;justify-content:center;font:600 10px 'IBM Plex Mono',monospace;color:#0A0A0B">10%</div>
+</div>
+<div style="display:flex;gap:12px;align-items:center;margin-top:18px">
+<span style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:rgba(242,240,236,.4)">MODO CLARO →</span>
+<div style="display:flex;gap:8px">
+<div style="width:56px;height:28px;background:#F4F2EE;border:1px solid rgba(255,255,255,.15)"></div>
+<div style="width:56px;height:28px;background:#FFFFFF;border:1px solid rgba(255,255,255,.15)"></div>
+<div style="width:56px;height:28px;background:#141312;border:1px solid rgba(255,255,255,.15)"></div>
+<div style="width:56px;height:28px;background:#FF5C38"></div>
+</div>
+<span style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.4)">#F4F2EE · #FFFFFF · #141312 · mismo acento</span>
+</div>
+</div>
+<div style="padding:36px 48px 44px;border-top:1px solid rgba(255,255,255,.08)">
+<div style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:rgba(242,240,236,.45)">02 — TIPOGRAFÍA</div>
+<div style="display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:44px;margin-top:26px">
+<div>
+<div style="font:700 64px/1 'Space Grotesk',sans-serif;letter-spacing:-.035em;color:#F2F0EC">Aa Grotesk</div>
+<div style="font:400 12px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.45);margin-top:12px">Space Grotesk — display &amp; UI</div>
+<div style="margin-top:18px;border-top:1px solid rgba(255,255,255,.08)">
+<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08);font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.55)"><span>DISPLAY XL</span><span>96 / 0.98 / -3.5% / 700</span></div>
+<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08);font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.55)"><span>DISPLAY</span><span>64 / 1.02 / -3% / 700</span></div>
+<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08);font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.55)"><span>H2</span><span>48 / 1.08 / -2% / 700</span></div>
+<div style="display:flex;justify-content:space-between;padding:9px 0;font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.55)"><span>H3</span><span>28 / 1.2 / -2% / 600</span></div>
+</div>
+</div>
+<div>
+<p style="font:400 16px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.75);margin:0">El cuerpo de texto usa IBM Plex Sans: neutra, legible, sin protagonismo. El display habla; el body explica.</p>
+<div style="font:400 12px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.45);margin-top:12px">IBM Plex Sans — body</div>
+<div style="margin-top:18px;border-top:1px solid rgba(255,255,255,.08)">
+<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08);font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.55)"><span>LEAD</span><span>20 / 1.55 / 400</span></div>
+<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08);font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.55)"><span>BODY</span><span>16 / 1.6 / 400</span></div>
+<div style="display:flex;justify-content:space-between;padding:9px 0;font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.55)"><span>SMALL</span><span>14 / 1.55 / 400</span></div>
+</div>
+</div>
+<div>
+<div style="font:500 13px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#F2F0EC">01 — LABEL ⁄ ÍNDICE</div>
+<div style="font:400 12px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.45);margin-top:12px">IBM Plex Mono — meta, código, etiquetas EN</div>
+<div style="margin-top:18px;border-top:1px solid rgba(255,255,255,.08)">
+<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08);font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.55)"><span>LABEL</span><span>12 / +16% / caps / 500</span></div>
+<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08);font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.55)"><span>META</span><span>11 / +12% / caps / 400</span></div>
+<div style="display:flex;justify-content:space-between;padding:9px 0;font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.55)"><span>CODE</span><span>13 / 1.7 / 400</span></div>
+</div>
+</div>
+</div>
+</div>
+<div style="padding:36px 48px 44px;border-top:1px solid rgba(255,255,255,.08)">
+<div style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:rgba(242,240,236,.45)">03 — ESPACIADO (PX)</div>
+<div style="display:flex;align-items:flex-end;gap:18px;margin-top:24px">
+<div><div style="width:8px;height:8px;background:#1B1B20;border:1px solid rgba(255,255,255,.18)"></div><div style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.45);margin-top:8px">8</div></div>
+<div><div style="width:16px;height:16px;background:#1B1B20;border:1px solid rgba(255,255,255,.18)"></div><div style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.45);margin-top:8px">16</div></div>
+<div><div style="width:24px;height:24px;background:#1B1B20;border:1px solid rgba(255,255,255,.18)"></div><div style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.45);margin-top:8px">24</div></div>
+<div><div style="width:32px;height:32px;background:#1B1B20;border:1px solid rgba(255,255,255,.18)"></div><div style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.45);margin-top:8px">32</div></div>
+<div><div style="width:48px;height:48px;background:#1B1B20;border:1px solid rgba(255,255,255,.18)"></div><div style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.45);margin-top:8px">48</div></div>
+<div><div style="width:64px;height:64px;background:#1B1B20;border:1px solid rgba(255,255,255,.18)"></div><div style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.45);margin-top:8px">64</div></div>
+<div><div style="width:96px;height:96px;background:#1B1B20;border:1px solid rgba(255,255,255,.18)"></div><div style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.45);margin-top:8px">96</div></div>
+<div style="flex:1;align-self:stretch;display:flex;align-items:flex-end"><p style="font:400 13px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:0;max-width:340px">Macro-whitespace: secciones a 104px. Micro-whitespace: nunca menos de 24px entre texto y borde. El vacío es una decisión, no un faltante.</p></div>
+</div>
+</div>
+<div style="padding:36px 48px 44px;border-top:1px solid rgba(255,255,255,.08)">
+<div style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:rgba(242,240,236,.45)">04 — COMPONENTES</div>
+<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:26px">
+<span style="display:inline-flex;align-items:center;gap:10px;background:#FF5C38;color:#0A0A0B;font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:16px 24px">RESERVÁ 15 MIN ↗</span>
+<span style="display:inline-flex;align-items:center;gap:10px;background:#FF7657;color:#0A0A0B;font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:16px 24px">HOVER</span>
+<span style="display:inline-flex;align-items:center;gap:10px;background:transparent;color:#F2F0EC;border:1px solid rgba(255,255,255,.22);font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:15px 23px">SECUNDARIO</span>
+<span style="display:inline-flex;align-items:center;gap:8px;color:#F2F0EC;font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;border-bottom:1px solid rgba(255,255,255,.3);padding-bottom:4px">GHOST — VER MÁS →</span>
+<span style="display:inline-flex;align-items:center;gap:10px;background:rgba(242,240,236,.08);color:rgba(242,240,236,.35);font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:16px 24px">DESHABILITADO</span>
+</div>
+<div style="display:flex;gap:44px;margin-top:34px;flex-wrap:wrap">
+<div>
+<div style="font:400 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:rgba(242,240,236,.4)">CHIPS ⁄ TAGS</div>
+<div style="display:flex;gap:8px;margin-top:12px">
+<span style="font:500 10.5px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;padding:6px 10px;border:1px solid rgba(255,255,255,.16);color:rgba(242,240,236,.65)">WEBGL</span>
+<span style="font:500 10.5px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;padding:6px 10px;border:1px solid rgba(255,255,255,.16);color:rgba(242,240,236,.65)">THREE.JS</span>
+<span style="font:500 10.5px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;padding:6px 10px;border:1px solid #FF5C38;color:#FF5C38">ACTIVO</span>
+</div>
+</div>
+<div>
+<div style="font:400 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:rgba(242,240,236,.4)">NAV — DEFAULT ⁄ HOVER ⁄ ACTIVO</div>
+<div style="display:flex;gap:26px;margin-top:14px;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.14em">
+<span style="color:rgba(242,240,236,.55)">SERVICIOS</span>
+<span style="color:#F2F0EC;border-bottom:1px solid rgba(255,255,255,.4);padding-bottom:3px">PROCESO</span>
+<span style="color:#F2F0EC;display:inline-flex;align-items:center;gap:7px"><span style="width:5px;height:5px;background:#FF5C38;border-radius:50%"></span>PROYECTOS</span>
+</div>
+</div>
+<div style="flex:1;min-width:320px">
+<div style="font:400 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:rgba(242,240,236,.4)">INPUT — DEFAULT ⁄ FOCUS</div>
+<div style="display:flex;gap:14px;margin-top:12px">
+<div style="flex:1;background:#131316;border:1px solid rgba(255,255,255,.14);padding:14px 16px;font:400 13px 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.35)">tu@email.com</div>
+<div style="flex:1;background:#131316;border:1px solid #FF5C38;padding:14px 16px;font:400 13px 'IBM Plex Sans',sans-serif;color:#F2F0EC">hola@davidguillen.dev</div>
+</div>
+</div>
+</div>
+</div>
+<div style="padding:36px 48px 46px;border-top:1px solid rgba(255,255,255,.08);display:grid;grid-template-columns:1fr 1fr;gap:44px">
+<div>
+<div style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:rgba(242,240,236,.45)">05 — REGLAS DE USO</div>
+<div style="margin-top:18px;font:400 13px/2 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.6)">
+El acento vive solo en CTAs, estados activos y hover — nunca en fondos.<br>Una acción primaria por pantalla (Hick-Hyman).<br>Targets táctiles ≥ 44px, CTA en zona del pulgar (Fitts).<br>Patrones de navegación familiares (Jakob).<br>Confirmaciones memorables: pico y final cuidados (Kahneman).
+</div>
+</div>
+<div>
+<div style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:rgba(242,240,236,.45)">06 — MOTION</div>
+<div style="margin-top:18px;border-top:1px solid rgba(255,255,255,.08)">
+<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.55)"><span>MICRO (hover, chips)</span><span>150ms</span></div>
+<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.55)"><span>UI (reveals, menú)</span><span>300ms</span></div>
+<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.55)"><span>HERO (escenas 3D)</span><span>600ms</span></div>
+<div style="display:flex;justify-content:space-between;padding:10px 0;font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.55)"><span>EASING "EXPO-OUT"</span><span>cubic-bezier(.22,1,.36,1)</span></div>
+</div>
+<div style="font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.4);margin-top:14px">prefers-reduced-motion: siempre respetado.</div>
+</div>
+</div>
+</div>
+</div>
+<div class="dv-row">PANTALLAS — DESKTOP 1440 · TABLET 834 · MOBILE 390</div>
+<div class="dv-opts">
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Desktop 1440 — página completa</div>
+<div class="dv-card" style="width:1440px">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 64px;height:76px;border-bottom:1px solid rgba(255,255,255,.08)">
+<div style="display:flex;align-items:baseline;gap:12px"><span style="font:700 20px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">DG<span style="color:#FF5C38">®</span></span><span style="font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">fullstack · creative dev</span></div>
+<div style="display:flex;gap:34px;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.55)"><span>PROYECTOS</span><span>SERVICIOS</span><span>PROCESO</span><span>SOBRE MÍ</span></div>
+<div style="display:flex;align-items:center;gap:24px"><span style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.1em"><span style="color:#F2F0EC">ES</span><span style="color:rgba(242,240,236,.35)"> ⁄ EN</span></span><span style="display:inline-flex;align-items:center;gap:8px;background:#FF5C38;color:#0A0A0B;font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:13px 20px">HABLEMOS ↗</span></div>
+</div>
+<div style="padding:108px 64px 0">
+<div style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:rgba(242,240,236,.55)"><span style="color:#FF5C38">●</span>&nbsp;&nbsp;CREATIVE DEVELOPER — FULL STACK SENIOR</div>
+<h1 style="font:700 96px/0.98 'Space Grotesk',sans-serif;letter-spacing:-.035em;color:#F2F0EC;margin:30px 0 0;max-width:1240px">Experiencias web que no se olvidan.</h1>
+<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:64px;margin-top:48px">
+<div style="max-width:600px">
+<p style="font:400 20px/1.55 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.6);margin:0">3D en tiempo real, motion y arquitectura full-stack de punta a punta — para marcas que quieren dominar su categoría, no solo estar online.</p>
+<div style="display:flex;gap:14px;margin-top:38px">
+<span style="display:inline-flex;align-items:center;gap:10px;background:#FF5C38;color:#0A0A0B;font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:18px 28px">RESERVÁ 15 MIN ↗</span>
+<span style="display:inline-flex;align-items:center;gap:10px;color:#F2F0EC;border:1px solid rgba(255,255,255,.22);font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:17px 27px">VER PROYECTOS</span>
+</div>
+</div>
+<div style="text-align:right;font:400 11px/2.1 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.45)">8+ AÑOS · 40+ LANZAMIENTOS<br>REACT · THREE.JS · NODE · GSAP<br><span style="color:#F2F0EC"><span style="color:#FF5C38">●</span> DISPONIBLE — Q1 2027</span></div>
+</div>
+<div style="margin-top:72px;height:540px"><image-slot id="dg-hero" shape="rect" placeholder="Hero 3D — arrastrá tu render, spline o captura WebGL"></image-slot></div>
+</div>
+<div style="margin-top:0;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);padding:18px 0;overflow:hidden;white-space:nowrap;font:500 13px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:rgba(242,240,236,.45)">THREE.JS&nbsp;&nbsp;✦&nbsp;&nbsp;REACT&nbsp;&nbsp;✦&nbsp;&nbsp;TYPESCRIPT&nbsp;&nbsp;✦&nbsp;&nbsp;WEBGL&nbsp;&nbsp;✦&nbsp;&nbsp;GLSL&nbsp;&nbsp;✦&nbsp;&nbsp;GSAP&nbsp;&nbsp;✦&nbsp;&nbsp;NODE.JS&nbsp;&nbsp;✦&nbsp;&nbsp;R3F&nbsp;&nbsp;✦&nbsp;&nbsp;POSTGRES&nbsp;&nbsp;✦&nbsp;&nbsp;AWS&nbsp;&nbsp;✦&nbsp;&nbsp;SHADERS&nbsp;&nbsp;✦&nbsp;&nbsp;LENIS</div>
+<div style="padding:104px 64px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:rgba(242,240,236,.55)">01 — PROYECTOS ⁄ SELECTED WORK</span><span style="font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">espacios listos para tus casos reales</span></div>
+<div style="margin-top:44px;height:560px"><image-slot id="dg-proj-1" shape="rect" placeholder="Proyecto destacado — arrastrá el shot principal"></image-slot></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:22px">
+<div><div style="font:600 34px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Título del proyecto destacado</div><div style="font:400 14px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.45);margin-top:8px">[ contexto, tu rol y el resultado en una línea ]</div></div>
+<div style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:rgba(242,240,236,.5)">WEBGL · 3D · E-COMMERCE — 2026&nbsp;&nbsp;↗</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:64px">
+<div>
+<div style="height:340px"><image-slot id="dg-proj-2" shape="rect" placeholder="Proyecto 02 — arrastrá un shot"></image-slot></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:16px"><span style="font:600 22px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Título del proyecto</span><span style="font:500 10.5px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.5)">MOTION · GSAP — 2025&nbsp;&nbsp;↗</span></div>
+</div>
+<div>
+<div style="height:340px"><image-slot id="dg-proj-3" shape="rect" placeholder="Proyecto 03 — arrastrá un shot"></image-slot></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:16px"><span style="font:600 22px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Título del proyecto</span><span style="font:500 10.5px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.5)">FULL-STACK · SAAS — 2025&nbsp;&nbsp;↗</span></div>
+</div>
+</div>
+</div>
+<div style="padding:104px 64px;border-top:1px solid rgba(255,255,255,.08)">
+<span style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:rgba(242,240,236,.55)">02 — SERVICIOS ⁄ SERVICES</span>
+<div style="margin-top:48px;border-top:1px solid rgba(255,255,255,.08)">
+<div style="display:grid;grid-template-columns:110px 1fr 420px;gap:32px;align-items:start;padding:38px 0;border-bottom:1px solid rgba(255,255,255,.08)">
+<span style="font:400 14px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">01</span>
+<div><div style="font:600 28px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Experiencias inmersivas</div><div style="display:flex;gap:8px;margin-top:14px"><span style="font:500 10.5px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;padding:6px 10px;border:1px solid rgba(255,255,255,.16);color:rgba(242,240,236,.6)">WEBGL</span><span style="font:500 10.5px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;padding:6px 10px;border:1px solid rgba(255,255,255,.16);color:rgba(242,240,236,.6)">THREE.JS ⁄ R3F</span><span style="font:500 10.5px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;padding:6px 10px;border:1px solid rgba(255,255,255,.16);color:rgba(242,240,236,.6)">GLSL</span></div></div>
+<p style="font:400 15px/1.65 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.55);margin:0">Sitios que se exploran, no se leen: 3D en tiempo real, shaders y scrollytelling a 60fps.</p>
+</div>
+<div style="display:grid;grid-template-columns:110px 1fr 420px;gap:32px;align-items:start;padding:38px 0;border-bottom:1px solid rgba(255,255,255,.08)">
+<span style="font:400 14px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">02</span>
+<div><div style="font:600 28px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Producto full-stack</div><div style="display:flex;gap:8px;margin-top:14px"><span style="font:500 10.5px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;padding:6px 10px;border:1px solid rgba(255,255,255,.16);color:rgba(242,240,236,.6)">REACT</span><span style="font:500 10.5px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;padding:6px 10px;border:1px solid rgba(255,255,255,.16);color:rgba(242,240,236,.6)">NODE</span><span style="font:500 10.5px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;padding:6px 10px;border:1px solid rgba(255,255,255,.16);color:rgba(242,240,236,.6)">TYPESCRIPT</span></div></div>
+<p style="font:400 15px/1.65 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.55);margin:0">Del shader al servidor: arquitectura, APIs y datos para que la experiencia también funcione como producto.</p>
+</div>
+<div style="display:grid;grid-template-columns:110px 1fr 420px;gap:32px;align-items:start;padding:38px 0;border-bottom:1px solid rgba(255,255,255,.08)">
+<span style="font:400 14px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">03</span>
+<div><div style="font:600 28px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Motion &amp; interacción</div><div style="display:flex;gap:8px;margin-top:14px"><span style="font:500 10.5px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;padding:6px 10px;border:1px solid rgba(255,255,255,.16);color:rgba(242,240,236,.6)">GSAP</span><span style="font:500 10.5px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;padding:6px 10px;border:1px solid rgba(255,255,255,.16);color:rgba(242,240,236,.6)">LENIS</span><span style="font:500 10.5px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;padding:6px 10px;border:1px solid rgba(255,255,255,.16);color:rgba(242,240,236,.6)">WEB AUDIO</span></div></div>
+<p style="font:400 15px/1.65 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.55);margin:0">Micro-interacciones, transiciones y sonido que hacen que cada scroll cuente una historia.</p>
+</div>
+<div style="display:grid;grid-template-columns:110px 1fr 420px;gap:32px;align-items:start;padding:38px 0;border-bottom:1px solid rgba(255,255,255,.08)">
+<span style="font:400 14px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">04</span>
+<div><div style="font:600 28px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Performance &amp; lanzamiento</div><div style="display:flex;gap:8px;margin-top:14px"><span style="font:500 10.5px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;padding:6px 10px;border:1px solid rgba(255,255,255,.16);color:rgba(242,240,236,.6)">CORE WEB VITALS</span><span style="font:500 10.5px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;padding:6px 10px;border:1px solid rgba(255,255,255,.16);color:rgba(242,240,236,.6)">A11Y</span></div></div>
+<p style="font:400 15px/1.65 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.55);margin:0">QA, medición y optimización: lo memorable también tiene que cargar en 0.4s.</p>
+</div>
+</div>
+</div>
+<div style="padding:104px 64px;border-top:1px solid rgba(255,255,255,.08)">
+<span style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:rgba(242,240,236,.55)">03 — PROCESO ⁄ METHOD</span>
+<h2 style="font:700 48px/1.08 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC;margin:26px 0 0;max-width:760px">Concepto primero, píxeles después.</h2>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:28px;margin-top:64px">
+<div style="border-top:1px solid rgba(255,255,255,.18);padding-top:24px"><div style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.4)">FASE 01</div><div style="font:600 20px 'Space Grotesk',sans-serif;color:#F2F0EC;margin-top:14px">Descubrimiento</div><p style="font:400 14px/1.65 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:12px 0 0">Objetivos, referencias y narrativa. Qué debe sentir el usuario, antes de decidir qué va a ver.</p></div>
+<div style="border-top:1px solid rgba(255,255,255,.18);padding-top:24px"><div style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.4)">FASE 02</div><div style="font:600 20px 'Space Grotesk',sans-serif;color:#F2F0EC;margin-top:14px">Prototipo técnico</div><p style="font:400 14px/1.65 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:12px 0 0">La interacción clave probada en el navegador en días. Si no impresiona en gris, no impresionará con color.</p></div>
+<div style="border-top:1px solid rgba(255,255,255,.18);padding-top:24px"><div style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.4)">FASE 03</div><div style="font:600 20px 'Space Grotesk',sans-serif;color:#F2F0EC;margin-top:14px">Build</div><p style="font:400 14px/1.65 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:12px 0 0">Diseño y código avanzan juntos, con revisiones cortas y demos navegables cada semana.</p></div>
+<div style="border-top:1px solid rgba(255,255,255,.18);padding-top:24px"><div style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.4)">FASE 04</div><div style="font:600 20px 'Space Grotesk',sans-serif;color:#F2F0EC;margin-top:14px">Launch + medición</div><p style="font:400 14px/1.65 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:12px 0 0">QA, performance y analítica. Se lanza, se mide, se afina.</p></div>
+</div>
+</div>
+<div style="padding:104px 64px;border-top:1px solid rgba(255,255,255,.08)">
+<span style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:rgba(242,240,236,.55)">04 — SOBRE MÍ ⁄ ABOUT</span>
+<div style="display:grid;grid-template-columns:460px 1fr;gap:72px;margin-top:48px;align-items:start">
+<div style="height:540px"><image-slot id="dg-portrait" shape="rect" placeholder="Retrato — arrastrá tu foto"></image-slot></div>
+<div>
+<div style="font:500 34px/1.28 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">“Creo en una web con física y con intención: donde cada scroll cuenta una historia y cada milisegundo importa.”</div>
+<p style="font:400 16px/1.7 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.55);margin:30px 0 0;max-width:560px">Soy David Guillen, full stack senior. Diseño y construyo experiencias de punta a punta: del concepto y el shader hasta la infraestructura que las sostiene.</p>
+<div style="margin-top:40px;border-top:1px solid rgba(255,255,255,.08)">
+<div style="display:grid;grid-template-columns:170px 1fr;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.08);font:400 12px 'IBM Plex Mono',monospace;letter-spacing:.08em"><span style="color:rgba(242,240,236,.4)">BASE</span><span style="color:#F2F0EC">[ tu ciudad ] — remoto global</span></div>
+<div style="display:grid;grid-template-columns:170px 1fr;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.08);font:400 12px 'IBM Plex Mono',monospace;letter-spacing:.08em"><span style="color:rgba(242,240,236,.4)">STACK</span><span style="color:#F2F0EC">React · Three.js · Node · TypeScript</span></div>
+<div style="display:grid;grid-template-columns:170px 1fr;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.08);font:400 12px 'IBM Plex Mono',monospace;letter-spacing:.08em"><span style="color:rgba(242,240,236,.4)">IDIOMAS</span><span style="color:#F2F0EC">Español · English</span></div>
+<div style="display:grid;grid-template-columns:170px 1fr;padding:13px 0;font:400 12px 'IBM Plex Mono',monospace;letter-spacing:.08em"><span style="color:rgba(242,240,236,.4)">ESTADO</span><span style="color:#F2F0EC"><span style="color:#FF5C38">●</span> Disponible — proyectos 2027</span></div>
+</div>
+</div>
+</div>
+</div>
+<div style="padding:128px 64px 96px;border-top:1px solid rgba(255,255,255,.08)">
+<span style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:rgba(242,240,236,.55)">05 — CONTACTO ⁄ CONTACT</span>
+<h2 style="font:700 76px/1.02 'Space Grotesk',sans-serif;letter-spacing:-.03em;color:#F2F0EC;margin:30px 0 0;max-width:1000px">¿Construimos algo memorable?</h2>
+<div style="margin-top:48px"><span style="display:inline-flex;align-items:center;gap:12px;background:#FF5C38;color:#0A0A0B;font:600 13px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:22px 34px">HOLA@DAVIDGUILLEN.DEV ↗</span></div>
+<div style="display:flex;gap:32px;margin-top:56px;font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.5)"><span>GITHUB ↗</span><span>LINKEDIN ↗</span><span>X ↗</span><span>AWWWARDS ↗</span></div>
+</div>
+<div style="display:flex;justify-content:space-between;padding:22px 64px;border-top:1px solid rgba(255,255,255,.08);font:400 10.5px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:rgba(242,240,236,.35)"><span>© 2026 DAVID GUILLEN</span><span>HECHO A MANO — SIN PLANTILLAS</span><span>ES ⁄ EN</span></div>
+</div>
+</div>
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Tablet 834 — misma jerarquía, grillas a 2 columnas</div>
+<div class="dv-card" style="width:834px">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 40px;height:64px;border-bottom:1px solid rgba(255,255,255,.08)">
+<span style="font:700 18px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">DG<span style="color:#FF5C38">®</span></span>
+<div style="display:flex;gap:24px;font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:rgba(242,240,236,.55)"><span>PROYECTOS</span><span>SERVICIOS</span><span>PROCESO</span><span>SOBRE MÍ</span></div>
+<span style="display:inline-flex;background:#FF5C38;color:#0A0A0B;font:600 10.5px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;padding:11px 16px">HABLEMOS ↗</span>
+</div>
+<div style="padding:80px 40px 0">
+<div style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:rgba(242,240,236,.55)"><span style="color:#FF5C38">●</span>&nbsp;&nbsp;CREATIVE DEVELOPER — FULL STACK SENIOR</div>
+<h1 style="font:700 64px/1 'Space Grotesk',sans-serif;letter-spacing:-.03em;color:#F2F0EC;margin:24px 0 0">Experiencias web que no se olvidan.</h1>
+<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:40px;margin-top:36px">
+<div style="max-width:440px">
+<p style="font:400 17px/1.55 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.6);margin:0">3D en tiempo real, motion y arquitectura full-stack de punta a punta.</p>
+<div style="display:flex;gap:12px;margin-top:28px">
+<span style="display:inline-flex;background:#FF5C38;color:#0A0A0B;font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;padding:15px 22px">RESERVÁ 15 MIN ↗</span>
+<span style="display:inline-flex;color:#F2F0EC;border:1px solid rgba(255,255,255,.22);font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;padding:14px 21px">VER PROYECTOS</span>
+</div>
+</div>
+<div style="text-align:right;font:400 10px/2 'IBM Plex Mono',monospace;letter-spacing:.08em;color:rgba(242,240,236,.45)">8+ AÑOS · 40+ LANZAMIENTOS<br><span style="color:#F2F0EC"><span style="color:#FF5C38">●</span> DISPONIBLE — Q1 2027</span></div>
+</div>
+<div style="margin-top:52px;height:380px;background:repeating-linear-gradient(45deg,rgba(255,255,255,0) 0 14px,rgba(255,255,255,.04) 14px 28px);border:1px dashed rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center"><span style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:.08em;color:rgba(242,240,236,.5)">[ hero 3D interactivo ]</span></div>
+</div>
+<div style="margin-top:52px;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);padding:14px 0;overflow:hidden;white-space:nowrap;font:500 11.5px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.45)">THREE.JS&nbsp;&nbsp;✦&nbsp;&nbsp;REACT&nbsp;&nbsp;✦&nbsp;&nbsp;TYPESCRIPT&nbsp;&nbsp;✦&nbsp;&nbsp;WEBGL&nbsp;&nbsp;✦&nbsp;&nbsp;GLSL&nbsp;&nbsp;✦&nbsp;&nbsp;GSAP&nbsp;&nbsp;✦&nbsp;&nbsp;NODE.JS&nbsp;&nbsp;✦&nbsp;&nbsp;R3F</div>
+<div style="padding:72px 40px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:rgba(242,240,236,.55)">01 — PROYECTOS ⁄ WORK</span><span style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">tus casos reales acá</span></div>
+<div style="margin-top:32px;height:360px;background:repeating-linear-gradient(45deg,rgba(255,255,255,0) 0 14px,rgba(255,255,255,.04) 14px 28px);border:1px dashed rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center"><span style="font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.5)">[ proyecto destacado ]</span></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:16px"><span style="font:600 24px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Título del proyecto destacado</span><span style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.5)">WEBGL · 2026 ↗</span></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:44px">
+<div><div style="height:220px;background:repeating-linear-gradient(45deg,rgba(255,255,255,0) 0 14px,rgba(255,255,255,.04) 14px 28px);border:1px dashed rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center"><span style="font:400 10.5px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.5)">[ proyecto 02 ]</span></div><div style="display:flex;justify-content:space-between;margin-top:12px;font:600 16px 'Space Grotesk',sans-serif;color:#F2F0EC"><span>Título del proyecto</span><span style="font:500 9.5px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.5)">2025 ↗</span></div></div>
+<div><div style="height:220px;background:repeating-linear-gradient(45deg,rgba(255,255,255,0) 0 14px,rgba(255,255,255,.04) 14px 28px);border:1px dashed rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center"><span style="font:400 10.5px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.5)">[ proyecto 03 ]</span></div><div style="display:flex;justify-content:space-between;margin-top:12px;font:600 16px 'Space Grotesk',sans-serif;color:#F2F0EC"><span>Título del proyecto</span><span style="font:500 9.5px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.5)">2025 ↗</span></div></div>
+</div>
+</div>
+<div style="padding:72px 40px;border-top:1px solid rgba(255,255,255,.08)">
+<span style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:rgba(242,240,236,.55)">02 — SERVICIOS</span>
+<div style="margin-top:36px;border-top:1px solid rgba(255,255,255,.08)">
+<div style="display:grid;grid-template-columns:60px 1fr;gap:20px;padding:28px 0;border-bottom:1px solid rgba(255,255,255,.08)"><span style="font:400 13px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">01</span><div><div style="font:600 22px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Experiencias inmersivas</div><p style="font:400 14px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.55);margin:8px 0 0">Sitios que se exploran, no se leen: 3D en tiempo real, shaders y scrollytelling a 60fps.</p></div></div>
+<div style="display:grid;grid-template-columns:60px 1fr;gap:20px;padding:28px 0;border-bottom:1px solid rgba(255,255,255,.08)"><span style="font:400 13px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">02</span><div><div style="font:600 22px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Producto full-stack</div><p style="font:400 14px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.55);margin:8px 0 0">Del shader al servidor: arquitectura, APIs y datos.</p></div></div>
+<div style="display:grid;grid-template-columns:60px 1fr;gap:20px;padding:28px 0;border-bottom:1px solid rgba(255,255,255,.08)"><span style="font:400 13px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">03</span><div><div style="font:600 22px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Motion &amp; interacción</div><p style="font:400 14px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.55);margin:8px 0 0">Micro-interacciones, transiciones y sonido con intención.</p></div></div>
+<div style="display:grid;grid-template-columns:60px 1fr;gap:20px;padding:28px 0;border-bottom:1px solid rgba(255,255,255,.08)"><span style="font:400 13px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">04</span><div><div style="font:600 22px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Performance &amp; lanzamiento</div><p style="font:400 14px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.55);margin:8px 0 0">QA, medición y optimización: lo memorable también carga en 0.4s.</p></div></div>
+</div>
+</div>
+<div style="padding:72px 40px;border-top:1px solid rgba(255,255,255,.08)">
+<span style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:rgba(242,240,236,.55)">03 — PROCESO</span>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:40px">
+<div style="border-top:1px solid rgba(255,255,255,.18);padding-top:18px"><div style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:rgba(242,240,236,.4)">FASE 01</div><div style="font:600 17px 'Space Grotesk',sans-serif;color:#F2F0EC;margin-top:10px">Descubrimiento</div><p style="font:400 13px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:8px 0 0">Objetivos, referencias y narrativa antes que píxeles.</p></div>
+<div style="border-top:1px solid rgba(255,255,255,.18);padding-top:18px"><div style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:rgba(242,240,236,.4)">FASE 02</div><div style="font:600 17px 'Space Grotesk',sans-serif;color:#F2F0EC;margin-top:10px">Prototipo técnico</div><p style="font:400 13px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:8px 0 0">La interacción clave probada en el navegador en días.</p></div>
+<div style="border-top:1px solid rgba(255,255,255,.18);padding-top:18px"><div style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:rgba(242,240,236,.4)">FASE 03</div><div style="font:600 17px 'Space Grotesk',sans-serif;color:#F2F0EC;margin-top:10px">Build</div><p style="font:400 13px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:8px 0 0">Diseño y código juntos, demos cada semana.</p></div>
+<div style="border-top:1px solid rgba(255,255,255,.18);padding-top:18px"><div style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:rgba(242,240,236,.4)">FASE 04</div><div style="font:600 17px 'Space Grotesk',sans-serif;color:#F2F0EC;margin-top:10px">Launch + medición</div><p style="font:400 13px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:8px 0 0">Se lanza, se mide, se afina.</p></div>
+</div>
+</div>
+<div style="padding:72px 40px;border-top:1px solid rgba(255,255,255,.08)">
+<span style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:rgba(242,240,236,.55)">04 — SOBRE MÍ</span>
+<div style="display:grid;grid-template-columns:280px 1fr;gap:36px;margin-top:36px;align-items:start">
+<div style="height:340px;background:repeating-linear-gradient(45deg,rgba(255,255,255,0) 0 14px,rgba(255,255,255,.04) 14px 28px);border:1px dashed rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center"><span style="font:400 10.5px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.5)">[ retrato ]</span></div>
+<div>
+<div style="font:500 23px/1.3 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">“Creo en una web con física y con intención: cada scroll cuenta una historia.”</div>
+<p style="font:400 14px/1.65 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.55);margin:18px 0 0">Soy David Guillen, full stack senior. Del concepto y el shader hasta la infraestructura.</p>
+<div style="margin-top:24px;border-top:1px solid rgba(255,255,255,.08)">
+<div style="display:grid;grid-template-columns:110px 1fr;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);font:400 11px 'IBM Plex Mono',monospace"><span style="color:rgba(242,240,236,.4)">STACK</span><span style="color:#F2F0EC">React · Three.js · Node · TS</span></div>
+<div style="display:grid;grid-template-columns:110px 1fr;padding:10px 0;font:400 11px 'IBM Plex Mono',monospace"><span style="color:rgba(242,240,236,.4)">ESTADO</span><span style="color:#F2F0EC"><span style="color:#FF5C38">●</span> Disponible — 2027</span></div>
+</div>
+</div>
+</div>
+</div>
+<div style="padding:88px 40px 72px;border-top:1px solid rgba(255,255,255,.08)">
+<span style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:rgba(242,240,236,.55)">05 — CONTACTO</span>
+<h2 style="font:700 52px/1.04 'Space Grotesk',sans-serif;letter-spacing:-.03em;color:#F2F0EC;margin:22px 0 0">¿Construimos algo memorable?</h2>
+<div style="margin-top:34px"><span style="display:inline-flex;background:#FF5C38;color:#0A0A0B;font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;padding:18px 26px">HOLA@DAVIDGUILLEN.DEV ↗</span></div>
+<div style="display:flex;gap:24px;margin-top:40px;font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:rgba(242,240,236,.5)"><span>GITHUB ↗</span><span>LINKEDIN ↗</span><span>X ↗</span><span>AWWWARDS ↗</span></div>
+</div>
+<div style="display:flex;justify-content:space-between;padding:18px 40px;border-top:1px solid rgba(255,255,255,.08);font:400 9.5px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.35)"><span>© 2026 DAVID GUILLEN</span><span>ES ⁄ EN</span></div>
+</div>
+</div>
+<div class="dv-opt" id="1d">
+<div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Mobile 390 — 1 columna, CTA en zona del pulgar, targets ≥44px</div>
+<div class="dv-card" style="width:390px">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:60px;border-bottom:1px solid rgba(255,255,255,.08)">
+<span style="font:700 17px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">DG<span style="color:#FF5C38">®</span></span>
+<div style="display:flex;align-items:center;gap:16px"><span style="font:500 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.5)">ES ⁄ EN</span><span style="display:flex;flex-direction:column;gap:5px;padding:12px 0"><span style="width:22px;height:1.5px;background:#F2F0EC"></span><span style="width:22px;height:1.5px;background:#F2F0EC"></span></span></div>
+</div>
+<div style="padding:56px 20px 0">
+<div style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.55)"><span style="color:#FF5C38">●</span>&nbsp;&nbsp;CREATIVE DEV — FULL STACK SR.</div>
+<h1 style="font:700 46px/1 'Space Grotesk',sans-serif;letter-spacing:-.03em;color:#F2F0EC;margin:18px 0 0">Experiencias web que no se olvidan.</h1>
+<p style="font:400 15.5px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.6);margin:20px 0 0">3D en tiempo real, motion y full-stack de punta a punta.</p>
+<div style="display:flex;flex-direction:column;gap:10px;margin-top:28px">
+<span style="display:flex;align-items:center;justify-content:center;gap:10px;background:#FF5C38;color:#0A0A0B;font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;height:52px">RESERVÁ 15 MIN ↗</span>
+<span style="display:flex;align-items:center;justify-content:center;color:#F2F0EC;border:1px solid rgba(255,255,255,.22);font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;height:50px">VER PROYECTOS</span>
+</div>
+<div style="font:400 10px/1.9 'IBM Plex Mono',monospace;letter-spacing:.08em;color:rgba(242,240,236,.45);margin-top:22px">8+ AÑOS · 40+ LANZAMIENTOS<br><span style="color:#F2F0EC"><span style="color:#FF5C38">●</span> DISPONIBLE — Q1 2027</span></div>
+<div style="margin-top:36px;height:260px;background:repeating-linear-gradient(45deg,rgba(255,255,255,0) 0 12px,rgba(255,255,255,.04) 12px 24px);border:1px dashed rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center"><span style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.5)">[ hero 3D ]</span></div>
+</div>
+<div style="margin-top:40px;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);padding:12px 0;overflow:hidden;white-space:nowrap;font:500 10.5px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:rgba(242,240,236,.45)">THREE.JS&nbsp;&nbsp;✦&nbsp;&nbsp;REACT&nbsp;&nbsp;✦&nbsp;&nbsp;WEBGL&nbsp;&nbsp;✦&nbsp;&nbsp;GSAP&nbsp;&nbsp;✦&nbsp;&nbsp;NODE</div>
+<div style="padding:56px 20px">
+<span style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.55)">01 — PROYECTOS</span>
+<div style="margin-top:24px;height:230px;background:repeating-linear-gradient(45deg,rgba(255,255,255,0) 0 12px,rgba(255,255,255,.04) 12px 24px);border:1px dashed rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center"><span style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.5)">[ proyecto destacado ]</span></div>
+<div style="font:600 21px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC;margin-top:14px">Título del proyecto destacado</div>
+<div style="font:500 9.5px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.5);margin-top:6px">WEBGL · 3D — 2026&nbsp;&nbsp;↗</div>
+<div style="margin-top:36px;height:200px;background:repeating-linear-gradient(45deg,rgba(255,255,255,0) 0 12px,rgba(255,255,255,.04) 12px 24px);border:1px dashed rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center"><span style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.5)">[ proyecto 02 ]</span></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px"><span style="font:600 17px 'Space Grotesk',sans-serif;color:#F2F0EC">Título del proyecto</span><span style="font:500 9px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.5)">2025 ↗</span></div>
+<div style="margin-top:28px;height:200px;background:repeating-linear-gradient(45deg,rgba(255,255,255,0) 0 12px,rgba(255,255,255,.04) 12px 24px);border:1px dashed rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center"><span style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.5)">[ proyecto 03 ]</span></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px"><span style="font:600 17px 'Space Grotesk',sans-serif;color:#F2F0EC">Título del proyecto</span><span style="font:500 9px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.5)">2025 ↗</span></div>
+</div>
+<div style="padding:56px 20px;border-top:1px solid rgba(255,255,255,.08)">
+<span style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.55)">02 — SERVICIOS</span>
+<div style="margin-top:28px;border-top:1px solid rgba(255,255,255,.08)">
+<div style="padding:22px 0;border-bottom:1px solid rgba(255,255,255,.08)"><div style="display:flex;gap:14px;align-items:baseline"><span style="font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">01</span><span style="font:600 19px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Experiencias inmersivas</span></div><p style="font:400 13.5px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.55);margin:8px 0 0 25px">3D en tiempo real, shaders y scrollytelling a 60fps.</p></div>
+<div style="padding:22px 0;border-bottom:1px solid rgba(255,255,255,.08)"><div style="display:flex;gap:14px;align-items:baseline"><span style="font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">02</span><span style="font:600 19px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Producto full-stack</span></div><p style="font:400 13.5px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.55);margin:8px 0 0 25px">Del shader al servidor: arquitectura, APIs y datos.</p></div>
+<div style="padding:22px 0;border-bottom:1px solid rgba(255,255,255,.08)"><div style="display:flex;gap:14px;align-items:baseline"><span style="font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">03</span><span style="font:600 19px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Motion &amp; interacción</span></div><p style="font:400 13.5px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.55);margin:8px 0 0 25px">Micro-interacciones y sonido con intención.</p></div>
+<div style="padding:22px 0;border-bottom:1px solid rgba(255,255,255,.08)"><div style="display:flex;gap:14px;align-items:baseline"><span style="font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">04</span><span style="font:600 19px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Performance &amp; launch</span></div><p style="font:400 13.5px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.55);margin:8px 0 0 25px">QA, medición y optimización continua.</p></div>
+</div>
+</div>
+<div style="padding:56px 20px;border-top:1px solid rgba(255,255,255,.08)">
+<span style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.55)">03 — PROCESO</span>
+<div style="margin-top:28px;display:flex;flex-direction:column;gap:0">
+<div style="display:grid;grid-template-columns:64px 1fr;gap:16px;padding:18px 0;border-top:1px solid rgba(255,255,255,.14)"><span style="font:500 9.5px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.4)">FASE 01</span><div><div style="font:600 16px 'Space Grotesk',sans-serif;color:#F2F0EC">Descubrimiento</div><p style="font:400 13px/1.55 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:6px 0 0">Objetivos, referencias y narrativa.</p></div></div>
+<div style="display:grid;grid-template-columns:64px 1fr;gap:16px;padding:18px 0;border-top:1px solid rgba(255,255,255,.14)"><span style="font:500 9.5px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.4)">FASE 02</span><div><div style="font:600 16px 'Space Grotesk',sans-serif;color:#F2F0EC">Prototipo técnico</div><p style="font:400 13px/1.55 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:6px 0 0">La interacción clave en días.</p></div></div>
+<div style="display:grid;grid-template-columns:64px 1fr;gap:16px;padding:18px 0;border-top:1px solid rgba(255,255,255,.14)"><span style="font:500 9.5px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.4)">FASE 03</span><div><div style="font:600 16px 'Space Grotesk',sans-serif;color:#F2F0EC">Build</div><p style="font:400 13px/1.55 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:6px 0 0">Diseño y código juntos, demos semanales.</p></div></div>
+<div style="display:grid;grid-template-columns:64px 1fr;gap:16px;padding:18px 0;border-top:1px solid rgba(255,255,255,.14)"><span style="font:500 9.5px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.4)">FASE 04</span><div><div style="font:600 16px 'Space Grotesk',sans-serif;color:#F2F0EC">Launch + medición</div><p style="font:400 13px/1.55 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.5);margin:6px 0 0">Se lanza, se mide, se afina.</p></div></div>
+</div>
+</div>
+<div style="padding:56px 20px;border-top:1px solid rgba(255,255,255,.08)">
+<span style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.55)">04 — SOBRE MÍ</span>
+<div style="margin-top:24px;height:300px;background:repeating-linear-gradient(45deg,rgba(255,255,255,0) 0 12px,rgba(255,255,255,.04) 12px 24px);border:1px dashed rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center"><span style="font:400 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.5)">[ retrato ]</span></div>
+<div style="font:500 21px/1.32 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC;margin-top:24px">“Creo en una web con física y con intención.”</div>
+<p style="font:400 14px/1.65 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.55);margin:14px 0 0">Soy David Guillen, full stack senior. Del concepto y el shader hasta la infraestructura.</p>
+<div style="margin-top:22px;border-top:1px solid rgba(255,255,255,.08)">
+<div style="display:grid;grid-template-columns:92px 1fr;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);font:400 10.5px 'IBM Plex Mono',monospace"><span style="color:rgba(242,240,236,.4)">STACK</span><span style="color:#F2F0EC">React · Three.js · Node</span></div>
+<div style="display:grid;grid-template-columns:92px 1fr;padding:10px 0;font:400 10.5px 'IBM Plex Mono',monospace"><span style="color:rgba(242,240,236,.4)">ESTADO</span><span style="color:#F2F0EC"><span style="color:#FF5C38">●</span> Disponible — 2027</span></div>
+</div>
+</div>
+<div style="padding:64px 20px 48px;border-top:1px solid rgba(255,255,255,.08)">
+<span style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.55)">05 — CONTACTO</span>
+<h2 style="font:700 38px/1.05 'Space Grotesk',sans-serif;letter-spacing:-.03em;color:#F2F0EC;margin:18px 0 0">¿Construimos algo memorable?</h2>
+<div style="display:flex;gap:20px;margin-top:32px;font:500 9.5px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.5);flex-wrap:wrap"><span>GITHUB ↗</span><span>LINKEDIN ↗</span><span>X ↗</span><span>AWWWARDS ↗</span></div>
+<div style="font:400 9.5px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.35);margin-top:40px">© 2026 DAVID GUILLEN — ES ⁄ EN</div>
+</div>
+<div style="padding:12px 16px 16px;background:#131316;border-top:1px solid rgba(255,255,255,.12)">
+<span style="display:flex;align-items:center;justify-content:center;gap:10px;background:#FF5C38;color:#0A0A0B;font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;height:52px">HOLA@DAVIDGUILLEN.DEV ↗</span>
+<div style="font:400 8.5px 'IBM Plex Mono',monospace;letter-spacing:.08em;color:rgba(242,240,236,.35);text-align:center;margin-top:8px">CTA FIJO — ZONA DEL PULGAR (FITTS)</div>
+</div>
+</div>
+</div>
+</div>
+<div class="dv-row">VARIANTES DE HERO</div>
+<div class="dv-opts">
+<div class="dv-opt" id="1e">
+<div class="dv-olabel"><a class="dv-oid" href="#1e">1e</a>Hero tipográfico — la tipografía es el visual (sin imagen)</div>
+<div class="dv-card" style="width:1440px">
+<div style="padding:56px 64px 72px">
+<div style="display:flex;justify-content:space-between;font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:rgba(242,240,236,.5)"><span><span style="color:#FF5C38">●</span>&nbsp;&nbsp;DAVID GUILLEN — FULL STACK SENIOR</span><span>PORTFOLIO ⁄ 2026</span></div>
+<div style="margin-top:64px;font:700 168px/0.92 'Space Grotesk',sans-serif;letter-spacing:-.04em;color:#F2F0EC;text-transform:uppercase">Creative</div>
+<div style="font:700 168px/0.92 'Space Grotesk',sans-serif;letter-spacing:-.04em;color:transparent;-webkit-text-stroke:2px rgba(242,240,236,.85);text-transform:uppercase">Developer<span style="-webkit-text-stroke:2px #FF5C38">®</span></div>
+<div style="display:flex;align-items:center;gap:40px;margin-top:10px">
+<div style="font:700 168px/0.92 'Space Grotesk',sans-serif;letter-spacing:-.04em;color:#F2F0EC;text-transform:uppercase">Full-stack</div>
+<p style="font:400 16px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.55);max-width:340px;margin:0">3D en tiempo real, motion y arquitectura de punta a punta. Webs que se exploran, no se leen.</p>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:72px;border-top:1px solid rgba(255,255,255,.08);padding-top:32px">
+<div style="display:flex;gap:14px">
+<span style="display:inline-flex;align-items:center;gap:10px;background:#FF5C38;color:#0A0A0B;font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:18px 28px">RESERVÁ 15 MIN ↗</span>
+<span style="display:inline-flex;align-items:center;color:#F2F0EC;border:1px solid rgba(255,255,255,.22);font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:17px 27px">VER PROYECTOS</span>
+</div>
+<span style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:rgba(242,240,236,.45)">THREE.JS · REACT · NODE · GLSL · GSAP</span>
+</div>
+</div>
+</div>
+</div>
+<div class="dv-opt" id="1f">
+<div class="dv-olabel"><a class="dv-oid" href="#1f">1f</a>Hero split técnico — copy + terminal GLSL como prueba de oficio</div>
+<div class="dv-card" style="width:1440px">
+<div style="display:grid;grid-template-columns:1.05fr 1fr;gap:72px;padding:96px 64px;align-items:center">
+<div>
+<div style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:rgba(242,240,236,.55)"><span style="color:#FF5C38">●</span>&nbsp;&nbsp;CREATIVE DEVELOPER — FULL STACK SENIOR</div>
+<h1 style="font:700 72px/1 'Space Grotesk',sans-serif;letter-spacing:-.035em;color:#F2F0EC;margin:28px 0 0">Código que se siente.</h1>
+<p style="font:400 19px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.6);margin:28px 0 0;max-width:520px">Del shader al servidor: experiencias 3D en tiempo real con la arquitectura que las sostiene a 60fps.</p>
+<div style="display:flex;gap:14px;margin-top:40px">
+<span style="display:inline-flex;align-items:center;gap:10px;background:#FF5C38;color:#0A0A0B;font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:18px 28px">RESERVÁ 15 MIN ↗</span>
+<span style="display:inline-flex;align-items:center;color:#F2F0EC;border:1px solid rgba(255,255,255,.22);font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:17px 27px">VER PROYECTOS</span>
+</div>
+</div>
+<div style="background:#131316;border:1px solid rgba(255,255,255,.12)">
+<div style="display:flex;align-items:center;gap:8px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.1)">
+<span style="width:10px;height:10px;border-radius:50%;background:rgba(242,240,236,.18)"></span><span style="width:10px;height:10px;border-radius:50%;background:rgba(242,240,236,.18)"></span><span style="width:10px;height:10px;border-radius:50%;background:rgba(242,240,236,.18)"></span>
+<span style="font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.45);margin-left:8px">hero — shader.frag</span>
+</div>
+<div style="padding:26px 26px 30px;font:400 13.5px/2 'IBM Plex Mono',monospace;color:rgba(242,240,236,.75)">
+<span style="color:rgba(242,240,236,.35)">// fresnel glow — rim de luz sobre el objeto</span><br>
+float&nbsp;fresnel&nbsp;=&nbsp;pow(1.0&nbsp;-&nbsp;dot(normal,&nbsp;viewDir),&nbsp;3.0);<br>
+vec3&nbsp;&nbsp;color&nbsp;&nbsp;&nbsp;=&nbsp;mix(deepBlack,&nbsp;accent,&nbsp;fresnel);<br>
+float&nbsp;grain&nbsp;&nbsp;&nbsp;=&nbsp;noise(uv&nbsp;*&nbsp;time&nbsp;*&nbsp;0.4);<br>
+gl_FragColor&nbsp;=&nbsp;vec4(color&nbsp;+&nbsp;grain&nbsp;*&nbsp;0.03,&nbsp;1.0);
+</div>
+<div style="display:flex;gap:24px;padding:14px 18px;border-top:1px solid rgba(255,255,255,.1);font:500 10.5px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.5)"><span><span style="color:#FF5C38">●</span> 60 FPS</span><span>LCP 0.4S</span><span>CLS 0.00</span><span>WEBGL2</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="dv-row">TEMA CLARO</div>
+<div class="dv-opts">
+<div class="dv-opt" id="1g">
+<div class="dv-olabel"><a class="dv-oid" href="#1g">1g</a>Modo claro — mismos tokens sobre #F4F2EE (hero + servicios)</div>
+<div class="dv-card" style="width:1440px;background:#F4F2EE">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 64px;height:76px;border-bottom:1px solid rgba(20,19,18,.12)">
+<div style="display:flex;align-items:baseline;gap:12px"><span style="font:700 20px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#141312">DG<span style="color:#FF5C38">®</span></span><span style="font:400 11px 'IBM Plex Mono',monospace;color:rgba(20,19,18,.4)">fullstack · creative dev</span></div>
+<div style="display:flex;gap:34px;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(20,19,18,.55)"><span>PROYECTOS</span><span>SERVICIOS</span><span>PROCESO</span><span>SOBRE MÍ</span></div>
+<span style="display:inline-flex;background:#FF5C38;color:#0A0A0B;font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:13px 20px">HABLEMOS ↗</span>
+</div>
+<div style="padding:100px 64px 88px">
+<div style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:rgba(20,19,18,.55)"><span style="color:#FF5C38">●</span>&nbsp;&nbsp;CREATIVE DEVELOPER — FULL STACK SENIOR</div>
+<h1 style="font:700 92px/0.98 'Space Grotesk',sans-serif;letter-spacing:-.035em;color:#141312;margin:28px 0 0;max-width:1200px">Experiencias web que no se olvidan.</h1>
+<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:64px;margin-top:44px">
+<div style="max-width:580px">
+<p style="font:400 19px/1.55 'IBM Plex Sans',sans-serif;color:rgba(20,19,18,.6);margin:0">3D en tiempo real, motion y arquitectura full-stack — para marcas que quieren dominar su categoría.</p>
+<div style="display:flex;gap:14px;margin-top:34px">
+<span style="display:inline-flex;background:#FF5C38;color:#0A0A0B;font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:18px 28px">RESERVÁ 15 MIN ↗</span>
+<span style="display:inline-flex;color:#141312;border:1px solid rgba(20,19,18,.25);font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:17px 27px">VER PROYECTOS</span>
+</div>
+</div>
+<div style="text-align:right;font:400 11px/2.1 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(20,19,18,.5)">8+ AÑOS · 40+ LANZAMIENTOS<br><span style="color:#141312"><span style="color:#FF5C38">●</span> DISPONIBLE — Q1 2027</span></div>
+</div>
+<div style="margin-top:64px;height:440px;background:#FFFFFF;border:1px dashed rgba(20,19,18,.25);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 24px rgba(20,19,18,.06)"><span style="font:400 11px 'IBM Plex Mono',monospace;color:rgba(20,19,18,.45)">[ hero 3D interactivo ]</span></div>
+</div>
+<div style="padding:88px 64px 96px;border-top:1px solid rgba(20,19,18,.12)">
+<span style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:rgba(20,19,18,.55)">02 — SERVICIOS ⁄ SERVICES</span>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:44px">
+<div style="background:#FFFFFF;padding:36px;box-shadow:0 2px 24px rgba(20,19,18,.06)"><div style="font:400 13px 'IBM Plex Mono',monospace;color:rgba(20,19,18,.35)">01</div><div style="font:600 26px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#141312;margin-top:14px">Experiencias inmersivas</div><p style="font:400 15px/1.65 'IBM Plex Sans',sans-serif;color:rgba(20,19,18,.55);margin:12px 0 0">Sitios que se exploran, no se leen: 3D en tiempo real, shaders y scrollytelling a 60fps.</p></div>
+<div style="background:#FFFFFF;padding:36px;box-shadow:0 2px 24px rgba(20,19,18,.06)"><div style="font:400 13px 'IBM Plex Mono',monospace;color:rgba(20,19,18,.35)">02</div><div style="font:600 26px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#141312;margin-top:14px">Producto full-stack</div><p style="font:400 15px/1.65 'IBM Plex Sans',sans-serif;color:rgba(20,19,18,.55);margin:12px 0 0">Del shader al servidor: arquitectura, APIs y datos para que la experiencia funcione como producto.</p></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="dv-row">LAYOUTS ALTERNATIVOS DE CASOS</div>
+<div class="dv-opts">
+<div class="dv-opt" id="1h">
+<div class="dv-olabel"><a class="dv-oid" href="#1h">1h</a>Casos — grid editorial asimétrico con índices outline</div>
+<div class="dv-card" style="width:1440px">
+<div style="padding:88px 64px 96px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:rgba(242,240,236,.55)">01 — PROYECTOS ⁄ SELECTED WORK</span><span style="font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">grid asimétrico — ritmo editorial</span></div>
+<div style="display:grid;grid-template-columns:1.3fr 1fr;gap:36px;margin-top:52px">
+<div>
+<div style="font:700 88px/1 'Space Grotesk',sans-serif;letter-spacing:-.03em;color:transparent;-webkit-text-stroke:1.5px rgba(242,240,236,.4)">01</div>
+<div style="margin-top:20px;height:600px;background:repeating-linear-gradient(45deg,rgba(255,255,255,0) 0 14px,rgba(255,255,255,.04) 14px 28px);border:1px dashed rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center"><span style="font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.5)">[ proyecto 01 — shot vertical ]</span></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:18px"><span style="font:600 30px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Título del proyecto</span><span style="font:500 10.5px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.5)">WEBGL · 3D — 2026 ↗</span></div>
+</div>
+<div style="margin-top:110px;display:flex;flex-direction:column;gap:56px">
+<div>
+<div style="font:700 88px/1 'Space Grotesk',sans-serif;letter-spacing:-.03em;color:transparent;-webkit-text-stroke:1.5px rgba(242,240,236,.4)">02</div>
+<div style="margin-top:20px;height:300px;background:repeating-linear-gradient(45deg,rgba(255,255,255,0) 0 14px,rgba(255,255,255,.04) 14px 28px);border:1px dashed rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center"><span style="font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.5)">[ proyecto 02 ]</span></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:16px"><span style="font:600 24px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Título del proyecto</span><span style="font:500 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.5)">MOTION — 2025 ↗</span></div>
+</div>
+<div>
+<div style="font:700 88px/1 'Space Grotesk',sans-serif;letter-spacing:-.03em;color:transparent;-webkit-text-stroke:1.5px rgba(242,240,236,.4)">03</div>
+<div style="margin-top:20px;height:300px;background:repeating-linear-gradient(45deg,rgba(255,255,255,0) 0 14px,rgba(255,255,255,.04) 14px 28px);border:1px dashed rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center"><span style="font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.5)">[ proyecto 03 ]</span></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:16px"><span style="font:600 24px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Título del proyecto</span><span style="font:500 10px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.5)">SAAS — 2025 ↗</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="dv-opt" id="1i">
+<div class="dv-olabel"><a class="dv-oid" href="#1i">1i</a>Casos — índice tipo lista con fila en hover (thumbnail peek)</div>
+<div class="dv-card" style="width:1440px">
+<div style="padding:88px 64px 96px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:rgba(242,240,236,.55)">01 — PROYECTOS ⁄ INDEX</span><span style="font:400 11px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">fila 02 = estado hover</span></div>
+<div style="margin-top:44px;border-top:1px solid rgba(255,255,255,.08)">
+<div style="display:grid;grid-template-columns:90px 1fr 300px 90px 40px;gap:24px;align-items:center;padding:34px 0;border-bottom:1px solid rgba(255,255,255,.08)">
+<span style="font:400 13px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">01</span>
+<span style="font:600 40px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Título del proyecto</span>
+<span style="font:500 10.5px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.5)">WEBGL · E-COMMERCE</span>
+<span style="font:400 12px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.45)">2026</span>
+<span style="font:400 18px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.45)">↗</span>
+</div>
+<div style="display:grid;grid-template-columns:90px 1fr 160px 300px 90px 40px;gap:24px;align-items:center;padding:24px 20px;border-bottom:1px solid rgba(255,255,255,.08);background:#131316;margin:0 -20px">
+<span style="font:400 13px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.5)">02</span>
+<span style="font:600 40px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Título del proyecto</span>
+<div style="height:88px;background:repeating-linear-gradient(45deg,rgba(255,255,255,0) 0 10px,rgba(255,255,255,.05) 10px 20px);border:1px dashed rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center"><span style="font:400 9px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.5)">[ peek ]</span></div>
+<span style="font:500 10.5px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.6)">MOTION · SCROLLYTELLING</span>
+<span style="font:400 12px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.55)">2025</span>
+<span style="font:400 18px 'IBM Plex Mono',monospace;color:#FF5C38">↗</span>
+</div>
+<div style="display:grid;grid-template-columns:90px 1fr 300px 90px 40px;gap:24px;align-items:center;padding:34px 0;border-bottom:1px solid rgba(255,255,255,.08)">
+<span style="font:400 13px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">03</span>
+<span style="font:600 40px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Título del proyecto</span>
+<span style="font:500 10.5px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.5)">FULL-STACK · SAAS</span>
+<span style="font:400 12px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.45)">2025</span>
+<span style="font:400 18px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.45)">↗</span>
+</div>
+<div style="display:grid;grid-template-columns:90px 1fr 300px 90px 40px;gap:24px;align-items:center;padding:34px 0;border-bottom:1px solid rgba(255,255,255,.08)">
+<span style="font:400 13px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.35)">04</span>
+<span style="font:600 40px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">Título del proyecto</span>
+<span style="font:500 10.5px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.5)">3D · CONFIGURADOR</span>
+<span style="font:400 12px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.45)">2024</span>
+<span style="font:400 18px 'IBM Plex Mono',monospace;color:rgba(242,240,236,.45)">↗</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="dv-row">TIPOGRAFÍA ALTERNATIVA</div>
+<div class="dv-opts">
+<div class="dv-opt" id="1j">
+<div class="dv-olabel"><a class="dv-oid" href="#1j">1j</a>Pairing alternativo — Instrument Serif (editorial técnica)</div>
+<div class="dv-card" style="width:1440px">
+<div style="padding:104px 64px 96px">
+<div style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:rgba(242,240,236,.55)"><span style="color:#FF5C38">●</span>&nbsp;&nbsp;CREATIVE DEVELOPER — FULL STACK SENIOR</div>
+<h1 style="font:400 104px/1.02 'Instrument Serif',serif;letter-spacing:-.01em;color:#F2F0EC;margin:34px 0 0;max-width:1200px">Experiencias web <em style="font-style:italic">que no se olvidan.</em></h1>
+<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:64px;margin-top:48px">
+<div style="max-width:580px">
+<p style="font:400 19px/1.6 'IBM Plex Sans',sans-serif;color:rgba(242,240,236,.6);margin:0">3D en tiempo real, motion y arquitectura full-stack de punta a punta.</p>
+<div style="display:flex;gap:14px;margin-top:36px">
+<span style="display:inline-flex;background:#FF5C38;color:#0A0A0B;font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:18px 28px">RESERVÁ 15 MIN ↗</span>
+<span style="display:inline-flex;color:#F2F0EC;border:1px solid rgba(255,255,255,.22);font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:17px 27px">VER PROYECTOS</span>
+</div>
+</div>
+<div style="text-align:right;font:400 11px/2 'IBM Plex Mono',monospace;letter-spacing:.1em;color:rgba(242,240,236,.45)">PAIRING ALT<br>INSTRUMENT SERIF + IBM PLEX<br><span style="color:#F2F0EC">display serif · meta mono</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="dv-row">MOTION ⁄ SCROLLYTELLING — ANIMACIONES EN VIVO</div>
+<div class="dv-opts">
+<div class="dv-opt" id="1k">
+<div class="dv-olabel"><a class="dv-oid" href="#1k">1k</a>Hero con motion — marquee infinito, glow orbital y cursor vivo (se anima acá)</div>
+<div class="dv-card" style="width:1440px">
+<div style="position:relative;overflow:hidden">
+<div class="dg-motion" style="position:absolute;top:-120px;right:-80px;width:560px;height:560px;background:radial-gradient(circle,#FF5C38 0%,rgba(255,92,56,0) 68%);opacity:.2;filter:blur(50px);animation:dg-float 9s ease-in-out infinite;pointer-events:none"></div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 64px;height:76px;border-bottom:1px solid rgba(255,255,255,.08);position:relative">
+<span style="font:700 20px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#F2F0EC">DG<span style="color:#FF5C38">®</span></span>
+<div style="display:flex;gap:34px;font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:rgba(242,240,236,.55)"><span>PROYECTOS</span><span>SERVICIOS</span><span>PROCESO</span><span>SOBRE MÍ</span></div>
+<span style="display:inline-flex;background:#FF5C38;color:#0A0A0B;font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:13px 20px">HABLEMOS ↗</span>
+</div>
+<div style="padding:120px 64px 96px;position:relative">
+<div style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:rgba(242,240,236,.55)"><span style="color:#FF5C38">●</span>&nbsp;&nbsp;CREATIVE DEVELOPER — FULL STACK SENIOR</div>
+<h1 style="font:700 96px/0.98 'Space Grotesk',sans-serif;letter-spacing:-.035em;color:#F2F0EC;margin:30px 0 0;max-width:1240px">Experiencias web que no se olvidan.<span class="dg-motion" style="display:inline-block;width:14px;height:78px;background:#FF5C38;margin-left:18px;vertical-align:-6px;animation:dg-blink 1.1s step-end infinite"></span></h1>
+<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:48px">
+<div style="display:flex;gap:14px">
+<span style="display:inline-flex;background:#FF5C38;color:#0A0A0B;font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:18px 28px">RESERVÁ 15 MIN ↗</span>
+<span style="display:inline-flex;color:#F2F0EC;border:1px solid rgba(255,255,255,.22);font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:17px 27px">VER PROYECTOS</span>
+</div>
+<div class="dg-motion" style="display:flex;flex-direction:column;align-items:center;gap:10px;animation:dg-bob 2.2s ease-in-out infinite"><span style="font:500 9.5px 'IBM Plex Mono',monospace;letter-spacing:.2em;color:rgba(242,240,236,.45)">SCROLL</span><span style="width:40px;height:40px;border:1px solid rgba(255,255,255,.22);border-radius:50%;display:flex;align-items:center;justify-content:center;font:400 14px 'IBM Plex Mono',monospace;color:#F2F0EC">↓</span></div>
+</div>
+</div>
+<div style="border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);padding:18px 0;overflow:hidden;position:relative">
+<div class="dg-motion" style="display:inline-block;white-space:nowrap;width:max-content;font:500 13px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:rgba(242,240,236,.45);animation:dg-marq 20s linear infinite">THREE.JS&nbsp;&nbsp;✦&nbsp;&nbsp;REACT&nbsp;&nbsp;✦&nbsp;&nbsp;TYPESCRIPT&nbsp;&nbsp;✦&nbsp;&nbsp;WEBGL&nbsp;&nbsp;✦&nbsp;&nbsp;GLSL&nbsp;&nbsp;✦&nbsp;&nbsp;GSAP&nbsp;&nbsp;✦&nbsp;&nbsp;NODE.JS&nbsp;&nbsp;✦&nbsp;&nbsp;R3F&nbsp;&nbsp;✦&nbsp;&nbsp;POSTGRES&nbsp;&nbsp;✦&nbsp;&nbsp;AWS&nbsp;&nbsp;✦&nbsp;&nbsp;SHADERS&nbsp;&nbsp;✦&nbsp;&nbsp;LENIS&nbsp;&nbsp;✦&nbsp;&nbsp;THREE.JS&nbsp;&nbsp;✦&nbsp;&nbsp;REACT&nbsp;&nbsp;✦&nbsp;&nbsp;TYPESCRIPT&nbsp;&nbsp;✦&nbsp;&nbsp;WEBGL&nbsp;&nbsp;✦&nbsp;&nbsp;GLSL&nbsp;&nbsp;✦&nbsp;&nbsp;GSAP&nbsp;&nbsp;✦&nbsp;&nbsp;NODE.JS&nbsp;&nbsp;✦&nbsp;&nbsp;R3F&nbsp;&nbsp;✦&nbsp;&nbsp;POSTGRES&nbsp;&nbsp;✦&nbsp;&nbsp;AWS&nbsp;&nbsp;✦&nbsp;&nbsp;SHADERS&nbsp;&nbsp;✦&nbsp;&nbsp;LENIS&nbsp;&nbsp;✦&nbsp;&nbsp;</div>
+</div>
+<div style="display:flex;justify-content:space-between;padding:20px 64px;font:400 10.5px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:rgba(242,240,236,.35)"><span>EN LA WEB REAL: GSAP + SCROLLTRIGGER + LENIS</span><span>PREFERS-REDUCED-MOTION RESPETADO</span></div>
+</div>
+</div>
+</div>
+</div>
+<p class="dv-next">Probá después: "más como <a class="dv-oid" href="#1e">1e</a> pero con el terminal de <a class="dv-oid" href="#1f">1f</a>" · "aplicá el tema claro a toda la página" · "armá la versión EN completa".</p>
+</section>
+</x-dc>
+</body>
+</html>
+

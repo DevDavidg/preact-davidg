@@ -1,0 +1,144 @@
+{
+  "nav": {
+    "tagline": "atelier · rebuild",
+    "projects": "PROYECTOS",
+    "services": "SERVICIOS",
+    "process": "PROCESO",
+    "about": "SOBRE MÍ",
+    "cta": "HABLEMOS ↗",
+    "langLabel": "Cambiar idioma",
+    "ariaLabel": "Principal"
+  },
+  "hud": {
+    "subtitle": "ESPACIO PERSISTENTE + RECONSTRUCCIÓN",
+    "subtitleStill": "CUADRO FIJO + MOVIMIENTO REDUCIDO",
+    "build": "BUILD",
+    "hint": "WIRE → SOLID → LIT",
+    "boot": "INICIANDO ATELIER"
+  },
+  "hero": {
+    "eyebrow": "DAVID GUILLEN — FRONT-END & MOBILE",
+    "title": "David Guillen.",
+    "lead": "Full Stack Senior orientado a Frontend y Mobile. +4 años construyendo web, apps y producto de punta a punta — React, React Native, Next.js, Angular y Node.",
+    "ctaPrimary": "RESERVÁ 15 MIN ↗",
+    "ctaGhost": "VER PROYECTOS",
+    "factYears": "+4 AÑOS · FREELANCE DESDE 2018",
+    "factStack": "REACT · RN · NEXT · ANGULAR · NODE",
+    "factAvailable": "VILLA CRESPO · REMOTO",
+    "cue": "SCROLL TO BUILD"
+  },
+  "work": {
+    "label": "01 — PROYECTOS ⁄ ARTIFACTS IN SPACE",
+    "note": "objetos en la escena · pasá el mouse para enfocar",
+    "items": [
+      {
+        "tag": "ANGULAR · TS · SCSS",
+        "title": "Nonconformist",
+        "copy": "Sitio de la consultora: front end Angular/TypeScript con SCSS — identidad y producto digital end-to-end.",
+        "shot": "ARTIFACT 01 — NONCONFORMIST",
+        "link": "HABLAR DEL CASO →"
+      },
+      {
+        "tag": "REACT · TYPESCRIPT",
+        "title": "Muscly",
+        "copy": "Music manager con espectrograma desde URLs y YouTube — UI React/TS pensada para explorar audio.",
+        "shot": "ARTIFACT 02 — MUSCLY",
+        "link": "HABLAR DEL CASO →"
+      },
+      {
+        "tag": "REACT · SHADCN · TS",
+        "title": "Chroma Dev",
+        "copy": "Temas multi-tenant vía JSON: un sistema de skins para productos SaaS sin redeploy por cliente.",
+        "shot": "ARTIFACT 03 — CHROMA",
+        "link": "HABLAR DEL CASO →"
+      }
+    ]
+  },
+  "services": {
+    "label": "02 — SERVICIOS ⁄ CAPABILITIES",
+    "items": [
+      {
+        "title": "Apps web, mobile y SaaS",
+        "stack": "REACT · REACT NATIVE · NEXT · ANGULAR · VUE",
+        "copy": "Productos end-to-end: web responsive, apps mobile y plataformas SaaS con TypeScript."
+      },
+      {
+        "title": "Cloud & Android",
+        "stack": "NODE · FIREBASE · EXPRESS · RN",
+        "copy": "Apps cloud-connected y Android con backend liviano, auth y datos en tiempo real."
+      },
+      {
+        "title": "Software a medida + UI/UX",
+        "stack": "FIGMA · RESPONSIVE · DESIGN SYSTEMS",
+        "copy": "Diseño de interfaz y desarrollo custom: del flujo en Figma al componente en producción."
+      },
+      {
+        "title": "Gestión de información",
+        "stack": "MYSQL · POSTGRES · MONGODB · FIREBASE",
+        "copy": "Modelado, APIs y paneles para administrar datos sin fricción operativa."
+      }
+    ]
+  },
+  "process": {
+    "label": "03 — PROCESO ⁄ METHOD",
+    "caption": "Método ágil (Scrum/Kanban) con principios SOLID, DRY y KISS — el número marca la fase.",
+    "steps": [
+      {
+        "num": "01",
+        "title": "Descubrimiento",
+        "phase": "FASE 01 — SCAN",
+        "heading": "Objetivos, usuarios y alcance",
+        "copy": "Qué problema resolvemos, para quién y con qué métrica de éxito. Stack, restricciones y narrativa del producto."
+      },
+      {
+        "num": "02",
+        "title": "Prototipo",
+        "phase": "FASE 02 — ASSEMBLE",
+        "heading": "La interacción clave, probada rápido",
+        "copy": "Wireframes y prototipo navegable: validamos UX y arquitectura antes de invertir el build completo."
+      },
+      {
+        "num": "03",
+        "title": "Build",
+        "phase": "FASE 03 — SOLID",
+        "heading": "Diseño y código avanzan juntos",
+        "copy": "Sprints con demos frecuentes. Frontend, mobile y backend en paralelo — sin handoffs eternos."
+      },
+      {
+        "num": "04",
+        "title": "Launch + iteración",
+        "phase": "FASE 04 — LIVE",
+        "heading": "Se lanza, se mide, se afina",
+        "copy": "QA, performance y feedback real. Lo que sale a producción se itera con datos, no con intuición."
+      }
+    ]
+  },
+  "about": {
+    "label": "04 — SOBRE MÍ ⁄ ABOUT",
+    "portrait": "RETRATO — ARRASTRÁ TU FOTO",
+    "quote": "\"Full stack orientado a frontend y mobile: del wireframe a la app en producción.\"",
+    "copy": "Soy David Guillen, 23 años. Front-End & Mobile Developer / Full Stack Senior. +4 años de experiencia (freelance desde 2018). Hoy Líder Técnico en Grupo Mariva; también en Bayer (Salesforce) y Nonconformist. Antes: Santander España, GlobalLogic (Claro), Skyblue, VinciU, Orion2Pay.",
+    "spec": [
+      { "key": "BASE", "value": "Villa Crespo, CABA — remoto" },
+      { "key": "STACK", "value": "React · RN · Next · Angular · Vue · Node" },
+      { "key": "IDIOMAS", "value": "Español nativo · English B2" },
+      { "key": "FOCO", "value": "Frontend · Mobile · Producto" }
+    ]
+  },
+  "contact": {
+    "label": "05 — CONTACTO ⁄ POWER ON",
+    "live": "SCENE LIVE — ACCENT LIGHT ONLINE",
+    "title": "¿Encendemos la escena?",
+    "lead": "Contame qué querés construir — web, mobile o producto full-stack. Respondo por mail o LinkedIn.",
+    "email": "dev.davidg@gmail.com",
+    "social": [
+      { "label": "GITHUB ↗", "href": "https://github.com/DevDavidg" },
+      { "label": "LINKEDIN ↗", "href": "https://www.linkedin.com/in/david-guillen-5074281b8" },
+      { "label": "+54 11 7003-0947 ↗", "href": "tel:+541170030947" }
+    ]
+  },
+  "footer": {
+    "copyright": "© 2026 DAVID GUILLEN",
+    "signature": "FRONTEND · MOBILE · HECHO A MANO"
+  }
+}

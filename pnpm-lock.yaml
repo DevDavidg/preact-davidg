@@ -116,6 +116,9 @@ importers:
       popmotion:
         specifier: ^11.0.5
         version: 11.0.5
+      postprocessing:
+        specifier: ^6.39.4
+        version: 6.39.4(three@0.185.1)
       react:
         specifier: ^19.2.8
         version: 19.2.8

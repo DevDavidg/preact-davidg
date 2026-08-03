@@ -1,0 +1,34 @@
+{
+  "app": "preact-davidg",
+  "flows": [
+    {
+      "id": "dev-serve",
+      "description": "Vite serves the React app for local development",
+      "steps": [
+        "pnpm dev",
+        "browser -> http://localhost:5173",
+        "Vite HMR updates src/**"
+      ]
+    },
+    {
+      "id": "static-build",
+      "description": "Production static build",
+      "steps": [
+        "pnpm build / make check",
+        "tsc -b",
+        "vite build -> dist/"
+      ]
+    },
+    {
+      "id": "agent-quality",
+      "description": "Agent turn quality loop",
+      "steps": [
+        "beforeSubmitPrompt: detect readonly / inject intent",
+        "pass1: implement + speculative_check (make quick-check)",
+        "pass2: analysis bullets (no edits)",
+        "pass3: refine + optional Playwright capture",
+        "policy reminders + optional auto-review"
+      ]
+    }
+  ]
+}

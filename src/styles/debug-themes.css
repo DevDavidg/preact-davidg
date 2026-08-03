@@ -1,0 +1,150 @@
+/**
+ * DEV-only theme overrides via data-* on <html>.
+ * Loaded only from the design-debug chunk — never in production entry.
+ * Default (no attributes) = tokens.css production look.
+ *
+ * Palettes / models write `--swatch-*`. Tones mix from those swatches so
+ * lighter/darker/warm keep the active hue. Derived ink/line alphas live in
+ * tokens.css and follow `--ink` / `--accent` automatically.
+ */
+
+/* —— Palettes ———————————————————————————————————————————————— */
+
+html[data-palette='cold-steel'] {
+  --swatch-base: #07090e;
+  --swatch-surface: #10141c;
+  --swatch-surface-hover: #181e2a;
+  --swatch-ink: #e8eef8;
+  --swatch-accent: #5eb0ff;
+  --swatch-accent-hover: #7fc0ff;
+}
+
+html[data-palette='noir-gold'] {
+  --swatch-base: #0c0b09;
+  --swatch-surface: #161411;
+  --swatch-surface-hover: #1f1c17;
+  --swatch-ink: #f4efe6;
+  --swatch-accent: #d4a054;
+  --swatch-accent-hover: #e0b56e;
+}
+
+html[data-palette='signal-green'] {
+  --swatch-base: #050806;
+  --swatch-surface: #0c120e;
+  --swatch-surface-hover: #141c16;
+  --swatch-ink: #e6f5e8;
+  --swatch-accent: #3dff8a;
+  --swatch-accent-hover: #6affaa;
+}
+
+/* —— Tones (mix from swatches — preserve palette hue) —— */
+
+html[data-tone='lighter'] {
+  --base: color-mix(in srgb, var(--swatch-base) 68%, white);
+  --surface: color-mix(in srgb, var(--swatch-surface) 68%, white);
+  --surface-hover: color-mix(in srgb, var(--swatch-surface-hover) 68%, white);
+}
+
+html[data-tone='darker'] {
+  --base: color-mix(in srgb, var(--swatch-base) 58%, black);
+  --surface: color-mix(in srgb, var(--swatch-surface) 58%, black);
+  --surface-hover: color-mix(in srgb, var(--swatch-surface-hover) 62%, black);
+  --ink-70: color-mix(in srgb, var(--ink) 62%, transparent);
+  --ink-55: color-mix(in srgb, var(--ink) 48%, transparent);
+}
+
+html[data-tone='contrast'] {
+  --ink: #ffffff;
+  --line: color-mix(in srgb, white 14%, transparent);
+  --line-strong: color-mix(in srgb, white 24%, transparent);
+}
+
+html[data-tone='warm'] {
+  --accent: color-mix(in srgb, var(--swatch-accent) 55%, #ff8a40 45%);
+  --accent-hover: color-mix(in srgb, var(--swatch-accent-hover) 50%, #ffb078 50%);
+}
+
+/* —— Typography ———————————————————————————————————————————— */
+
+html[data-type='editorial'] {
+  --display: 'Fraunces', 'Times New Roman', serif;
+  --body: 'Source Sans 3', 'IBM Plex Sans', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+html[data-type='technical'] {
+  --display: 'Syne', 'Space Grotesk', sans-serif;
+  --body: 'IBM Plex Mono', ui-monospace, monospace;
+  --mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+html[data-type='soft-geo'] {
+  --display: 'Outfit', 'Space Grotesk', sans-serif;
+  --body: 'Newsreader', 'Times New Roman', serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+/* —— Design models (batch look; wins over axes above) ———— */
+
+html[data-model='wire-terminal'] {
+  --swatch-base: #030504;
+  --swatch-surface: #0a100c;
+  --swatch-surface-hover: #121a14;
+  --swatch-ink: #d8ffe4;
+  --swatch-accent: #39ff8a;
+  --swatch-accent-hover: #6affaa;
+  --base: #030504;
+  --surface: #0a100c;
+  --surface-hover: #121a14;
+  --ink: #d8ffe4;
+  --accent: #39ff8a;
+  --accent-hover: #6affaa;
+  --line: color-mix(in srgb, #50ff8c 14%, transparent);
+  --line-strong: color-mix(in srgb, #50ff8c 26%, transparent);
+  --line-accent: color-mix(in srgb, #39ff8a 65%, transparent);
+  --display: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+  --body: 'IBM Plex Mono', ui-monospace, monospace;
+  --mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+html[data-model='gallery-quiet'] {
+  --swatch-base: #12110f;
+  --swatch-surface: #1c1a16;
+  --swatch-surface-hover: #26231e;
+  --swatch-ink: #f0ebe3;
+  --swatch-accent: #c4924a;
+  --swatch-accent-hover: #d4a862;
+  --base: #12110f;
+  --surface: #1c1a16;
+  --surface-hover: #26231e;
+  --ink: #f0ebe3;
+  --accent: #c4924a;
+  --accent-hover: #d4a862;
+  --line: color-mix(in srgb, #ffe6be 8%, transparent);
+  --line-strong: color-mix(in srgb, #ffe6be 14%, transparent);
+  --line-accent: color-mix(in srgb, #c4924a 45%, transparent);
+  --display: 'Fraunces', 'Times New Roman', serif;
+  --body: 'Source Sans 3', 'IBM Plex Sans', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+html[data-model='signal-brutal'] {
+  --swatch-base: #05060a;
+  --swatch-surface: #0c0e16;
+  --swatch-surface-hover: #151826;
+  --swatch-ink: #ffffff;
+  --swatch-accent: #4aa3ff;
+  --swatch-accent-hover: #7cbcff;
+  --base: #05060a;
+  --surface: #0c0e16;
+  --surface-hover: #151826;
+  --ink: #ffffff;
+  --accent: #4aa3ff;
+  --accent-hover: #7cbcff;
+  --line: color-mix(in srgb, white 16%, transparent);
+  --line-strong: color-mix(in srgb, white 28%, transparent);
+  --line-accent: color-mix(in srgb, #4aa3ff 70%, transparent);
+  --display: 'Outfit', 'Space Grotesk', sans-serif;
+  --body: 'Newsreader', 'Times New Roman', serif;
+  --mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+}

@@ -1,0 +1,173 @@
+/* Utilitarian DEV panel — tracks active design tokens / accent. */
+
+.dg-debug {
+  --dbg-bg: color-mix(in srgb, var(--surface) 88%, var(--base));
+  --dbg-ink: var(--ink);
+  --dbg-muted: var(--ink-55);
+  --dbg-line: var(--line-strong);
+  --dbg-accent: var(--accent);
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 500;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--dbg-ink);
+  pointer-events: none;
+}
+
+.dg-debug * {
+  pointer-events: auto;
+}
+
+.dg-debug__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--dbg-line);
+  border-radius: 4px;
+  background: var(--dbg-bg);
+  color: var(--dbg-ink);
+  box-shadow: 0 8px 28px color-mix(in srgb, black 45%, transparent);
+}
+
+.dg-debug__toggle:hover {
+  border-color: color-mix(in srgb, var(--ink) 28%, transparent);
+}
+
+.dg-debug__toggle[aria-expanded='true'] {
+  border-color: var(--dbg-accent);
+}
+
+.dg-debug__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dbg-accent);
+  flex-shrink: 0;
+}
+
+.dg-debug__panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  width: min(300px, calc(100vw - 32px));
+  max-height: min(70vh, 520px);
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--dbg-line);
+  border-radius: 6px;
+  background: var(--dbg-bg);
+  box-shadow: 0 16px 48px color-mix(in srgb, black 55%, transparent);
+}
+
+.dg-debug__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--dbg-line);
+}
+
+.dg-debug__title {
+  margin: 0;
+  font: 600 12px/1.2 var(--body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dg-debug__hint {
+  margin: 0;
+  color: var(--dbg-muted);
+  font-size: 10px;
+}
+
+.dg-debug__section {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.dg-debug__label {
+  color: var(--dbg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 10px;
+}
+
+.dg-debug__select {
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid var(--dbg-line);
+  border-radius: 4px;
+  background: var(--base);
+  color: var(--dbg-ink);
+  font: inherit;
+}
+
+.dg-debug__select:focus-visible {
+  outline: 2px solid var(--dbg-accent);
+  outline-offset: 2px;
+}
+
+.dg-debug__desc {
+  margin: 0;
+  color: var(--dbg-muted);
+  font-size: 10px;
+  min-height: 1.35em;
+}
+
+.dg-debug__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--dbg-line);
+}
+
+.dg-debug__btn {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--dbg-line);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--dbg-ink);
+  font: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.dg-debug__btn:hover {
+  border-color: color-mix(in srgb, var(--ink) 35%, transparent);
+}
+
+.dg-debug__btn--primary {
+  border-color: var(--dbg-accent);
+  color: var(--dbg-accent);
+}
+
+.dg-debug__btn--primary:hover {
+  background: color-mix(in srgb, var(--dbg-accent) 12%, transparent);
+}
+
+.dg-debug__note {
+  margin: 10px 0 0;
+  color: var(--dbg-muted);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+@media (max-width: 520px) {
+  .dg-debug {
+    right: 10px;
+    bottom: 10px;
+  }
+
+  .dg-debug__panel {
+    width: min(300px, calc(100vw - 20px));
+  }
+}

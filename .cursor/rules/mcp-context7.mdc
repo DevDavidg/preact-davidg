@@ -1,0 +1,13 @@
+---
+description: Validar APIs de librerías externas con Context7
+globs: src/**/*.{ts,tsx,js,jsx}
+alwaysApply: false
+---
+
+# Context7
+
+Antes de código que use APIs de paquetes externos del `package.json`, consultar Context7 MCP (`resolve-library-id` → `query-docs`).
+
+**Invocar:** hooks de terceros, Three/R3F, GSAP, Motion, Remotion, integraciones nuevas.
+**Omitir:** lógica interna, refactors locales sin cambiar firmas de paquetes.
+Priorizar la versión del `package.json`.

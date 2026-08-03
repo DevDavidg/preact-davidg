@@ -1,0 +1,15 @@
+---
+description: Dispara revisiones automáticas sobre diffs sensibles
+alwaysApply: true
+---
+
+# Auto Code Review
+
+| Condición | Acción |
+|-----------|--------|
+| Cambio en lógica / UI / hooks | Subagente Bugbot sobre cambios locales |
+| Auth, secrets, config de deploy | Bugbot + Security Review |
+| Critical / High | Bloquear cierre y corregir |
+| Cosmético (typos, formato, docs) | Omitir |
+
+Usar skills en `.cursor/skills/auto-code-review/` cuando el hook lo solicite.

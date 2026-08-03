@@ -1,0 +1,14 @@
+---
+description: Stack, puertos y fronteras del portfolio
+alwaysApply: true
+---
+
+# App Stack
+
+- **App:** React 19 + TypeScript + Vite en `src/`.
+- **Dev:** http://localhost:5173 (`pnpm dev`).
+- **Package manager:** `pnpm` only (no npm/yarn/npx).
+- **Sin backend/DB** en este repo — no inventar APIs ni schemas.
+- **MCPs útiles:** Figma (`plugin-figma-figma` — UI source of truth), Playwright (QA visual), Context7 (docs de libs), fetch, semantic-context.
+- **Figma:** fileKey `sAMieh52gsQCid784ildNL`, root node `0:1` — ver `AGENTS.md` / `docs/ARCHITECTURE.md`.
+- Frontera: el navegador solo ve la app Vite; no exponer servicios internos.

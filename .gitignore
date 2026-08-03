@@ -22,3 +22,20 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Env / local secrets
+.env
+.env.*
+!.env.example
+.cursor/mcp.local.json
+.cursor/rules/_session-intent.mdc
+
+# Agent temp (should live in /tmp; ignore if created locally)
+*-compare/
+screenshots/
+.local/
+
+# Python
+__pycache__/
+*.py[cod]
+

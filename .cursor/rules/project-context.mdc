@@ -1,0 +1,33 @@
+---
+description: Mapa de código y convenciones del portfolio
+globs: src/**
+alwaysApply: false
+---
+
+# Project Context
+
+## Layout esperado
+
+```
+src/
+  App.tsx, main.tsx
+  components/   # secciones UI
+  pages/        # vistas
+  hooks/        # custom hooks
+  utils/        # helpers / motion
+  styles/       # CSS feature
+  locales/      # i18n
+```
+
+## Convenciones
+- Componentes funcionales + TypeScript estricto.
+- Event handlers con prefijo `handle*`.
+- `const` arrows; types/interfaces explícitos.
+- Animaciones: reutilizar wrappers existentes (`utils/motion-*`, hooks de reveal) antes de añadir libs nuevas.
+- i18n: strings en `locales/`, no hardcodear copy visible.
+
+## Diseño
+Figma MCP → file `sAMieh52gsQCid784ildNL` (node `0:1`). Ver `AGENTS.md`.
+
+## Alcance
+Cambios mínimos. No reescribir el stack de animación salvo pedido.

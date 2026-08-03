@@ -1,0 +1,144 @@
+{
+  "nav": {
+    "tagline": "atelier · rebuild",
+    "projects": "PROJECTS",
+    "services": "SERVICES",
+    "process": "PROCESS",
+    "about": "ABOUT",
+    "cta": "LET'S TALK ↗",
+    "langLabel": "Switch language",
+    "ariaLabel": "Primary"
+  },
+  "hud": {
+    "subtitle": "PERSISTENT SPACE + RECONSTRUCTION",
+    "subtitleStill": "STILL FRAME + REDUCED MOTION",
+    "build": "BUILD",
+    "hint": "WIRE → SOLID → LIT",
+    "boot": "BOOTING ATELIER"
+  },
+  "hero": {
+    "eyebrow": "DAVID GUILLEN — FRONT-END & MOBILE",
+    "title": "David Guillen.",
+    "lead": "Senior Full Stack focused on Frontend and Mobile. 4+ years building web, apps and end-to-end product — React, React Native, Next.js, Angular and Node.",
+    "ctaPrimary": "BOOK 15 MIN ↗",
+    "ctaGhost": "VIEW PROJECTS",
+    "factYears": "4+ YEARS · FREELANCE SINCE 2018",
+    "factStack": "REACT · RN · NEXT · ANGULAR · NODE",
+    "factAvailable": "VILLA CRESPO · REMOTE",
+    "cue": "SCROLL TO BUILD"
+  },
+  "work": {
+    "label": "01 — PROJECTS ⁄ ARTIFACTS IN SPACE",
+    "note": "objects in the scene · hover to focus",
+    "items": [
+      {
+        "tag": "ANGULAR · TS · SCSS",
+        "title": "Nonconformist",
+        "copy": "Agency site: Angular/TypeScript front end with SCSS — brand and digital product end to end.",
+        "shot": "ARTIFACT 01 — NONCONFORMIST",
+        "link": "TALK ABOUT THIS →"
+      },
+      {
+        "tag": "REACT · TYPESCRIPT",
+        "title": "Muscly",
+        "copy": "Music manager with spectrograms from URLs and YouTube — a React/TS UI built to explore audio.",
+        "shot": "ARTIFACT 02 — MUSCLY",
+        "link": "TALK ABOUT THIS →"
+      },
+      {
+        "tag": "REACT · SHADCN · TS",
+        "title": "Chroma Dev",
+        "copy": "Multi-tenant themes via JSON: a skin system for SaaS products without per-client redeploys.",
+        "shot": "ARTIFACT 03 — CHROMA",
+        "link": "TALK ABOUT THIS →"
+      }
+    ]
+  },
+  "services": {
+    "label": "02 — SERVICES ⁄ CAPABILITIES",
+    "items": [
+      {
+        "title": "Web, mobile & SaaS apps",
+        "stack": "REACT · REACT NATIVE · NEXT · ANGULAR · VUE",
+        "copy": "End-to-end products: responsive web, mobile apps and SaaS platforms with TypeScript."
+      },
+      {
+        "title": "Cloud & Android",
+        "stack": "NODE · FIREBASE · EXPRESS · RN",
+        "copy": "Cloud-connected and Android apps with a lean backend, auth and real-time data."
+      },
+      {
+        "title": "Custom software + UI/UX",
+        "stack": "FIGMA · RESPONSIVE · DESIGN SYSTEMS",
+        "copy": "Interface design and custom build: from the Figma flow to the production component."
+      },
+      {
+        "title": "Information management",
+        "stack": "MYSQL · POSTGRES · MONGODB · FIREBASE",
+        "copy": "Modeling, APIs and dashboards so data stays operable without friction."
+      }
+    ]
+  },
+  "process": {
+    "label": "03 — PROCESS ⁄ METHOD",
+    "caption": "Agile method (Scrum/Kanban) with SOLID, DRY and KISS — the numeral marks each phase.",
+    "steps": [
+      {
+        "num": "01",
+        "title": "Discovery",
+        "phase": "PHASE 01 — SCAN",
+        "heading": "Goals, users and scope",
+        "copy": "What problem we solve, for whom, and with which success metric. Stack, constraints and product narrative."
+      },
+      {
+        "num": "02",
+        "title": "Prototype",
+        "phase": "PHASE 02 — ASSEMBLE",
+        "heading": "The key interaction, proven fast",
+        "copy": "Wireframes and a navigable prototype: we validate UX and architecture before the full build."
+      },
+      {
+        "num": "03",
+        "title": "Build",
+        "phase": "PHASE 03 — SOLID",
+        "heading": "Design and code move together",
+        "copy": "Sprints with frequent demos. Frontend, mobile and backend in parallel — no endless handoffs."
+      },
+      {
+        "num": "04",
+        "title": "Launch + iterate",
+        "phase": "PHASE 04 — LIVE",
+        "heading": "Ship it, measure it, tune it",
+        "copy": "QA, performance and real feedback. What ships gets iterated with data, not guesswork."
+      }
+    ]
+  },
+  "about": {
+    "label": "04 — ABOUT",
+    "portrait": "PORTRAIT — DROP YOUR PHOTO",
+    "quote": "\"Full stack focused on frontend and mobile: from wireframe to production app.\"",
+    "copy": "I'm David Guillen, 23. Front-End & Mobile Developer / Senior Full Stack. 4+ years of experience (freelance since 2018). Currently Technical Lead at Grupo Mariva; also at Bayer (Salesforce) and Nonconformist. Previously: Santander España, GlobalLogic (Claro), Skyblue, VinciU, Orion2Pay.",
+    "spec": [
+      { "key": "BASE", "value": "Villa Crespo, CABA — remote" },
+      { "key": "STACK", "value": "React · RN · Next · Angular · Vue · Node" },
+      { "key": "LANGUAGES", "value": "Native Spanish · English B2" },
+      { "key": "FOCUS", "value": "Frontend · Mobile · Product" }
+    ]
+  },
+  "contact": {
+    "label": "05 — CONTACT ⁄ POWER ON",
+    "live": "SCENE LIVE — ACCENT LIGHT ONLINE",
+    "title": "Shall we power up the scene?",
+    "lead": "Tell me what you want to build — web, mobile or full-stack product. I reply by email or LinkedIn.",
+    "email": "dev.davidg@gmail.com",
+    "social": [
+      { "label": "GITHUB ↗", "href": "https://github.com/DevDavidg" },
+      { "label": "LINKEDIN ↗", "href": "https://www.linkedin.com/in/david-guillen-5074281b8" },
+      { "label": "+54 11 7003-0947 ↗", "href": "tel:+541170030947" }
+    ]
+  },
+  "footer": {
+    "copyright": "© 2026 DAVID GUILLEN",
+    "signature": "FRONTEND · MOBILE · HANDMADE"
+  }
+}

@@ -1,0 +1,27 @@
+---
+description: Cerebro del agente — intención, tokens, ejecución y loop de calidad
+alwaysApply: true
+---
+
+# Agent Brain
+
+## Intención
+Antes de actuar: **objetivo**, **alcance (qué NO tocar)**, **formato**.
+Consultas → respuesta directa. Refinamientos → continuar la tarea actual.
+
+## Tokens
+- Herramientas en **paralelo** (`Grep` + `Glob` + shell juntos).
+- `Grep`/`Glob` antes de `Read`; leer solo rangos necesarios.
+- No re-leer archivos ya en contexto.
+
+## Calidad
+1. Archivos de código ≤ **600 líneas** (`.ts`, `.tsx`, `.js`, `.css`). Modularizar si se alcanza.
+2. Al tocar un archivo: eliminar dead code e imports obsoletos.
+3. Si cambian scripts, env o arquitectura → actualizar docs en la misma sesión.
+
+## Triple-pass (automático vía hooks)
+1. **Implementar** + auto-sanación (`make quick-check`).
+2. **Analizar** (máx. 12 bullets: Hecho | Gaps | Riesgos | Mejoras) — sin editar.
+3. **Refinar** + captura Playwright si hubo cambios UI.
+
+Bypass: `!fast` o `--quick` → solo Pasada 1.
