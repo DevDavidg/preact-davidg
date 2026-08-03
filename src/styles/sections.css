@@ -138,7 +138,7 @@
 
 .work__field {
   position: relative;
-  min-height: 128vh;
+  min-height: 220vh;
 }
 
 /* Animate reveal offset without transitioning `transform` (which fights tilt
@@ -195,24 +195,67 @@
 
 .artifact--1 {
   left: 3%;
-  top: 4%;
+  top: 2%;
 }
 
 .artifact--2 {
   right: 5%;
-  top: 32%;
+  top: 14%;
   width: min(350px, 40vw);
 }
 
 .artifact--3 {
-  left: 17%;
-  top: 66%;
+  left: 12%;
+  top: 34%;
   width: min(370px, 42vw);
 }
 
+.artifact--4 {
+  right: 8%;
+  top: 48%;
+  width: min(360px, 41vw);
+}
+
+.artifact--5 {
+  left: 6%;
+  top: 66%;
+  width: min(340px, 39vw);
+}
+
+.artifact--6 {
+  right: 4%;
+  top: 82%;
+  width: min(355px, 40vw);
+}
+
 .artifact__shot {
+  /* Keep .window grid (place-items: end start) so the caption stays bottom-left. */
   height: 190px;
+  overflow: hidden;
   border-bottom: 1px solid var(--line);
+}
+
+.artifact__img {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  pointer-events: none;
+  transition: transform 0.7s var(--ease);
+}
+
+.artifact:hover .artifact__img,
+.artifact:focus-within .artifact__img {
+  transform: scale(1.04);
+}
+
+.artifact__shot > span {
+  position: relative;
+  z-index: 1;
+  background: color-mix(in srgb, var(--base) 82%, transparent);
 }
 
 /* The crop marks track the panel, so pointing at the card lights its viewfinder. */

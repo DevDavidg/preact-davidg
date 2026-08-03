@@ -121,7 +121,8 @@ const ArtifactPanel = ({ index, item }: ArtifactPanelProps) => {
   )
 
   const handleFocus = useCallback(() => {
-    sceneState.focus = index
+    // Scene only has three solids; map every panel onto that triad.
+    sceneState.focus = index % 3
   }, [index])
 
   const handleBlur = useCallback(() => {
@@ -147,18 +148,35 @@ const ArtifactPanel = ({ index, item }: ArtifactPanelProps) => {
       onBlur={handleBlur}
     >
       <div className="artifact__shot window">
+        <img
+          src={item.image}
+          alt=""
+          className="artifact__img"
+          width={720}
+          height={450}
+          loading="lazy"
+          decoding="async"
+        />
         <span>{item.shot}</span>
       </div>
       <div className="artifact__body">
         <div className="artifact__top">
-          <span className="numeral artifact__num">{`0${index + 1}`}</span>
+          <span className="numeral artifact__num">
+            {String(index + 1).padStart(2, '0')}
+          </span>
           <span className="meta">{item.tag}</span>
         </div>
         <h3 className="artifact__title">{item.title}</h3>
         <p className="body-sm" style={{ marginTop: 10 }}>
           {item.copy}
         </p>
-        <a href="#contact" className="artifact__link">
+        <a
+          href={item.href}
+          className="artifact__link"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`${item.title}: ${item.link}`}
+        >
           {item.link}
         </a>
       </div>

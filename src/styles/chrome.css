@@ -193,11 +193,17 @@
   position: relative;
   display: grid;
   place-items: end start;
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--accent) 8%, transparent),
-    transparent 55%
-  );
+  background:
+    linear-gradient(
+      180deg,
+      transparent 40%,
+      color-mix(in srgb, var(--base) 55%, transparent) 100%
+    ),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent) 8%, transparent),
+      transparent 55%
+    );
 }
 
 .window::before,

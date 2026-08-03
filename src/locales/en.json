@@ -32,25 +32,58 @@
     "note": "objects in the scene · hover to focus",
     "items": [
       {
-        "tag": "ANGULAR · TS · SCSS",
-        "title": "Nonconformist",
-        "copy": "Agency site: Angular/TypeScript front end with SCSS — brand and digital product end to end.",
-        "shot": "ARTIFACT 01 — NONCONFORMIST",
-        "link": "TALK ABOUT THIS →"
-      },
-      {
-        "tag": "REACT · TYPESCRIPT",
-        "title": "Muscly",
-        "copy": "Music manager with spectrograms from URLs and YouTube — a React/TS UI built to explore audio.",
-        "shot": "ARTIFACT 02 — MUSCLY",
-        "link": "TALK ABOUT THIS →"
-      },
-      {
-        "tag": "REACT · SHADCN · TS",
+        "tag": "REACT · SHADCN · THEMES",
         "title": "Chroma Dev",
-        "copy": "Multi-tenant themes via JSON: a skin system for SaaS products without per-client redeploys.",
-        "shot": "ARTIFACT 03 — CHROMA",
-        "link": "TALK ABOUT THIS →"
+        "copy": "Multi-tenant themes via JSON: skins for SaaS products without per-client redeploys.",
+        "shot": "ARTIFACT 01 — CHROMA",
+        "href": "https://chroma-dev.vercel.app/",
+        "image": "/work/chroma-dev.jpg",
+        "link": "VIEW PROJECT →"
+      },
+      {
+        "tag": "LANDING · ART · UI",
+        "title": "Landing Da Vinci",
+        "copy": "Editorial art-collection landing: expressive type, gallery and museum atmosphere.",
+        "shot": "ARTIFACT 02 — DAVINCI",
+        "href": "https://landing-davinci.vercel.app/",
+        "image": "/work/landing-davinci.jpg",
+        "link": "VIEW PROJECT →"
+      },
+      {
+        "tag": "ECOMMERCE · REACT",
+        "title": "Fueradecontexto",
+        "copy": "Online store with catalog, cart and checkout flows — a product ready to sell.",
+        "shot": "ARTIFACT 03 — FUERA",
+        "href": "https://fueradecontexto.vercel.app/",
+        "image": "/work/fueradecontexto.jpg",
+        "link": "VIEW PROJECT →"
+      },
+      {
+        "tag": "LANDING · GLASS",
+        "title": "Launch Flow",
+        "copy": "Glassmorph launch landing: hero, contact and brand presence in one scene.",
+        "shot": "ARTIFACT 04 — LAUNCH",
+        "href": "https://launch-flow.vercel.app/",
+        "image": "/work/launch-flow.jpg",
+        "link": "VIEW PROJECT →"
+      },
+      {
+        "tag": "WEBGL · THREE.JS",
+        "title": "Sphere App",
+        "copy": "WebGL scene with interactive spheres — a 3D experiment in atmosphere and matter.",
+        "shot": "ARTIFACT 05 — SPHERE",
+        "href": "https://sphere-app.vercel.app/",
+        "image": "/work/sphere-app.jpg",
+        "link": "VIEW PROJECT →"
+      },
+      {
+        "tag": "PORTFOLIO · UX/UI",
+        "title": "David G Dev",
+        "copy": "Earlier personal portfolio: minimal hero, clear nav and project-first layout.",
+        "shot": "ARTIFACT 06 — DAVIDG",
+        "href": "https://david-g-dev.vercel.app/",
+        "image": "/work/devdavidgapp.jpg",
+        "link": "VIEW PROJECT →"
       }
     ]
   },
