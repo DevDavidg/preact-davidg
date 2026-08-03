@@ -1,7 +1,8 @@
 /**
  * DEV-only theme overrides via data-* on <html>.
  * Loaded only from the design-debug chunk — never in production entry.
- * Default (no attributes) = tokens.css production look.
+ * Default (no attributes) = tokens.css production look
+ * (Noir gold + Darker + Soft geo).
  *
  * Palettes / models write `--swatch-*`. Tones mix from those swatches so
  * lighter/darker/warm keep the active hue. Derived ink/line alphas live in
@@ -10,6 +11,15 @@
 
 /* —— Palettes ———————————————————————————————————————————————— */
 
+html[data-palette='immersivo'] {
+  --swatch-base: #0a0a0b;
+  --swatch-surface: #131316;
+  --swatch-surface-hover: #1b1b20;
+  --swatch-ink: #f2f0ec;
+  --swatch-accent: #ff5c38;
+  --swatch-accent-hover: #ff7657;
+}
+
 html[data-palette='cold-steel'] {
   --swatch-base: #07090e;
   --swatch-surface: #10141c;
@@ -17,15 +27,6 @@ html[data-palette='cold-steel'] {
   --swatch-ink: #e8eef8;
   --swatch-accent: #5eb0ff;
   --swatch-accent-hover: #7fc0ff;
-}
-
-html[data-palette='noir-gold'] {
-  --swatch-base: #0c0b09;
-  --swatch-surface: #161411;
-  --swatch-surface-hover: #1f1c17;
-  --swatch-ink: #f4efe6;
-  --swatch-accent: #d4a054;
-  --swatch-accent-hover: #e0b56e;
 }
 
 html[data-palette='signal-green'] {
@@ -38,19 +39,20 @@ html[data-palette='signal-green'] {
 }
 
 /* —— Tones (mix from swatches — preserve palette hue) —— */
+/* Production default is already darker; `default` restores authored swatches. */
+
+html[data-tone='default'] {
+  --base: var(--swatch-base);
+  --surface: var(--swatch-surface);
+  --surface-hover: var(--swatch-surface-hover);
+  --ink-70: color-mix(in srgb, var(--ink) 70%, transparent);
+  --ink-55: color-mix(in srgb, var(--ink) 55%, transparent);
+}
 
 html[data-tone='lighter'] {
   --base: color-mix(in srgb, var(--swatch-base) 68%, white);
   --surface: color-mix(in srgb, var(--swatch-surface) 68%, white);
   --surface-hover: color-mix(in srgb, var(--swatch-surface-hover) 68%, white);
-}
-
-html[data-tone='darker'] {
-  --base: color-mix(in srgb, var(--swatch-base) 58%, black);
-  --surface: color-mix(in srgb, var(--swatch-surface) 58%, black);
-  --surface-hover: color-mix(in srgb, var(--swatch-surface-hover) 62%, black);
-  --ink-70: color-mix(in srgb, var(--ink) 62%, transparent);
-  --ink-55: color-mix(in srgb, var(--ink) 48%, transparent);
 }
 
 html[data-tone='contrast'] {
@@ -66,6 +68,12 @@ html[data-tone='warm'] {
 
 /* —— Typography ———————————————————————————————————————————— */
 
+html[data-type='immersivo'] {
+  --display: 'Space Grotesk', system-ui, sans-serif;
+  --body: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
 html[data-type='editorial'] {
   --display: 'Fraunces', 'Times New Roman', serif;
   --body: 'Source Sans 3', 'IBM Plex Sans', sans-serif;
@@ -76,12 +84,6 @@ html[data-type='technical'] {
   --display: 'Syne', 'Space Grotesk', sans-serif;
   --body: 'IBM Plex Mono', ui-monospace, monospace;
   --mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
-}
-
-html[data-type='soft-geo'] {
-  --display: 'Outfit', 'Space Grotesk', sans-serif;
-  --body: 'Newsreader', 'Times New Roman', serif;
-  --mono: 'IBM Plex Mono', ui-monospace, monospace;
 }
 
 /* —— Design models (batch look; wins over axes above) ———— */

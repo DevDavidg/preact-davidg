@@ -39,6 +39,10 @@ while IFS= read -r line; do
   [[ -z "$line" ]] && continue
   path="${line:3}"
   path="${path%% -> *}"
+  # Renames must measure the destination: the source path no longer exists.
+  if [[ "$line" == *" -> "* ]]; then
+    path="${line#* -> }"
+  fi
   if [[ -f "$ROOT/$path" && "$path" == src/* ]]; then
     lines=$(wc -l <"$ROOT/$path" | tr -d ' ')
     if [[ "$lines" -ge 600 ]]; then

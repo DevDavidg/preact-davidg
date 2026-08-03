@@ -6,14 +6,14 @@ STATE_DIR="${TMPDIR:-/tmp}/preact-davidg-agent"
 
 INPUT="$(cat)"
 
-# Record the tree a review pass cleared, for stop-auto-review.sh to dedupe against.
-# Only on the clean paths: marking a tree that still has Critical/High as reviewed
-# would silence further prompts as soon as the re-loop budget runs out.
-# Hash must include diff/untracked content — path-only porcelain stays stable after fixes.
+# Record FUNC-tree fingerprint only on strong clean — never after Critical/High,
+# and never on ambiguous output (avoids silencing a missed High parse).
 record_reviewed() {
+  local hash_script
+  hash_script="$(cd "$(dirname "$0")" && pwd)/lib/auto_review_hash.sh"
+  [[ -x "$hash_script" ]] || return 0
   mkdir -p "$STATE_DIR"
-  "$(cd "$(dirname "$0")" && pwd)/lib/auto_review_hash.sh" "$ROOT" \
-    >"$STATE_DIR/auto-review-hash"
+  "$hash_script" "$ROOT" >"$STATE_DIR/auto-review-hash"
 }
 
 STATUS="$(echo "$INPUT" | jq -r '.status // .result // empty' 2>/dev/null || true)"
@@ -37,7 +37,7 @@ if echo "$TEXT" | grep -Eiq \
   exit 0
 fi
 
-record_reviewed
+# Ambiguous (e.g. Medium-only or unfamiliar format): do not record — next stop may re-ask.
 echo '{}'
 exit 0
 

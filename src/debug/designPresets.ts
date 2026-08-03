@@ -15,9 +15,9 @@ export type DesignDebugState = {
 export const STORAGE_KEY = 'dg-design-debug'
 
 export const DEFAULT_DESIGN_DEBUG: DesignDebugState = {
-  palette: 'immersivo',
-  tone: 'default',
-  type: 'immersivo',
+  palette: 'noir-gold',
+  tone: 'darker',
+  type: 'soft-geo',
   model: 'immersivo',
 }
 
@@ -28,16 +28,16 @@ export type PresetOption<T extends string> = {
 }
 
 export const PALETTE_OPTIONS: PresetOption<PaletteId>[] = [
-  { id: 'immersivo', label: 'Immersivo', hint: 'Void + coral CTA (prod)' },
+  { id: 'immersivo', label: 'Immersivo', hint: 'Void + coral CTA' },
   { id: 'cold-steel', label: 'Cold steel', hint: 'Cool void + ice accent' },
-  { id: 'noir-gold', label: 'Noir gold', hint: 'Ink black + warm metal' },
+  { id: 'noir-gold', label: 'Noir gold', hint: 'Ink black + warm metal (prod)' },
   { id: 'signal-green', label: 'Signal green', hint: 'Terminal phosphor' },
 ]
 
 export const TONE_OPTIONS: PresetOption<ToneId>[] = [
   { id: 'default', label: 'Default', hint: 'Palette as authored' },
   { id: 'lighter', label: 'Lighter', hint: 'Lift swatches toward white' },
-  { id: 'darker', label: 'Darker', hint: 'Deepen swatches toward black' },
+  { id: 'darker', label: 'Darker', hint: 'Deepen swatches toward black (prod)' },
   { id: 'contrast', label: 'Contrast', hint: 'Harder ink / lines' },
   { id: 'warm', label: 'Warm accent', hint: 'Warm the current accent hue' },
 ]
@@ -46,7 +46,7 @@ export const TYPE_OPTIONS: PresetOption<TypeId>[] = [
   { id: 'immersivo', label: 'Immersivo', hint: 'Space Grotesk + IBM Plex' },
   { id: 'editorial', label: 'Editorial', hint: 'Fraunces + Source Sans 3' },
   { id: 'technical', label: 'Technical', hint: 'Syne + IBM Plex Mono body' },
-  { id: 'soft-geo', label: 'Soft geo', hint: 'Outfit + Newsreader' },
+  { id: 'soft-geo', label: 'Soft geo', hint: 'Outfit + Newsreader (prod)' },
 ]
 
 export const MODEL_OPTIONS: PresetOption<ModelId>[] = [
@@ -86,4 +86,4 @@ export const isDesignDebugState = (value: unknown): value is DesignDebugState =>
 
 /** Extra Google Fonts for non-default type presets (dev-only injection). */
 export const DEBUG_FONTS_HREF =
-  'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;600;700&family=Source+Sans+3:wght@400;500;600&family=Syne:wght@500;600;700;800&family=Outfit:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap'
+  'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;600;700&family=Source+Sans+3:wght@400;500;600&family=Syne:wght@500;600;700;800&family=Space+Grotesk:wght@300..700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap'

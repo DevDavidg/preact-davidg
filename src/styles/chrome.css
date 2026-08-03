@@ -5,6 +5,8 @@
   inset: 0;
   z-index: var(--z-scene);
   pointer-events: none;
+  /* Matches the WebGL clear color so a skipped frame never flashes a different void. */
+  background: var(--base);
 }
 
 .stage--vignette {
@@ -24,7 +26,6 @@
     transparent 72%
   );
   opacity: 0;
-  will-change: opacity;
 }
 
 /* Overlay column — only interactive descendants capture the pointer so the

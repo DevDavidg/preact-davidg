@@ -77,7 +77,11 @@ export const Atmosphere = ({ tier }: { tier: Tier }) => {
 
   return (
     <>
-      <fogExp2 ref={fog} attach="fog" args={['#0a0a0b', FOG_DENSITY]} />
+      <fogExp2
+        ref={fog}
+        attach="fog"
+        args={[`#${sceneColors.base.getHexString()}`, FOG_DENSITY]}
+      />
       <mesh
         ref={portal}
         geometry={portalGeometry}

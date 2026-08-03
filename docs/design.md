@@ -44,25 +44,25 @@ Métrica de éxito (cualitativa): alguien describe el sitio como *“el que se r
 
 ## 3. Design system (sync)
 
-Dark premium 60-30-10. Acento **solo** en CTAs, estados vivos y portal LIVE.
+Dark premium 60-30-10 — **Noir gold + Darker + Soft geo**. Acento **solo** en CTAs, estados vivos y portal LIVE.
 
 | Token | Valor | Uso |
 |-------|-------|-----|
-| Base | `#0A0A0B` | Fondo / void |
-| Surface | `#131316` | Paneles overlay |
-| Surface hover | `#1B1B20` | Hover filas |
-| Línea | `white @ 8–14%` | Bordes |
-| Tinta | `#F2F0EC` | Texto |
-| Tinta 55 | `rgba(242,240,236,.55)` | Secundario |
-| Acento | `#FF5C38` | CTA / LIVE / fase activa |
-| Acento hover | `#FF7657` | Hover CTA |
+| Base | `#070605` (swatch `#0C0B09` × darker) | Fondo / void |
+| Surface | swatch `#161411` × darker | Paneles overlay |
+| Surface hover | swatch `#1F1C17` × darker | Hover filas |
+| Línea | ink @ 8–14% | Bordes |
+| Tinta | `#F4EFE6` | Texto |
+| Tinta 55 | ink @ ~48% (tone darker) | Secundario |
+| Acento | `#D4A054` | CTA / LIVE / fase activa |
+| Acento hover | `#E0B56E` | Hover CTA |
 
 **Tipo**
 
 | Rol | Familia | Notas |
 |-----|---------|-------|
-| Display / UI | Space Grotesk | Display XL ~96–112, tracking tight |
-| Body | IBM Plex Sans | Lead 18–20 / body 15–16 |
+| Display / UI | Outfit | Display XL ~96–112, tracking tight |
+| Body | Newsreader | Lead 18–20 / body 15–16 |
 | Meta / labels | IBM Plex Mono | Caps, tracking +12–18% |
 
 **Espaciado:** escala 8 · 16 · 24 · 32 · 48 · 64. Padding sección desktop `120px 64px`. Whitespace como directiva.
@@ -80,7 +80,7 @@ Escena fija (canvas/R3F full-viewport, `z-index` bajo). UI en overlays (`pointer
 | 0–18% | `SCANNING` | Wireframe, grid perspectiva, sin fill | Hero |
 | 18–48% | `ASSEMBLING` | Cajas/objetos se solidifican; artefactos visibles | Work + Services |
 | 48–78% | `BEAUTY` | Materiales lit, DOF/luz controlada | Process + About |
-| 78–100% | `LIVE` | Acento naranja “portal / power-on” | Contact |
+| 78–100% | `LIVE` | Acento oro “portal / power-on” | Contact |
 
 HUD fijo (opcional en prod, sí en prototipo): fase + `BUILD xxx%` + hint `WIRE → SOLID → LIT`.
 
@@ -198,8 +198,7 @@ Presupuesto mental: **60fps** en MacBook/GPU mid; degradar antes que stutter.
 ```
 Portfolio DG Immersivo v3.
 Firma: escena atelier persistente + reconstrucción wire→solid→lit (SCANNING→ASSEMBLING→BEAUTY→LIVE).
-DS: #0A0A0B / #131316 / #F2F0EC / acento #FF5C38 solo CTA/LIVE.
-Tipo: Space Grotesk + IBM Plex Sans + IBM Plex Mono.
+DS: Noir gold darker — #070605 / #D4A054 acento solo CTA/LIVE · Outfit + Newsreader + IBM Plex Mono.
 Proyectos = artefactos espaciales, no card grid.
 Prohibido: partículas como wow, cursor ring, purple/glow/cream-serif AI slop, WebGPU sin fallback.
 Primero demo gris scroll→morph a 60fps; después beauty.

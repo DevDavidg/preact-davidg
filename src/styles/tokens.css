@@ -2,25 +2,26 @@
 
 :root {
   /*
-   * Swatches are the authored palette. Public tokens alias them so tones can
-   * `color-mix` from `--swatch-*` without cyclic `var(--base)` on the same element.
+   * Production look = Noir gold + Darker + Soft geo.
+   * Swatches are the authored palette. Public tokens mix from them so DEV
+   * tone overrides can `color-mix` without cyclic `var(--base)`.
    */
-  --swatch-base: #0a0a0b;
-  --swatch-surface: #131316;
-  --swatch-surface-hover: #1b1b20;
-  --swatch-ink: #f2f0ec;
-  --swatch-accent: #ff5c38;
-  --swatch-accent-hover: #ff7657;
+  --swatch-base: #0c0b09;
+  --swatch-surface: #161411;
+  --swatch-surface-hover: #1f1c17;
+  --swatch-ink: #f4efe6;
+  --swatch-accent: #d4a054;
+  --swatch-accent-hover: #e0b56e;
 
-  --base: var(--swatch-base);
-  --surface: var(--swatch-surface);
-  --surface-hover: var(--swatch-surface-hover);
+  --base: color-mix(in srgb, var(--swatch-base) 58%, black);
+  --surface: color-mix(in srgb, var(--swatch-surface) 58%, black);
+  --surface-hover: color-mix(in srgb, var(--swatch-surface-hover) 62%, black);
   --ink: var(--swatch-ink);
   --accent: var(--swatch-accent);
   --accent-hover: var(--swatch-accent-hover);
 
-  --ink-70: color-mix(in srgb, var(--ink) 70%, transparent);
-  --ink-55: color-mix(in srgb, var(--ink) 55%, transparent);
+  --ink-70: color-mix(in srgb, var(--ink) 62%, transparent);
+  --ink-55: color-mix(in srgb, var(--ink) 48%, transparent);
   --ink-45: color-mix(in srgb, var(--ink) 45%, transparent);
   --ink-35: color-mix(in srgb, var(--ink) 35%, transparent);
 
@@ -28,8 +29,8 @@
   --line-strong: color-mix(in srgb, var(--ink) 14%, transparent);
   --line-accent: color-mix(in srgb, var(--accent) 55%, transparent);
 
-  --display: 'Space Grotesk', system-ui, sans-serif;
-  --body: 'IBM Plex Sans', system-ui, sans-serif;
+  --display: 'Outfit', 'Space Grotesk', system-ui, sans-serif;
+  --body: 'Newsreader', 'Times New Roman', serif;
   --mono: 'IBM Plex Mono', ui-monospace, monospace;
 
   --s1: 8px;

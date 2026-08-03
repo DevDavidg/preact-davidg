@@ -28,8 +28,10 @@ const Post = ({ tier }: { tier: Tier }) => {
     bloom.current.intensity = 0.16 + liveFor(buildFor(tier)) * 0.7
   })
 
+  // MSAA on the composer is a known source of one-frame black clears while the
+  // camera dollies/parallaxes — reads as a solid void block behind the overlays.
   return (
-    <EffectComposer multisampling={4}>
+    <EffectComposer multisampling={0} enableNormalPass={false}>
       <Bloom
         ref={bloom}
         mipmapBlur
@@ -67,6 +69,7 @@ const StillFrame = () => {
  */
 const SceneThemeSync = () => {
   const scene = useThree((state) => state.scene)
+  const gl = useThree((state) => state.gl)
   const invalidate = useThree((state) => state.invalidate)
 
   useEffect(() => {
@@ -76,13 +79,14 @@ const SceneThemeSync = () => {
       } else {
         scene.background = sceneColors.base.clone()
       }
+      gl.setClearColor(sceneColors.base, 1)
       invalidate()
     }
 
     refreshSceneColors()
     applyBackground()
     return onDesignDebugChange(applyBackground)
-  }, [scene, invalidate])
+  }, [scene, gl, invalidate])
 
   return null
 }
@@ -96,17 +100,17 @@ export const AtelierScene = ({ tier }: { tier: Tier }) => (
   // `height: 100%` inline on its own container, which would win over a class.
   <div className="stage" aria-hidden="true">
     <Canvas
-      dpr={[1, tier === 'cinema' ? 2 : 1.5]}
+      dpr={[1, tier === 'cinema' ? 1.75 : 1.5]}
       frameloop={tier === 'still' ? 'demand' : 'always'}
       camera={{ fov: 42, near: 0.1, far: 64, position: [0, 1.75, 10.2] }}
       gl={{
         alpha: false,
-        antialias: tier !== 'cinema',
+        antialias: true,
         powerPreference: 'high-performance',
         stencil: false,
       }}
     >
-      <color attach="background" args={['#0a0a0b']} />
+      <color attach="background" args={[`#${sceneColors.base.getHexString()}`]} />
       <SceneThemeSync />
       <Atmosphere tier={tier} />
       <Rig tier={tier} />

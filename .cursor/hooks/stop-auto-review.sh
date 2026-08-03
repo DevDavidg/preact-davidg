@@ -31,7 +31,7 @@ while IFS= read -r line; do
       SENSITIVE=1
       FUNC=1
       ;;
-    src/*|package.json|vite.config.ts|Makefile|scripts/*|.cursor/hooks/*|.cursor/mcp.json|.cursor/hooks.json)
+    src/*|index.html|package.json|vite.config.ts|Makefile|scripts/*|.cursor/hooks/*|.cursor/mcp.json|.cursor/hooks.json)
       FUNC=1
       ;;
   esac
@@ -42,13 +42,14 @@ if [[ "$FUNC" -eq 0 ]]; then
   exit 0
 fi
 
-# Dedupe by dirty-tree *content* hash (status + diff + untracked blobs).
-# Written by subagent-stop-loop.sh after a review pass; path-only porcelain
-# would skip re-review after fixing the same files. Do not write the hash here —
-# otherwise the next stop skips before any review runs.
+# Dedupe by FUNC-path *content* hash (see lib/auto_review_hash.sh).
+# Written by subagent-stop-loop.sh after a clean review pass only.
+# Do not write the hash here — otherwise the next stop skips before any review.
 HASH_SCRIPT="$(cd "$(dirname "$0")" && pwd)/lib/auto_review_hash.sh"
-HASH="$("$HASH_SCRIPT" "$ROOT")"
-if [[ -f "$HASH_FILE" ]] && [[ "$(cat "$HASH_FILE")" == "$HASH" ]]; then
+if [[ ! -x "$HASH_SCRIPT" ]]; then
+  # Fail open: missing helper must not silently skip auto-review.
+  :
+elif [[ -f "$HASH_FILE" ]] && [[ "$(cat "$HASH_FILE")" == "$("$HASH_SCRIPT" "$ROOT")" ]]; then
   echo '{}'
   exit 0
 fi

@@ -141,10 +141,31 @@
   min-height: 128vh;
 }
 
+/* Animate reveal offset without transitioning `transform` (which fights tilt
+   and was part of the black-flash compositor path). */
+@property --ty {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 26px;
+}
+
+@property --rx {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@property --ry {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
 .artifact {
   position: absolute;
   width: min(390px, 44vw);
-  overflow: hidden;
+  /* No overflow:hidden: clipping a perspective-tilted layer that also blurs its
+     backdrop paints a solid black rectangle for a frame on Chromium/WebKit. */
   border: 1px solid var(--line-strong);
   /* No fill of its own: the shot area is a clear window onto the scene behind,
      and only the body block below it gets a surface. */
@@ -152,11 +173,12 @@
   /* One transform serves both jobs: `--ty` is the reveal, `--rx`/`--ry` the
      pointer tilt. Keeping them in the same declaration avoids one overriding
      the other. */
+  /* Fallbacks keep the transform valid if `@property` is ignored. */
   transform: perspective(900px) translateY(var(--ty, 26px))
     rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
-  transition: opacity var(--dur-slow) var(--ease),
-    transform var(--dur) var(--ease), border-color var(--dur) var(--ease),
-    box-shadow var(--dur) var(--ease);
+  /* Only `--ty` eases on reveal; tilt angles are damped in JS. */
+  transition: opacity var(--dur-slow) var(--ease), --ty var(--dur-slow) var(--ease),
+    border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 
 .artifact[data-shown='true'] {
@@ -203,8 +225,9 @@
 
 .artifact__body {
   padding: 22px 24px 26px;
-  background: color-mix(in srgb, var(--surface) 72%, transparent);
-  backdrop-filter: blur(10px);
+  /* Solid-enough plate instead of backdrop-filter: sampling the scene through a
+     3D-transformed ancestor is what produced the black block in the shot. */
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
 }
 
 .artifact__top {
