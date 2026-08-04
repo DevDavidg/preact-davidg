@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Bloom, EffectComposer, Noise } from '@react-three/postprocessing'
 import { BlendFunction, type BloomEffect } from 'postprocessing'
 import * as THREE from 'three'
+import { useCopy } from '../i18n/copy'
 import { Artifacts } from './Artifacts'
 import { Atmosphere } from './Atmosphere'
 import { GridFloor } from './GridFloor'
@@ -15,6 +16,8 @@ import {
 } from './sceneColors'
 import { Structures } from './Structures'
 import { buildFor, liveFor, type Tier } from './sceneState'
+import { useSectionWindows } from './ui/useSectionWindows'
+import { WorldCopy } from './ui/WorldCopy'
 
 /**
  * Two passes, both earning their cost: bloom so the accent rim actually glows
@@ -102,32 +105,46 @@ const SceneThemeSync = () => {
 /**
  * The persistent atelier. Mounted once for the whole page and never unmounted
  * between sections — that continuity is the point of the signature.
+ *
+ * Copy and section geometry are read here, above the canvas, and handed down as
+ * props: React context does not cross the R3F reconciler boundary, and one
+ * measurement shared by the panels and the world typography beats two.
  */
-export const AtelierScene = ({ tier }: { tier: Tier }) => (
-  // The wrapper carries the fixed positioning: R3F sets `position: relative` and
-  // `height: 100%` inline on its own container, which would win over a class.
-  <div className="stage" aria-hidden="true">
-    <Canvas
-      dpr={[1, tier === 'cinema' ? 1.75 : 1.5]}
-      frameloop={tier === 'still' ? 'demand' : 'always'}
-      camera={{ fov: 42, near: 0.1, far: 64, position: [0, 1.75, 10.2] }}
-      gl={{
-        alpha: false,
-        antialias: true,
-        powerPreference: 'high-performance',
-        stencil: false,
-      }}
-    >
-      <color attach="background" args={[`#${sceneColors.base.getHexString()}`]} />
-      <SceneThemeSync />
-      <Atmosphere tier={tier} />
-      <Rig tier={tier} />
-      <GridFloor tier={tier} />
-      <Lattice tier={tier} />
-      <Structures tier={tier} />
-      <Artifacts tier={tier} />
-      {tier === 'cinema' && <Post tier={tier} />}
-      {tier === 'still' && <StillFrame />}
-    </Canvas>
-  </div>
-)
+export const AtelierScene = ({ tier }: { tier: Tier }) => {
+  const { copy } = useCopy()
+  const windows = useSectionWindows()
+  const shots = useMemo(
+    () => copy.work.items.map((item) => item.image),
+    [copy.work.items],
+  )
+
+  return (
+    // The wrapper carries the fixed positioning: R3F sets `position: relative`
+    // and `height: 100%` inline on its own container, which would win over a class.
+    <div className="stage" aria-hidden="true">
+      <Canvas
+        dpr={[1, tier === 'cinema' ? 1.75 : 1.5]}
+        frameloop={tier === 'still' ? 'demand' : 'always'}
+        camera={{ fov: 42, near: 0.1, far: 64, position: [0, 1.75, 10.2] }}
+        gl={{
+          alpha: false,
+          antialias: true,
+          powerPreference: 'high-performance',
+          stencil: false,
+        }}
+      >
+        <color attach="background" args={[`#${sceneColors.base.getHexString()}`]} />
+        <SceneThemeSync />
+        <Atmosphere tier={tier} />
+        <Rig tier={tier} />
+        <GridFloor tier={tier} />
+        <Lattice tier={tier} />
+        <Structures tier={tier} />
+        <Artifacts tier={tier} shots={shots} />
+        <WorldCopy copy={copy} tier={tier} windows={windows} />
+        {tier === 'cinema' && <Post tier={tier} />}
+        {tier === 'still' && <StillFrame />}
+      </Canvas>
+    </div>
+  )
+}

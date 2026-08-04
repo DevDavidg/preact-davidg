@@ -23,8 +23,8 @@ const ArtifactPanel = ({ index, item }: ArtifactPanelProps) => {
   const { ref, inView } = useInView<HTMLElement>()
 
   const handleFocus = useCallback(() => {
-    // Scene only has three solids; map every panel onto that triad.
-    sceneState.focus = index % 3
+    // One panel in the room per card, so the index maps straight across.
+    sceneState.focus = index
   }, [index])
 
   const handleBlur = useCallback(() => {
@@ -43,7 +43,7 @@ const ArtifactPanel = ({ index, item }: ArtifactPanelProps) => {
       onFocus={handleFocus}
       onBlur={handleBlur}
     >
-      <div className="artifact__shot window">
+      <div className="artifact__shot window shard shard--plate">
         <img
           src={item.image}
           alt=""
@@ -57,18 +57,18 @@ const ArtifactPanel = ({ index, item }: ArtifactPanelProps) => {
       </div>
       <div className="artifact__body">
         <div className="artifact__top">
-          <span className="numeral artifact__num">
+          <span className="numeral artifact__num shard">
             {String(index + 1).padStart(2, '0')}
           </span>
-          <span className="meta">{item.tag}</span>
+          <span className="meta shard">{item.tag}</span>
         </div>
-        <h3 className="artifact__title">{item.title}</h3>
-        <p className="body-sm" style={{ marginTop: 10 }}>
+        <h3 className="artifact__title shard">{item.title}</h3>
+        <p className="body-sm shard" style={{ marginTop: 10 }}>
           {item.copy}
         </p>
         <a
           href={item.href}
-          className="artifact__link"
+          className="artifact__link shard"
           target="_blank"
           rel="noopener noreferrer"
           aria-label={`${item.title}: ${item.link}`}
@@ -86,10 +86,10 @@ export const Work = () => {
   return (
     <section id="work" className="section work" aria-labelledby="work-label">
       <Reveal className="section__head">
-        <h2 id="work-label" className="eyebrow">
+        <h2 id="work-label" className="eyebrow shard">
           {copy.work.label}
         </h2>
-        <span className="meta">{copy.work.note}</span>
+        <span className="meta shard">{copy.work.note}</span>
       </Reveal>
 
       <div className="work__field">

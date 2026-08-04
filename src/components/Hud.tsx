@@ -17,6 +17,7 @@ export const Hud = () => {
   const { copy } = useCopy()
   const phase = useSceneStore((state) => state.phase)
   const tier = useSceneStore((state) => state.tier)
+  const booted = useSceneStore((state) => state.booted)
 
   const bar = useRef<HTMLDivElement>(null)
   const fill = useRef<HTMLDivElement>(null)
@@ -98,13 +99,21 @@ export const Hud = () => {
       <div ref={portal} className="stage stage--portal" aria-hidden="true" />
       <div ref={bar} className="progress" aria-hidden="true" />
 
-      <div ref={cluster} className="hud hud--left" aria-hidden="true">
+      {/* The instrumentation assembles once the boot overlay clears, like the
+          rest of the overlay. Its own opacity is written per frame above, so the
+          pieces carry the arrival instead of the cluster. */}
+      <div
+        ref={cluster}
+        className="hud hud--left"
+        aria-hidden="true"
+        data-shown={booted}
+      >
         {/* The caption promises a rebuild, so on the frozen tier it says so
             instead — the meter below still tracks the reader's real position. */}
-        <span className="hud__label">
+        <span className="hud__label shard shard--fine">
           {tier === 'still' ? copy.hud.subtitleStill : copy.hud.subtitle}
         </span>
-        <span className="hud__line">
+        <span className="hud__line shard shard--fine">
           <span ref={phaseLabel} className="hud__phase">
             {phase}
           </span>
@@ -112,13 +121,18 @@ export const Hud = () => {
             {copy.hud.build} <span ref={percent}>000</span>%
           </span>
         </span>
-        <div className="hud__track">
+        <div className="hud__track shard shard--fine">
           <div ref={fill} className="hud__fill" />
         </div>
       </div>
 
-      <div ref={hint} className="hud hud--right" aria-hidden="true">
-        <span className="hud__label">{copy.hud.hint}</span>
+      <div
+        ref={hint}
+        className="hud hud--right"
+        aria-hidden="true"
+        data-shown={booted}
+      >
+        <span className="hud__label shard shard--fine">{copy.hud.hint}</span>
       </div>
     </>
   )

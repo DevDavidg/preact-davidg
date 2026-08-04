@@ -15,14 +15,18 @@ uniform float uVelocity;
 uniform float uDepthSpan;
 uniform float uBuildBias;
 uniform float uDrift;
+/** Assembly progress when a mesh owns its own slice of the scroll; -1 follows uBuild. */
+uniform float uAssembleAt;
 /** 1 = CPU places instances; skip per-shard assemble (avoids fighting JS paths). */
 uniform float uCpuPlaced;
 
 varying vec3 vBary;
 varying vec3 vNormalW;
 varying vec3 vViewDir;
+varying vec2 vUv;
 varying float vWorldY;
 varying float vAssembled;
+varying float vStage;
 
 // Axis-angle rotation, written column-major for GLSL.
 mat3 rotateAxis(vec3 rawAxis, float angle) {
@@ -51,7 +55,8 @@ void main() {
   // Seed + depth wave + optional bay bias. Hard-capped at 0.42 so every shard
   // is settled by build 0.78 — the BEAUTY → LIVE boundary / STILL_BUILD.
   float stagger = min(aSeed * 0.30 + depth * uDepthSpan + uBuildBias, 0.42);
-  float assembled = clamp((uBuild - stagger) / 0.36, 0.0, 1.0);
+  float assembleBuild = uAssembleAt < 0.0 ? uBuild : uAssembleAt;
+  float assembled = clamp((assembleBuild - stagger) / 0.36, 0.0, 1.0);
   assembled = assembled * assembled * (3.0 - 2.0 * assembled);
   // Lattice: motion is CPU-driven; keep shards optically "in" so global
   // solid/lit stages carry the wire→solid→lit read without a second settle.
@@ -70,10 +75,12 @@ void main() {
   vec4 worldPos = modelMatrix * instance * vec4(aCenter + drift + local, 1.0);
 
   vBary = aBary;
+  vUv = uv;
   vNormalW = normalize(mat3(modelMatrix) * mat3(instance) * mix(normal, spin * normal, uDrift));
   vViewDir = normalize(cameraPosition - worldPos.xyz);
   vWorldY = worldPos.y;
   vAssembled = assembled;
+  vStage = assembleBuild;
 
   gl_Position = projectionMatrix * viewMatrix * worldPos;
 }
@@ -87,12 +94,17 @@ uniform float uLive;
 uniform float uOpacity;
 uniform vec3 uAccent;
 uniform vec3 uInk;
+uniform sampler2D uMap;
+/** 1 when the shards carry a project shot rather than a shaded surface. */
+uniform float uHasMap;
 
 varying vec3 vBary;
 varying vec3 vNormalW;
 varying vec3 vViewDir;
+varying vec2 vUv;
 varying float vWorldY;
 varying float vAssembled;
+varying float vStage;
 
 // GLSL3 has no gl_FragColor; three aliases attribute/varying but not the output.
 layout(location = 0) out vec4 fragColor;
@@ -104,7 +116,9 @@ void main() {
   float edge = 1.0 - min(min(smoothed.x, smoothed.y), smoothed.z);
 
   // Three overlapping stages: faces fill, then shading and rim light arrive.
-  float solid = smoothstep(0.10, 0.62, uBuild);
+  // Filling follows the mesh's own assembly so an object that owns a slice of the
+  // scroll is solid the moment it lands; lighting stays on the room's phase.
+  float solid = smoothstep(0.10, 0.62, vStage);
   float lit = smoothstep(0.50, 0.90, uBuild);
   float wire = 1.0 - solid * 0.80;
 
@@ -126,6 +140,14 @@ void main() {
   face += uInk * spec * lit * 0.35;
   face = mix(face, uAccent * 0.4, uLive * fresnel * 0.55);
 
+  // Artifact panels carry the real project shot: it resolves onto the surface as
+  // the shards land, so the work itself is what the reconstruction reveals.
+  vec3 shot = texture(uMap, vUv).rgb;
+  // Kept under full brightness: a blown-out photo would break the dark room.
+  vec3 litShot = shot * (0.3 + key * 0.34 + fill * 0.16) + uInk * spec * lit * 0.2;
+  float shotMix = uHasMap * solid * vAssembled;
+  face = mix(face, litShot, shotMix);
+
   vec3 edgeTint = mix(uInk, uAccent, max(uLive, uFocus * 0.75));
   float edgeGlow = edge * (0.26 + wire * 0.6 + uFocus * 0.55 + band * 0.7);
 
@@ -137,6 +159,7 @@ void main() {
   color += uAccent * (1.0 - vAssembled) * 0.06;
 
   float alpha = solid * (0.40 + key * 0.32) + edgeGlow + fresnel * lit * 0.22;
+  alpha += shotMix * 0.55;
   alpha *= uOpacity * mix(0.35, 1.0, vAssembled);
 
   if (alpha < 0.004) discard;
@@ -153,7 +176,28 @@ export interface ReconstructSync {
   velocity?: number
   /** Extra stagger delay for bay waves (0 → ~0.2). */
   buildBias?: number
+  /**
+   * Assembly progress for meshes that own a slice of the scroll rather than the
+   * whole page. `0 → 0.78` covers scattered → fully settled; omit to follow
+   * `build`.
+   */
+  assembleAt?: number
 }
+
+/**
+ * Stand-in for `uMap` on the meshes that have no texture: an unbound sampler is
+ * undefined behaviour, and one shared 1×1 pixel costs nothing.
+ */
+const blankMap = (() => {
+  const texture = new THREE.DataTexture(
+    new Uint8Array([255, 255, 255, 255]),
+    1,
+    1,
+    THREE.RGBAFormat,
+  )
+  texture.needsUpdate = true
+  return texture
+})()
 
 /**
  * The signature material: one `build` value takes a mesh from a cloud of
@@ -169,6 +213,8 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
       /** When false, CPU places the mesh; shader only stages wire→solid→lit. */
       drift?: boolean
       depthSpan?: number
+      /** Project shot painted onto the shards once they solidify. */
+      map?: THREE.Texture
     } = {},
   ) {
     const cpuPlaced = options.drift === false
@@ -192,9 +238,12 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
         uDepthSpan: { value: options.depthSpan ?? 0.1 },
         uBuildBias: { value: 0 },
         uDrift: { value: cpuPlaced ? 0 : 1 },
+        uAssembleAt: { value: -1 },
         uCpuPlaced: { value: cpuPlaced ? 1 : 0 },
         uAccent: { value: sceneColors.accent.clone() },
         uInk: { value: sceneColors.ink.clone() },
+        uMap: { value: options.map ?? blankMap },
+        uHasMap: { value: options.map ? 1 : 0 },
       },
     })
   }
@@ -208,9 +257,10 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
     uniforms.uTime.value = state.time
     uniforms.uVelocity.value = state.velocity ?? 0
     uniforms.uBuildBias.value = state.buildBias ?? 0
+    uniforms.uAssembleAt.value = state.assembleAt ?? -1
     uniforms.uAccent.value.copy(sceneColors.accent)
     uniforms.uInk.value.copy(sceneColors.ink)
     // Once faces carry the read, real occlusion beats blended transparency.
-    this.depthWrite = state.build > 0.55
+    this.depthWrite = (state.assembleAt ?? state.build) > 0.55
   }
 }

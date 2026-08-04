@@ -140,6 +140,8 @@ Portal: glow acento, copy “¿Encendemos la escena?”, mailto hero, links soci
 | H1 char weight por proximidad mouse | Desktop; off en coarse/reduced |
 | Reveal IO suave en overlays | Una vez; easing `.22,1,.36,1` |
 | Sticky process number sync | ScrollTrigger / IO |
+| Tipografía fragmentada en world space (títulos, signage, numerales) | Solo tier cine; el DOM queda transparente pero presente (SEO/a11y) |
+| Overlay que se arma por piezas (`.shard`): cards, filas, HUD, botones, links, steps | Translate/rotate 2D + opacidad; nunca sobre un elemento que ya anima transform. Nav excluido |
 | Web Audio sutil (opcional v2) | Solo si refuerza BUILD/LIVE; mute default |
 
 | Evitar | Por qué |
@@ -173,9 +175,9 @@ Portal: glow acento, copy “¿Encendemos la escena?”, mailto hero, links soci
 
 | Tier | Quién | Qué recibe |
 |------|-------|------------|
-| Desktop cine | Fine pointer, GPU media+ | Escena completa + morph + magnetic + H1 morph |
-| Mobile reducida | Coarse / narrow | LOD bajo, mismos copy/CTAs, sin cursor FX |
-| `prefers-reduced-motion` | Accesibilidad | HTML + DS premium, sin animaciones continuas |
+| Desktop cine | Fine pointer, GPU media+ | Escena completa + morph + magnetic + H1 morph + copy fragmentado (títulos, signage, numerales, paneles con textura) |
+| Mobile reducida | Coarse / narrow | LOD bajo, mismos copy/CTAs, sin cursor FX; solo signage en 3D — el HTML sigue siendo la capa de lectura |
+| `prefers-reduced-motion` | Accesibilidad | HTML + DS premium, sin animaciones continuas; frame congelado en BEAUTY, sin copy en 3D |
 
 Presupuesto mental: **60fps** en MacBook/GPU mid; degradar antes que stutter.
 

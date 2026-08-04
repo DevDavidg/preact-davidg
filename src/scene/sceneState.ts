@@ -72,10 +72,13 @@ interface SceneStore {
   phase: Phase
   tier: Tier
   booted: boolean
+  /** True once the scene's typography has taken the DOM headings over. */
+  worldCopy: boolean
   activeSection: string
   setPhase: (phase: Phase) => void
   setTier: (tier: Tier) => void
   setBooted: (booted: boolean) => void
+  setWorldCopy: (worldCopy: boolean) => void
   setActiveSection: (id: string) => void
 }
 
@@ -83,10 +86,12 @@ export const useSceneStore = create<SceneStore>((set) => ({
   phase: 'SCANNING',
   tier: 'cinema',
   booted: false,
+  worldCopy: false,
   activeSection: 'hero',
   setPhase: (phase) => set((s) => (s.phase === phase ? s : { phase })),
   setTier: (tier) => set({ tier }),
   setBooted: (booted) => set({ booted }),
+  setWorldCopy: (worldCopy) => set({ worldCopy }),
   setActiveSection: (activeSection) =>
     set((s) => (s.activeSection === activeSection ? s : { activeSection })),
 }))

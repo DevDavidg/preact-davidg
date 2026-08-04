@@ -12,8 +12,8 @@ export const Contact = () => {
       aria-labelledby="contact-title"
     >
       <Reveal>
-        <h2 className="eyebrow">{copy.contact.label}</h2>
-        <p className="contact__live">
+        <h2 className="eyebrow shard">{copy.contact.label}</h2>
+        <p className="contact__live shard">
           <span className="dot" aria-hidden="true">
             ●
           </span>{' '}
@@ -22,10 +22,15 @@ export const Contact = () => {
       </Reveal>
 
       <Reveal delay={80}>
-        <p id="contact-title" className="display contact__title">
+        {/* The scene assembles this title out of glyph fragments on the cinema
+            tier; the shard keeps the same arrival everywhere else. */}
+        <p
+          id="contact-title"
+          className="display contact__title world-copy shard"
+        >
           {copy.contact.title}
         </p>
-        <p className="lead" style={{ marginTop: 20, maxWidth: '46ch' }}>
+        <p className="lead shard" style={{ marginTop: 20, maxWidth: '46ch' }}>
           {copy.contact.lead}
         </p>
       </Reveal>
@@ -33,7 +38,7 @@ export const Contact = () => {
       <Reveal delay={160}>
         <Magnetic
           href={`mailto:${copy.contact.email}`}
-          className="contact__mail"
+          className="contact__mail shard"
           strength={0.12}
         >
           {copy.contact.email}&nbsp;↗
@@ -42,7 +47,13 @@ export const Contact = () => {
 
       <Reveal className="contact__social" delay={240}>
         {copy.contact.social.map((link) => (
-          <a key={link.label} href={link.href} target="_blank" rel="noreferrer">
+          <a
+            key={link.label}
+            href={link.href}
+            className="shard"
+            target="_blank"
+            rel="noreferrer"
+          >
             {link.label}
           </a>
         ))}

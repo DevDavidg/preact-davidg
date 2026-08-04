@@ -332,16 +332,15 @@
 
 /* Reveal ----------------------------------------------------------------- */
 
+/* The block only fades: its `.shard` children carry the displacement, so a
+   transform here would move the whole group a second time. See assemble.css. */
 .reveal {
   opacity: 0;
-  transform: translateY(26px);
-  transition: opacity var(--dur-slow) var(--ease),
-    transform var(--dur-slow) var(--ease);
+  transition: opacity var(--dur-slow) var(--ease);
 }
 
 .reveal[data-shown='true'] {
   opacity: 1;
-  transform: none;
 }
 
 /* Boot ------------------------------------------------------------------- */

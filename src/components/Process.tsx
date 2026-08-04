@@ -1,15 +1,48 @@
 import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
-import { useCopy } from '../i18n/copy'
+import { useCopy, type Copy } from '../i18n/copy'
+import { useInView } from '../hooks/useInView'
 import { useSceneStore } from '../scene/sceneState'
 import { Reveal } from './ui/Reveal'
+
+interface ProcessStepProps {
+  index: number
+  active: boolean
+  step: Copy['process']['steps'][number]
+}
+
+/**
+ * One phase of the method. It assembles on its own approach rather than with the
+ * whole column, so the reader always meets a phase that is still landing.
+ */
+const ProcessStep = ({ index, active, step }: ProcessStepProps) => {
+  const { ref, inView } = useInView<HTMLDivElement>()
+
+  return (
+    <div
+      ref={ref}
+      className="step"
+      data-step-index={index}
+      data-active={active}
+      data-shown={inView}
+    >
+      <p className="meta shard">{step.phase}</p>
+      <h3 className="step__title shard">{step.heading}</h3>
+      <p className="body-sm step__copy shard">{step.copy}</p>
+    </div>
+  )
+}
 
 export const Process = () => {
   const { copy } = useCopy()
   const tier = useSceneStore((state) => state.tier)
+  const worldCopy = useSceneStore((state) => state.worldCopy)
   const container = useRef<HTMLElement>(null)
   const numeral = useRef<HTMLDivElement>(null)
+  // The sticky panel is its own assembly root: wrapping it would move the sticky
+  // containing block up a level and unstick it.
+  const sticky = useInView<HTMLDivElement>()
   const [active, setActive] = useState(0)
 
   useEffect(() => {
@@ -34,10 +67,11 @@ export const Process = () => {
   }, [])
 
   // The numeral re-materialises on every phase change: it is the visual hero of
-  // this section, so a plain text swap would undersell it.
+  // this section, so a plain text swap would undersell it. When the scene builds
+  // the numeral out of fragments instead, this element is gone from the layout.
   useGSAP(
     () => {
-      if (tier === 'still' || !numeral.current) return
+      if (tier === 'still' || worldCopy || !numeral.current) return
       gsap.fromTo(
         numeral.current,
         { yPercent: 16, opacity: 0, filter: 'blur(5px)' },
@@ -50,7 +84,7 @@ export const Process = () => {
         },
       )
     },
-    { dependencies: [active, tier] },
+    { dependencies: [active, tier, worldCopy] },
   )
 
   const step = copy.process.steps[active]
@@ -63,36 +97,43 @@ export const Process = () => {
       aria-labelledby="process-label"
     >
       <Reveal>
-        <h2 id="process-label" className="eyebrow">
+        <h2 id="process-label" className="eyebrow shard">
           {copy.process.label}
         </h2>
       </Reveal>
 
       <div className="process__grid">
-        <div className="process__sticky panel">
-          <div ref={numeral} className="process__num" aria-hidden="true">
+        <div
+          ref={sticky.ref}
+          className="process__sticky panel"
+          data-shown={sticky.inView}
+        >
+          <div
+            ref={numeral}
+            className="process__num world-copy--void"
+            aria-hidden="true"
+          >
             {step.num}
           </div>
-          <p className="process__num-title" aria-live="polite">
+          <p className="process__num-title shard" aria-live="polite">
             {step.title}
           </p>
-          <p className="body-sm" style={{ marginTop: 12, maxWidth: '28ch' }}>
+          <p
+            className="body-sm shard"
+            style={{ marginTop: 12, maxWidth: '28ch' }}
+          >
             {copy.process.caption}
           </p>
         </div>
 
         <div>
           {copy.process.steps.map((item, index) => (
-            <div
+            <ProcessStep
               key={item.num}
-              className="step"
-              data-step-index={index}
-              data-active={active === index}
-            >
-              <p className="meta">{item.phase}</p>
-              <h3 className="step__title">{item.heading}</h3>
-              <p className="body-sm step__copy">{item.copy}</p>
-            </div>
+              index={index}
+              active={active === index}
+              step={item}
+            />
           ))}
         </div>
       </div>

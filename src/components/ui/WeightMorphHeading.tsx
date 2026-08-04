@@ -34,11 +34,14 @@ export const WeightMorphHeading = ({
 }: WeightMorphHeadingProps) => {
   const ref = useRef<HTMLHeadingElement>(null)
   const tier = useSceneStore((state) => state.tier)
+  const worldCopy = useSceneStore((state) => state.worldCopy)
   const words = useMemo(() => text.split(' '), [text])
 
   useEffect(() => {
     const heading = ref.current
-    if (!heading || tier !== 'cinema') return
+    // Once the scene renders this heading, the DOM copy is transparent: morphing
+    // weights nobody can see would be a per-frame loop for nothing.
+    if (!heading || tier !== 'cinema' || worldCopy) return
 
     let chars: CharCache[] = []
     let frame = 0
@@ -89,7 +92,7 @@ export const WeightMorphHeading = ({
       window.removeEventListener('resize', measure)
       chars.forEach((char) => char.node.style.removeProperty('--wght'))
     }
-  }, [tier, words])
+  }, [tier, words, worldCopy])
 
   return (
     <h1 ref={ref} className={className ? `display ${className}` : 'display'}>

@@ -11,6 +11,7 @@ import {
   speedFor,
   type Tier,
 } from './sceneState'
+import { settleAt, STAGGER_CAP } from './ui/fragmentSettle'
 
 interface Fragment {
   chaos: THREE.Vector3
@@ -39,10 +40,13 @@ const buildFragments = (count: number): Fragment[] => {
     const side = lane < 0 ? -1 : 1
 
     return {
+      // Chaos sits deep down the corridor and across the middle lane the copy
+      // will later occupy: the room arrives out of the background and clears the
+      // reading path as it settles, rather than fading in from the sides.
       chaos: new THREE.Vector3(
-        side * (CLEARANCE + Math.random() * 9),
-        Math.random() * 8 - 1,
-        8 - Math.random() * 28,
+        (Math.random() - 0.5) * 7 + side * Math.random() * 4,
+        Math.random() * 9 - 1.5,
+        -13 - Math.random() * 17,
       ),
       home: new THREE.Vector3(
         side * (CLEARANCE + Math.abs(lane) * 1.9),
@@ -112,10 +116,9 @@ export const Lattice = ({ tier }: { tier: Tier }) => {
       // Matches ReconstructMaterial: seed + depth wave, settled by BEAUTY.
       const stagger = Math.min(
         fragment.seed * 0.3 + depthBiasFor(fragment.home.z),
-        0.42,
+        STAGGER_CAP,
       )
-      const raw = THREE.MathUtils.clamp((build - stagger) / 0.36, 0, 1)
-      const settled = raw * raw * (3 - 2 * raw)
+      const settled = settleAt(build, stagger)
       const loose = 1 - settled
 
       position.lerpVectors(fragment.chaos, fragment.home, settled)

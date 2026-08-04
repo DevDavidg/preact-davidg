@@ -16,6 +16,7 @@ import { usePointerTracking } from './hooks/usePointerTracking'
 import { useSectionTracking } from './hooks/useSectionTracking'
 import { useSmoothAnchors } from './hooks/useSmoothAnchors'
 import { useSmoothScroll } from './hooks/useSmoothScroll'
+import { SECTION_IDS } from './sections'
 
 gsap.registerPlugin(useGSAP)
 
@@ -38,8 +39,6 @@ const DesignDebugMenu = import.meta.env.DEV
       })),
     )
   : null
-
-const SECTION_IDS = ['hero', 'work', 'services', 'process', 'about', 'contact'] as const
 
 const App = () => {
   const tier = useMotionTier()

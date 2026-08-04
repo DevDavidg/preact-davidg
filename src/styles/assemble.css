@@ -1,0 +1,109 @@
+/* Assembly — the overlay arrives in pieces.
+
+   The room reconstructs itself out of fragments, so the HTML on top of it cannot
+   simply fade in as finished blocks. Every piece marked `.shard` starts offset
+   from its home and converges when its container reports `data-shown`, which the
+   existing `useInView` already sets on reveals, cards and steps.
+
+   Translate and rotate only. A 3D transform, `perspective` or a `filter` on this
+   layer paints solid black rectangles for a frame over the live WebGL canvas —
+   the same trap documented on `.artifact` and in `Work.tsx`. Both properties
+   here are composited, so a section landing costs no layout and no paint.
+
+   They are also the individual `translate` / `rotate` properties rather than a
+   `transform`, so a piece that owns its own `transform` composes with the
+   arrival instead of overriding it — that is what lets the magnetic CTAs lean
+   toward the pointer while they are still landing. */
+
+.shard {
+  --shard-x: 0px;
+  --shard-y: 22px;
+  --shard-r: 0deg;
+  --shard-delay: 0ms;
+
+  opacity: 0;
+  translate: var(--shard-x) var(--shard-y);
+  rotate: var(--shard-r);
+  transition: opacity var(--dur-slow) var(--ease),
+    translate var(--dur-slow) var(--ease), rotate var(--dur-slow) var(--ease);
+  transition-delay: var(--shard-delay);
+}
+
+[data-shown='true'] .shard {
+  opacity: 1;
+  translate: none;
+  rotate: none;
+}
+
+/* Six vectors on rotation, so siblings converge from different directions and
+   at different moments instead of marching in as one row. The offsets stay
+   small: this reads as parts finding their slot, not as debris. */
+.shard:nth-child(6n + 1) {
+  --shard-x: -34px;
+  --shard-y: 14px;
+  --shard-r: -1.2deg;
+  --shard-delay: 0ms;
+}
+
+.shard:nth-child(6n + 2) {
+  --shard-x: 28px;
+  --shard-y: 24px;
+  --shard-r: 0.9deg;
+  --shard-delay: 70ms;
+}
+
+.shard:nth-child(6n + 3) {
+  --shard-x: -22px;
+  --shard-y: -20px;
+  --shard-r: 1.1deg;
+  --shard-delay: 150ms;
+}
+
+.shard:nth-child(6n + 4) {
+  --shard-x: 36px;
+  --shard-y: -12px;
+  --shard-r: -0.8deg;
+  --shard-delay: 40ms;
+}
+
+.shard:nth-child(6n + 5) {
+  --shard-x: -28px;
+  --shard-y: 28px;
+  --shard-r: 1.4deg;
+  --shard-delay: 200ms;
+}
+
+.shard:nth-child(6n) {
+  --shard-x: 26px;
+  --shard-y: -26px;
+  --shard-r: -1.4deg;
+  --shard-delay: 110ms;
+}
+
+/* Plates carrying an image or a border read as machined parts: they slide into
+   their slot square, without the tilt the type fragments get. */
+/* Doubled class so these tie with the `:nth-child` vectors above and win on
+   source order rather than losing to them on specificity. */
+.shard.shard--plate {
+  --shard-r: 0deg;
+}
+
+/* Instrumentation is small and dense, so it travels a shorter distance. */
+.shard.shard--fine {
+  --shard-x: 0px;
+  --shard-y: 10px;
+  --shard-r: 0deg;
+}
+
+.shard.shard--fine:nth-child(2n) {
+  --shard-x: 12px;
+  --shard-delay: 90ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shard {
+    opacity: 1;
+    translate: none;
+    rotate: none;
+  }
+}

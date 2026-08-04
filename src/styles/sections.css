@@ -433,6 +433,11 @@
   font: 500 11px var(--mono);
   letter-spacing: 0.2em;
   color: var(--accent);
+}
+
+/* The pulse belongs to the indicator rather than the whole line: an animation on
+   the line would override the arrival's opacity transition (see assemble.css). */
+.contact__live .dot {
   animation: dg-pulse 2s ease infinite;
 }
 

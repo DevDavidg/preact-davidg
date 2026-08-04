@@ -5,6 +5,8 @@ import './styles/tokens.css'
 import './styles/base.css'
 import './styles/chrome.css'
 import './styles/sections.css'
+import './styles/assemble.css'
+import './styles/world-copy.css'
 import App from './App.tsx'
 import { CopyProvider } from './i18n/CopyProvider.tsx'
 
