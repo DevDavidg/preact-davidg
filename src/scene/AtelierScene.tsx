@@ -28,16 +28,24 @@ const Post = ({ tier }: { tier: Tier }) => {
     bloom.current.intensity = 0.16 + liveFor(buildFor(tier)) * 0.7
   })
 
-  // MSAA on the composer is a known source of one-frame black clears while the
-  // camera dollies/parallaxes — reads as a solid void block behind the overlays.
+  // Composer black-frame sources while the camera parallaxes on pointermove:
+  // MSAA, half-float ping-pong, and mipmap bloom. Keep the pass cheap and
+  // 8-bit so a missed buffer never reads as a solid void behind the overlays.
   return (
-    <EffectComposer multisampling={0} enableNormalPass={false}>
+    <EffectComposer
+      multisampling={0}
+      enableNormalPass={false}
+      depthBuffer={false}
+      stencilBuffer={false}
+      frameBufferType={THREE.UnsignedByteType}
+    >
       <Bloom
         ref={bloom}
-        mipmapBlur
         intensity={0.16}
         luminanceThreshold={0.42}
         luminanceSmoothing={0.3}
+        levels={3}
+        mipmapBlur={false}
       />
       <Noise
         premultiply

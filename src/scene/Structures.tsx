@@ -1,9 +1,10 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { ReconstructMaterial } from './ReconstructMaterial'
+import { ARTIFACTS } from './layout'
 import { toShards } from './shardGeometry'
-import { buildFor, liveFor, type Tier } from './sceneState'
+import { buildFor, liveFor, sceneState, type Tier } from './sceneState'
 
 interface Structure {
   /** Built at final size rather than scaled, so shard drift is not stretched. */
@@ -40,54 +41,116 @@ const BAYS = [
   { z: -16.4, left: 4.4, right: 4.9, tie: true },
 ]
 
-const STRUCTURES: Structure[] = BAYS.flatMap((bay) => [
-  column(-BAY_X, bay.z, bay.left),
-  column(BAY_X, bay.z, bay.right),
-  ...(bay.tie ? [beam(bay.z)] : []),
-])
+interface BayBuild {
+  z: number
+  /** Extra assemble delay so distant bays finish after nearer ones. */
+  buildBias: number
+  structures: Structure[]
+}
 
-export const Structures = ({ tier }: { tier: Tier }) => {
-  const geometries = useMemo(
-    () =>
-      STRUCTURES.map(({ size, segments }) =>
-        toShards(new THREE.BoxGeometry(...size, ...segments)),
-      ),
-    [],
-  )
+const BAY_BUILDS: BayBuild[] = BAYS.map((bay, index) => ({
+  z: bay.z,
+  buildBias: index * 0.02,
+  structures: [
+    column(-BAY_X, bay.z, bay.left),
+    column(BAY_X, bay.z, bay.right),
+    ...(bay.tie ? [beam(bay.z)] : []),
+  ],
+}))
 
-  // The whole colonnade moves as one, so it shares a material and a single sync.
-  // Drift stays small: these are backdrop, and loose shards on a 5m column throw
-  // spikes across the copy that sits over the middle of the corridor.
-  const material = useMemo(
-    () => new ReconstructMaterial({ spread: 0.2, jitter: 0.05, opacity: 0.45 }),
-    [],
-  )
+const Bay = ({
+  bay,
+  geometries,
+  material,
+  tier,
+}: {
+  bay: BayBuild
+  geometries: THREE.BufferGeometry[]
+  material: ReconstructMaterial
+  tier: Tier
+}) => {
+  const focus = useRef(0)
 
-  useEffect(() => {
-    return () => {
-      geometries.forEach((geometry) => geometry.dispose())
-      material.dispose()
-    }
-  }, [geometries, material])
-
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const build = buildFor(tier)
+    const artifactIndex = sceneState.focus
+    const artifactZ =
+      artifactIndex >= 0 ? ARTIFACTS[artifactIndex]?.position[2] : null
+    const targetFocus =
+      artifactZ === null
+        ? 0
+        : THREE.MathUtils.clamp(1 - Math.abs(artifactZ - bay.z) / 6.5, 0, 1)
+
+    focus.current = THREE.MathUtils.damp(focus.current, targetFocus, 5, delta)
+
     material.sync({
       build,
       live: liveFor(build),
-      focus: 0,
+      focus: focus.current,
       time: state.clock.elapsedTime,
+      velocity: sceneState.velocity,
+      buildBias: bay.buildBias,
     })
   })
 
   return (
     <>
-      {STRUCTURES.map((structure, index) => (
+      {bay.structures.map((structure, index) => (
         <mesh
           key={structure.position.join()}
           geometry={geometries[index]}
           material={material}
           position={structure.position}
+        />
+      ))}
+    </>
+  )
+}
+
+export const Structures = ({ tier }: { tier: Tier }) => {
+  const geometries = useMemo(
+    () =>
+      BAY_BUILDS.map((bay) =>
+        bay.structures.map(({ size, segments }) =>
+          toShards(new THREE.BoxGeometry(...size, ...segments)),
+        ),
+      ),
+    [],
+  )
+
+  // One material per bay: shared sync + independent focus/buildBias.
+  // Drift stays small: these are backdrop, and loose shards on a 5m column throw
+  // spikes across the copy that sits over the middle of the corridor.
+  const materials = useMemo(
+    () =>
+      BAY_BUILDS.map(
+        () =>
+          new ReconstructMaterial({
+            spread: 0.2,
+            jitter: 0.05,
+            opacity: 0.45,
+            depthSpan: 0.1,
+          }),
+      ),
+    [],
+  )
+
+  useEffect(() => {
+    return () => {
+      geometries.forEach((bay) => bay.forEach((geometry) => geometry.dispose()))
+      materials.forEach((material) => material.dispose())
+    }
+  }, [geometries, materials])
+
+  return (
+    <>
+      {BAY_BUILDS.map((bay, index) => (
+        <Bay
+          key={bay.z}
+          bay={bay}
+          geometries={geometries[index]}
+          material={materials[index]}
+          tier={tier}
         />
       ))}
     </>

@@ -38,6 +38,19 @@ export const phaseFor = (build: number): Phase => {
 export const liveFor = (build: number) =>
   Math.min(1, Math.max(0, (build - 0.72) / 0.28))
 
+/** Scroll speed normalized for shard jitter (matches ReconstructMaterial). */
+export const speedFor = () =>
+  Math.min(1.5, Math.abs(sceneState.velocity) * 0.012)
+
+/**
+ * Depth wave along the dolly: nearer Z locks first. Matches the shader's
+ * `(8 - worldZ) / 30 * span` term so CPU and GPU stay in phase.
+ */
+export const depthBiasFor = (worldZ: number, span = 0.1) => {
+  const depth = Math.min(1, Math.max(0, (8 - worldZ) / 30))
+  return depth * span
+}
+
 /** Reduced-motion visitors get one frozen frame at the top of the BEAUTY phase,
  *  where the objects are fully assembled and lit. */
 const STILL_BUILD = 0.78

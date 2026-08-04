@@ -11,6 +11,12 @@ uniform float uBuild;
 uniform float uTime;
 uniform float uSpread;
 uniform float uJitter;
+uniform float uVelocity;
+uniform float uDepthSpan;
+uniform float uBuildBias;
+uniform float uDrift;
+/** 1 = CPU places instances; skip per-shard assemble (avoids fighting JS paths). */
+uniform float uCpuPlaced;
 
 varying vec3 vBary;
 varying vec3 vNormalW;
@@ -32,29 +38,39 @@ mat3 rotateAxis(vec3 rawAxis, float angle) {
 }
 
 void main() {
-  // Shards with a low seed lock in first, so the object resolves in waves
-  // instead of snapping together all at once. The constants are chosen so the
-  // last shard lands at 0.78 — the BEAUTY → LIVE boundary — which is where the
-  // phase map says the objects should already be solid and lit.
-  float stagger = aSeed * 0.42;
+  // Instance (or mesh) places the object; depth is read in world space so the
+  // corridor assembles as a wave along the dolly rather than a global fade.
+  mat4 instance = mat4(1.0);
+  #ifdef USE_INSTANCING
+    instance = instanceMatrix;
+  #endif
+
+  vec4 worldCenter = modelMatrix * instance * vec4(aCenter, 1.0);
+  float depth = clamp((8.0 - worldCenter.z) / 30.0, 0.0, 1.0);
+
+  // Seed + depth wave + optional bay bias. Hard-capped at 0.42 so every shard
+  // is settled by build 0.78 — the BEAUTY → LIVE boundary / STILL_BUILD.
+  float stagger = min(aSeed * 0.30 + depth * uDepthSpan + uBuildBias, 0.42);
   float assembled = clamp((uBuild - stagger) / 0.36, 0.0, 1.0);
   assembled = assembled * assembled * (3.0 - 2.0 * assembled);
+  // Lattice: motion is CPU-driven; keep shards optically "in" so global
+  // solid/lit stages carry the wire→solid→lit read without a second settle.
+  assembled = mix(assembled, 1.0, uCpuPlaced);
 
   float loose = 1.0 - assembled;
+  float speed = clamp(abs(uVelocity) * 0.012, 0.0, 1.5);
 
-  // While loose, the shard tumbles around its own centroid...
-  mat3 spin = rotateAxis(aAxis, loose * (3.2 + aSeed * 5.4));
-  vec3 local = spin * (position - aCenter);
+  mat3 spin = rotateAxis(aAxis, loose * (3.2 + aSeed * 5.4) * (1.0 + speed * 0.55) * uDrift);
+  vec3 local = mix(position - aCenter, spin * (position - aCenter), uDrift);
 
-  // ...and drifts away from the core, breathing on its spin axis.
   vec3 outward = normalize(aCenter + vec3(0.0, 0.0015, 0.0));
-  float breathe = sin(uTime * 0.6 + aSeed * 6.2831) * uJitter * loose;
-  vec3 drift = outward * (loose * uSpread * (0.55 + aSeed)) + aAxis * breathe;
+  float breathe = sin(uTime * 0.6 + aSeed * 6.2831) * uJitter * loose * (1.0 + speed * 0.65);
+  vec3 drift = (outward * (loose * uSpread * (0.55 + aSeed)) + aAxis * breathe) * uDrift;
 
-  vec4 worldPos = modelMatrix * vec4(aCenter + drift + local, 1.0);
+  vec4 worldPos = modelMatrix * instance * vec4(aCenter + drift + local, 1.0);
 
   vBary = aBary;
-  vNormalW = normalize(mat3(modelMatrix) * (spin * normal));
+  vNormalW = normalize(mat3(modelMatrix) * mat3(instance) * mix(normal, spin * normal, uDrift));
   vViewDir = normalize(cameraPosition - worldPos.xyz);
   vWorldY = worldPos.y;
   vAssembled = assembled;
@@ -92,8 +108,8 @@ void main() {
   float lit = smoothstep(0.50, 0.90, uBuild);
   float wire = 1.0 - solid * 0.80;
 
-  // A band sweeping up the world — the reconstruction pass made visible.
-  float bandY = fract(uTime * 0.085 + uBuild * 0.6) * 7.0 - 1.8;
+  // Reconstruction band rides the scroll; time only breathes it slightly.
+  float bandY = mix(-1.4, 5.8, uBuild) + sin(uTime * 0.22) * 0.28;
   float band = exp(-pow((vWorldY - bandY) * 2.1, 2.0));
 
   vec3 normal = normalize(vNormalW);
@@ -128,13 +144,34 @@ void main() {
 }
 `
 
+export interface ReconstructSync {
+  build: number
+  live: number
+  focus: number
+  time: number
+  /** Lenis scroll velocity (px/frame scale). */
+  velocity?: number
+  /** Extra stagger delay for bay waves (0 → ~0.2). */
+  buildBias?: number
+}
+
 /**
  * The signature material: one `build` value takes a mesh from a cloud of
  * tumbling wireframe shards, through a solid shaded object, to an accent-lit
- * one. Everything else in the scene follows the same value.
+ * one. Depth and scroll velocity keep the corridor feeling inhabited.
  */
 export class ReconstructMaterial extends THREE.ShaderMaterial {
-  constructor(options: { spread?: number; jitter?: number; opacity?: number } = {}) {
+  constructor(
+    options: {
+      spread?: number
+      jitter?: number
+      opacity?: number
+      /** When false, CPU places the mesh; shader only stages wire→solid→lit. */
+      drift?: boolean
+      depthSpan?: number
+    } = {},
+  ) {
+    const cpuPlaced = options.drift === false
     super({
       // GLSL3 guarantees derivatives (`fwidth`) without an extension dance.
       glslVersion: THREE.GLSL3,
@@ -151,6 +188,11 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
         uSpread: { value: options.spread ?? 0.7 },
         uJitter: { value: options.jitter ?? 0.2 },
         uOpacity: { value: options.opacity ?? 1 },
+        uVelocity: { value: 0 },
+        uDepthSpan: { value: options.depthSpan ?? 0.1 },
+        uBuildBias: { value: 0 },
+        uDrift: { value: cpuPlaced ? 0 : 1 },
+        uCpuPlaced: { value: cpuPlaced ? 1 : 0 },
         uAccent: { value: sceneColors.accent.clone() },
         uInk: { value: sceneColors.ink.clone() },
       },
@@ -158,12 +200,14 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
   }
 
   /** Pushes a frame of state into the shader. */
-  sync(state: { build: number; live: number; focus: number; time: number }) {
+  sync(state: ReconstructSync) {
     const { uniforms } = this
     uniforms.uBuild.value = state.build
     uniforms.uLive.value = state.live
     uniforms.uFocus.value = state.focus
     uniforms.uTime.value = state.time
+    uniforms.uVelocity.value = state.velocity ?? 0
+    uniforms.uBuildBias.value = state.buildBias ?? 0
     uniforms.uAccent.value.copy(sceneColors.accent)
     uniforms.uInk.value.copy(sceneColors.ink)
     // Once faces carry the read, real occlusion beats blended transparency.

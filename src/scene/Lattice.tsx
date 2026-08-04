@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { sceneColors } from './sceneColors'
-import { buildFor, liveFor, type Tier } from './sceneState'
+import { ReconstructMaterial } from './ReconstructMaterial'
+import { toShards } from './shardGeometry'
+import {
+  buildFor,
+  depthBiasFor,
+  liveFor,
+  sceneState,
+  speedFor,
+  type Tier,
+} from './sceneState'
 
 interface Fragment {
   chaos: THREE.Vector3
@@ -15,8 +23,8 @@ interface Fragment {
 
 /**
  * Raw material for the room: fragments start scattered and tumbling, then snap
- * onto an ordered lattice as the build progresses. Same idea as the artifacts,
- * one scale down, so the whole space participates in the reconstruction.
+ * onto an ordered lattice as the build progresses. Same wire→solid→lit signature
+ * as the artifacts, one scale down, so the whole space participates.
  */
 const buildFragments = (count: number): Fragment[] => {
   const columns = 8
@@ -62,15 +70,22 @@ export const Lattice = ({ tier }: { tier: Tier }) => {
     [],
   )
 
-  const geometry = useMemo(() => new THREE.OctahedronGeometry(0.1, 0), [])
+  // CPU flies each instance chaos→home; the material stages wire→solid→lit
+  // without a second drift pass (would fight the lattice paths).
+  const geometry = useMemo(() => {
+    const source = new THREE.OctahedronGeometry(0.1, 0)
+    const shards = toShards(source)
+    source.dispose()
+    return shards
+  }, [])
   const material = useMemo(
     () =>
-      new THREE.MeshBasicMaterial({
-        color: sceneColors.ink.clone(),
-        wireframe: true,
-        transparent: true,
-        opacity: 0.3,
-        depthWrite: false,
+      new ReconstructMaterial({
+        spread: 0,
+        jitter: 0,
+        opacity: 0.32,
+        drift: false,
+        depthSpan: 0.1,
       }),
     [],
   )
@@ -89,25 +104,31 @@ export const Lattice = ({ tier }: { tier: Tier }) => {
     const build = buildFor(tier)
     const live = liveFor(build)
     const time = state.clock.elapsedTime
+    const speed = speedFor()
     const { dummy, position } = scratch
 
     for (let index = 0; index < fragments.length; index++) {
       const fragment = fragments[index]
-      // Matches the artifact shader: everything is in place by the BEAUTY phase.
-      const stagger = fragment.seed * 0.42
+      // Matches ReconstructMaterial: seed + depth wave, settled by BEAUTY.
+      const stagger = Math.min(
+        fragment.seed * 0.3 + depthBiasFor(fragment.home.z),
+        0.42,
+      )
       const raw = THREE.MathUtils.clamp((build - stagger) / 0.36, 0, 1)
       const settled = raw * raw * (3 - 2 * raw)
       const loose = 1 - settled
 
       position.lerpVectors(fragment.chaos, fragment.home, settled)
-      position.y += Math.sin(time * 0.4 + fragment.seed * 8) * 0.18 * loose
+      position.y +=
+        Math.sin(time * 0.4 + fragment.seed * 8) * 0.18 * loose * (1 + speed * 0.55)
       dummy.position.copy(position)
 
+      const spin = 1 + speed * 0.7
       dummy.rotation.set(
         THREE.MathUtils.lerp(fragment.tumble.x, fragment.settled.x, settled) +
-          time * 0.25 * loose,
+          time * 0.25 * loose * spin,
         THREE.MathUtils.lerp(fragment.tumble.y, fragment.settled.y, settled) +
-          time * 0.3 * loose,
+          time * 0.3 * loose * spin,
         THREE.MathUtils.lerp(fragment.tumble.z, fragment.settled.z, settled),
       )
       dummy.scale.setScalar(fragment.size * (0.45 + settled * 0.55))
@@ -116,8 +137,18 @@ export const Lattice = ({ tier }: { tier: Tier }) => {
     }
 
     mesh.instanceMatrix.needsUpdate = true
-    material.color.copy(sceneColors.ink).lerp(sceneColors.accent, live * 0.6)
-    material.opacity = 0.1 + (1 - build) * 0.16 + live * 0.1
+
+    material.sync({
+      build,
+      live,
+      focus: 0,
+      time,
+      velocity: sceneState.velocity,
+    })
+    // Backdrop only — never occlude the corridor copy with lattice faces.
+    material.depthWrite = false
+    // Lattice stays a whisper under the copy; live only lifts it slightly.
+    material.uniforms.uOpacity.value = 0.14 + (1 - build) * 0.12 + live * 0.1
   })
 
   return (

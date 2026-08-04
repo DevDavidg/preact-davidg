@@ -46,6 +46,7 @@ const Artifact = ({ index, placement, geometry, tier }: ArtifactProps) => {
       live: liveFor(build),
       focus: focus.current,
       time: state.clock.elapsedTime,
+      velocity: sceneState.velocity,
     })
 
     const mesh = meshRef.current
