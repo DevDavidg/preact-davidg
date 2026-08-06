@@ -5,7 +5,7 @@ import { STAGGER_RATIO } from './fragmentSettle'
 
 /**
  * World typography shader. Two forms share one draw call:
- * - voxel (`aStyle.z ≥ 0.5`): opaque lit cubes — letter body as room matter
+ * - voxel (`aStyle.z ≥ 0.5`): opaque lit matter — cubes or relief bricks
  * - flat: thin atlas plates for cheap signage
  */
 
@@ -154,6 +154,12 @@ void main() {
     shade = tint * (0.72 + key * 0.28);
     // Dim while flying; full contrast only once home (matches transform lock).
     alpha = ink * mix(0.18, 1.0, smoothstep(0.25, 0.88, vSettled));
+  } else {
+    // Relief / stack matter: darken side facets so elongated depth reads like
+    // bay columns, not a flat grid of cubes.
+    float faceBias = mix(0.55, 1.0, vGlyphFace);
+    shade *= faceBias;
+    shade += tint * key * vGlyphFace * 0.12 * lit;
   }
 
   alpha *= vWeight * uOpacity;

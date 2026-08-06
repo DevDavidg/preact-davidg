@@ -113,11 +113,12 @@ void main() {
   shade += uAccent * fresnel * lit * (0.06 + uLive * 0.22);
   shade += uAccent * (1.0 - vSettled) * 0.08;
 
-  float alpha = (0.82 + vSettled * 0.18) * uOpacity;
-  alpha *= 1.0 - vFog * 0.28;
+  // Settled face is nearly opaque — transparency made skin look hollow.
+  float alpha = mix(0.75, 1.0, smoothstep(0.55, 0.95, vSettled)) * uOpacity;
+  alpha *= 1.0 - vFog * 0.22;
   if (alpha < 0.02) discard;
 
-  shade = mix(shade, uFogColor, vFog * 0.22);
+  shade = mix(shade, uFogColor, vFog * 0.18);
   fragColor = vec4(shade, clamp(alpha, 0.0, 1.0));
 }
 `

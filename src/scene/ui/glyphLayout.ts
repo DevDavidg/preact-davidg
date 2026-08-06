@@ -9,19 +9,33 @@ import {
 
 /**
  * Turns declarative text blocks into instance buffers for `GlyphField`.
- * Hero / project copy can voxelise from the atlas (opaque cubes); everything
+ * Hero / project copy can voxelise from the atlas (opaque matter); everything
  * else stays a thin atlas plate so signage stays cheap and legible.
  */
 
 export type GlyphForm = 'flat' | 'voxel'
 
+/**
+ * `stack` — identical cubes along Z (hero silhouette).
+ * `relief` — one elongated brick per ink cell; depth follows alpha so strokes
+ * read as architectural members, not a Lego pile (Work numerals).
+ */
+export type VoxelProfile = 'stack' | 'relief'
+
 export interface VoxelSpec {
   /** Target cell size in em — smaller = denser. */
   cellEm: number
-  /** Extrusion layers along the text normal. */
+  /** Max extrusion steps (stack layers, or relief depth units). */
   layers: number
   /** Atlas alpha cutoff for keeping a cell. */
   threshold?: number
+  /** Build style. Default `stack`. */
+  profile?: VoxelProfile
+  /**
+   * Relief only: Z thickness as a multiple of the face edge at full ink.
+   * >1 pulls the letter into the room like a bay column.
+   */
+  extrude?: number
 }
 
 export interface TextBlock {
@@ -164,13 +178,16 @@ const countFragments = (blocks: TextBlock[], atlas: GlyphAtlas) =>
     if (block.form === 'voxel') {
       const cellEm = block.voxel?.cellEm ?? 0.1
       const layers = block.voxel?.layers ?? 3
+      const profile = block.voxel?.profile ?? 'stack'
+      // Relief places one brick per cell; stack multiplies by layer count.
+      const perCell = profile === 'relief' ? 1 : layers
       return (
         total +
         glyphs.reduce((sum, char) => {
           const metric = atlas.metrics.get(glyphKey(block.role, char))
           if (!metric || metric.width <= 0) return sum
           const { cols, rows } = gridFor(metric, cellEm)
-          return sum + cols * rows * layers
+          return sum + cols * rows * perCell
         }, 0)
       )
     }
@@ -304,12 +321,61 @@ const pushVoxelGlyph = (
 ) => {
   const spec = block.voxel ?? { cellEm: 0.1, layers: 3 }
   const threshold = spec.threshold ?? 0.42
+  const profile = spec.profile ?? 'stack'
   const { cols, rows } = gridFor(metric, spec.cellEm)
   const cellW = (metric.width * block.em) / cols
   const cellH = (metric.height * block.em) / rows
-  // Cubes — slight inset so facets read as voxels, not a fused blob.
-  const edge = Math.min(cellW, cellH) * 0.88
   const layers = Math.max(1, spec.layers)
+
+  if (profile === 'relief') {
+    // One elongated brick per ink cell. Depth scales with coverage so stroke
+    // cores push into the room like bay columns; fringe ink stays shallow.
+    const face = Math.min(cellW, cellH) * 0.9
+    const extrude = spec.extrude ?? 2.6
+    const minDepth = face * 0.55
+    const maxDepth = face * extrude * Math.max(layers / 3, 1)
+
+    for (let row = 0; row < rows; row++) {
+      for (let column = 0; column < cols; column++) {
+        const uNorm = (column + 0.5) / cols
+        const vNorm = (row + 0.5) / rows
+        const ink = glyphAlphaAt(atlas, metric, uNorm, vNorm)
+        if (ink < threshold) continue
+        if (cursor.index >= capacity) return false
+
+        const strength = Math.min(
+          1,
+          Math.max(0, (ink - threshold) / Math.max(1 - threshold, 0.0001)),
+        )
+        // Smoothstep so mid-tones don't jump between depths.
+        const eased = strength * strength * (3 - 2 * strength)
+        const depth = minDepth + (maxDepth - minDepth) * eased
+        // Bias the mass behind the text plane — front face stays readable,
+        // body reads as structure when the panel is yawed.
+        const centreZ = -depth * 0.38
+        // Slight XY taper on shallow fringe cells → stepped relief, not a slab.
+        const faceScale = 0.82 + eased * 0.18
+
+        pushFragment(
+          out,
+          cursor,
+          block,
+          quadLeft + cellW * (column + 0.5),
+          quadTop - cellH * (row + 0.5),
+          centreZ,
+          face * faceScale,
+          face * faceScale,
+          depth,
+          [0, 0, 0, 0],
+          1,
+        )
+      }
+    }
+    return true
+  }
+
+  // Stack — slight inset so facets read as voxels, not a fused blob.
+  const edge = Math.min(cellW, cellH) * 0.88
   const layerPitch = edge
 
   for (let row = 0; row < rows; row++) {

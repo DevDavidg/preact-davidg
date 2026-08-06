@@ -152,7 +152,8 @@ export const About = () => {
   if (tier === 'cinema') {
     const faceLive = aboutVoxels === 'live'
     // Reading stays DOM — long quote/bio as world-copy stacked into mush.
-    // Only the headshot yields to voxels once the mesh is legible.
+    // Only the headshot yields to voxels once the mesh is legible (`live`
+    // stays through Contact retire so the JPG never flashes back).
     return (
       <section
         id="about"

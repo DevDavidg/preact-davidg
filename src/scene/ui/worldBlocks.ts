@@ -276,10 +276,13 @@ const artifactNumerals = (input: WorldCopyInput): TextBlock[] => {
       exit: numExit,
       exitSpan: 0.06,
       form: 'voxel',
+      // Relief bricks (not stacked cubes): ink cores extrude like bay members.
       voxel: {
         cellEm: cinemaTypeVoxelCellEm('numeral'),
-        layers: 3,
-        threshold: 0.42,
+        layers: 5,
+        threshold: 0.38,
+        profile: 'relief',
+        extrude: 2.8,
       },
       chaos: 3.2,
       depth: 6,

@@ -216,15 +216,16 @@ const CinemaAboutPortrait = ({ windows }: { windows: SectionWindows }) => {
       exitSpan: RETIRE_SPAN,
     })
 
-    // Geometry + opacity are set before the face fallback leaves. Restoring on
-    // scroll-back keeps a readable portrait while voxels dissolve.
+    // Geometry + opacity are set before the face fallback leaves. Restore the
+    // DOM face only on scroll-back (progress unwind). Retiring toward Contact
+    // keeps `live` so the JPG never flashes over dissolving voxels.
     const { aboutVoxels, setAboutVoxels } = useSceneStore.getState()
     const shouldHandOff =
       opacityRef.current >= PLATE_ON &&
       progress >= PLATE_ON &&
       presence > 0.5
     const shouldRestore =
-      opacityRef.current < PLATE_OFF || presence <= 0.35
+      progress < PLATE_OFF && opacityRef.current < PLATE_OFF
     if (aboutVoxels === 'pending' && shouldHandOff) {
       setAboutVoxels('live')
     } else if (aboutVoxels === 'live' && shouldRestore) {

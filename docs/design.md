@@ -141,7 +141,7 @@ Portal: glow acento, copy “¿Encendemos la escena?”, mailto hero, links soci
 | H1 char weight por proximidad mouse | Desktop; off en coarse/reduced |
 | Reveal IO suave en overlays | Una vez; easing `.22,1,.36,1` |
 | Sticky process number sync | ScrollTrigger / IO |
-| Tipografía fragmentada en world space (títulos, signage, numerales) | Solo tier cine; hero + proyectos = voxels opacos 3D desde el atlas; signage/process = placas; el DOM queda transparente pero presente (SEO/a11y) |
+| Tipografía fragmentada en world space (títulos, signage, numerales) | Solo tier cine; hero = voxels stack; numerales Work = relief bricks (extrusión por tinta, no cubos apilados); signage/process = placas; DOM transparente (SEO/a11y) |
 | Overlay que se arma por piezas (`.shard`): cards, filas, HUD, botones, links, steps | Translate/rotate 2D + opacidad; nunca sobre un elemento que ya anima transform. Nav excluido |
 | Work: solo galería 3D (shards + world-copy); sin dossier DOM | Cinema: spacer `#work` + a11y; lite/still: lista DOM fallback |
 | About cinema: retrato voxel 3D + DOM quote/bio | Assemble voxels = ventana About; lite/still = plate DOM completo |
