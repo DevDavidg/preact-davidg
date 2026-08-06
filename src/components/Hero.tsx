@@ -34,6 +34,7 @@ export const Hero = () => {
       id="hero"
       ref={container}
       className="section section--scrim hero"
+      data-tier={tier}
       aria-labelledby="hero-title"
     >
       <Reveal>

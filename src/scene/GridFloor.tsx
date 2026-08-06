@@ -17,6 +17,8 @@ void main() {
 const fragmentShader = /* glsl */ `
 uniform float uBuild;
 uniform float uLive;
+uniform float uTime;
+uniform float uCinema;
 uniform vec3 uInk;
 uniform vec3 uAccent;
 
@@ -41,20 +43,48 @@ void main() {
   float distance = length(vWorld - cameraPosition);
   float fade = 1.0 - smoothstep(5.0, 30.0, distance);
 
-  // The floor is brightest while the room is still a blueprint.
-  float wire = 1.0 - smoothstep(0.05, 0.7, uBuild) * 0.62;
+  // The floor is brightest while the room is still a blueprint. It settles
+  // decisively before BEAUTY so the phase shift reads without HUD support.
+  float wire = 1.0 - smoothstep(0.12, 0.48, uBuild) * 0.68;
 
   // Scan beam travelling down the room, locked to scroll.
   float beamZ = 9.0 - uBuild * 30.0;
   float beam = exp(-pow((vWorld.z - beamZ) * 0.42, 2.0));
 
+  // Cinema SCANNING: idle sweep at rest, then crossfade into the scroll beam
+  // so the first flick never reads as two scanners fighting.
+  float scanning = (1.0 - smoothstep(0.02, 0.18, uBuild)) * uCinema;
+  float idleBeamZ = 8.5 - fract(uTime * 0.07) * 14.0;
+  float idleBeam = exp(-pow((vWorld.z - idleBeamZ) * 0.48, 2.0));
+  float scrollW = 1.0 - scanning * 0.9;
+  float idleW = scanning;
+  float pulse = 0.5 + 0.5 * sin(uTime * 1.15);
+  // The Work gallery owns the ASSEMBLING frame. Keep a trace of the navigation
+  // beam, but take the floor out of the same contrast band as the project shots.
+  float workQuiet =
+    smoothstep(0.14, 0.22, uBuild) *
+    (1.0 - smoothstep(0.43, 0.52, uBuild));
+
   float structure = minor * 0.26 + major * 0.7;
   // Deliberately restrained: overlay copy sits directly on top of this floor and
   // a brighter grid costs more in legibility than it adds in atmosphere.
   float alpha = structure * fade * (0.1 + wire * 0.22);
-  alpha += beam * fade * (0.12 + structure * 0.3);
+  alpha += beam * fade * (0.12 + structure * 0.3) * scrollW;
+  alpha += idleBeam * fade * (0.08 + structure * 0.2) * idleW;
+  alpha *= 1.0 + scanning * pulse * 0.08;
+  alpha *= 1.0 - workQuiet * 0.58;
 
-  vec3 color = mix(uInk, uAccent, clamp(uLive * 0.5 + beam * 0.4, 0.0, 1.0));
+  vec3 color = mix(
+    uInk,
+    uAccent,
+    clamp(
+      uLive * 0.5 +
+        beam * 0.4 * scrollW * (1.0 - workQuiet * 0.4) +
+        idleBeam * 0.22 * idleW,
+      0.0,
+      1.0
+    )
+  );
 
   if (alpha < 0.003) discard;
   fragColor = vec4(color, clamp(alpha, 0.0, 1.0));
@@ -74,6 +104,8 @@ export const GridFloor = ({ tier }: { tier: Tier }) => {
         uniforms: {
           uBuild: { value: 0 },
           uLive: { value: 0 },
+          uTime: { value: 0 },
+          uCinema: { value: 0 },
           uInk: { value: sceneColors.ink.clone() },
           uAccent: { value: sceneColors.accent.clone() },
         },
@@ -90,10 +122,12 @@ export const GridFloor = ({ tier }: { tier: Tier }) => {
     }
   }, [material, geometry])
 
-  useFrame(() => {
+  useFrame((state) => {
     const build = buildFor(tier)
     material.uniforms.uBuild.value = build
     material.uniforms.uLive.value = liveFor(build)
+    material.uniforms.uTime.value = state.clock.elapsedTime
+    material.uniforms.uCinema.value = tier === 'cinema' ? 1 : 0
     material.uniforms.uInk.value.copy(sceneColors.ink)
     material.uniforms.uAccent.value.copy(sceneColors.accent)
   })

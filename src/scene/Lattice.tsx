@@ -30,8 +30,8 @@ interface Fragment {
 const buildFragments = (count: number): Fragment[] => {
   const columns = 8
   const rows = Math.ceil(count / columns)
-  /** Fragments keep out of the middle lane, where the overlay copy sits. */
-  const CLEARANCE = 3.1
+  /** Fragments keep out of the middle lane, where panels and copy sit. */
+  const CLEARANCE = 3.7
 
   return Array.from({ length: count }, (_, index) => {
     const column = index % columns
@@ -40,17 +40,16 @@ const buildFragments = (count: number): Fragment[] => {
     const side = lane < 0 ? -1 : 1
 
     return {
-      // Chaos sits deep down the corridor and across the middle lane the copy
-      // will later occupy: the room arrives out of the background and clears the
-      // reading path as it settles, rather than fading in from the sides.
+      // Chaos starts deep and already biased to the walls: flying through the
+      // centre lane would paint over the artifact panels as they assemble.
       chaos: new THREE.Vector3(
-        (Math.random() - 0.5) * 7 + side * Math.random() * 4,
-        Math.random() * 9 - 1.5,
+        side * (2.2 + Math.random() * 5.5),
+        Math.random() * 8 - 1.2,
         -13 - Math.random() * 17,
       ),
       home: new THREE.Vector3(
         side * (CLEARANCE + Math.abs(lane) * 1.9),
-        0.3 + (row % 3) * 1.45,
+        0.15 + (row % 3) * 1.55,
         7.5 - (row / rows) * 24,
       ),
       tumble: new THREE.Euler(
@@ -110,6 +109,19 @@ export const Lattice = ({ tier }: { tier: Tier }) => {
     const time = state.clock.elapsedTime
     const speed = speedFor()
     const { dummy, position } = scratch
+    // Cinema SCANNING: the room idles before the first scroll — drift, lean
+    // toward the pointer, and a touch more presence so wireframe reads as space.
+    const scanning =
+      tier === 'cinema'
+        ? 1 - THREE.MathUtils.smoothstep(build, 0.02, 0.18)
+        : 0
+    // Leave the project lane visually quiet while panels are assembling. This
+    // affects only backdrop drift/opacity; it never pauses the reconstruction.
+    // Hold through most of Work — ending at ~0.52 let the swarm re-cover shots.
+    const workQuiet = THREE.MathUtils.smoothstep(build, 0.14, 0.22) *
+      (1 - THREE.MathUtils.smoothstep(build, 0.48, 0.58))
+    const backgroundMotion = 1 - workQuiet * 0.72
+    const motionTime = time * backgroundMotion
 
     for (let index = 0; index < fragments.length; index++) {
       const fragment = fragments[index]
@@ -120,21 +132,36 @@ export const Lattice = ({ tier }: { tier: Tier }) => {
       )
       const settled = settleAt(build, stagger)
       const loose = 1 - settled
+      const idle = loose * (1 + scanning * 0.55)
 
       position.lerpVectors(fragment.chaos, fragment.home, settled)
       position.y +=
-        Math.sin(time * 0.4 + fragment.seed * 8) * 0.18 * loose * (1 + speed * 0.55)
+        Math.sin(time * 0.4 + fragment.seed * 8) *
+        0.18 *
+        idle *
+        (1 + speed * 0.55) *
+        backgroundMotion
+      if (scanning > 0.001) {
+        position.x +=
+          sceneState.pointerX * scanning * (0.08 + fragment.seed * 0.08)
+        position.y +=
+          Math.sin(time * 0.62 + fragment.seed * 11) * 0.07 * scanning
+        position.z +=
+          Math.sin(time * 0.28 + fragment.seed * 6) * 0.06 * scanning
+      }
       dummy.position.copy(position)
 
-      const spin = 1 + speed * 0.7
+      const spin = 1 + (speed * 0.7 + scanning * 0.22) * backgroundMotion
       dummy.rotation.set(
         THREE.MathUtils.lerp(fragment.tumble.x, fragment.settled.x, settled) +
-          time * 0.25 * loose * spin,
+          motionTime * 0.25 * idle * spin,
         THREE.MathUtils.lerp(fragment.tumble.y, fragment.settled.y, settled) +
-          time * 0.3 * loose * spin,
+          motionTime * 0.3 * idle * spin,
         THREE.MathUtils.lerp(fragment.tumble.z, fragment.settled.z, settled),
       )
-      dummy.scale.setScalar(fragment.size * (0.45 + settled * 0.55))
+      dummy.scale.setScalar(
+        fragment.size * (0.45 + settled * 0.55) * (1 + scanning * 0.04),
+      )
       dummy.updateMatrix()
       mesh.setMatrixAt(index, dummy.matrix)
     }
@@ -148,10 +175,12 @@ export const Lattice = ({ tier }: { tier: Tier }) => {
       time,
       velocity: sceneState.velocity,
     })
-    // Backdrop only — never occlude the corridor copy with lattice faces.
+    // Backdrop only — never occlude corridor copy. Dim harder in SCANNING so
+    // the hero voxel name keeps silhouette against the wire noise.
     material.depthWrite = false
-    // Lattice stays a whisper under the copy; live only lifts it slightly.
-    material.uniforms.uOpacity.value = 0.14 + (1 - build) * 0.12 + live * 0.1
+    material.uniforms.uOpacity.value =
+      (0.08 + (1 - build) * 0.08 + live * 0.08 + scanning * 0.015) *
+      (1 - workQuiet * 0.92)
   })
 
   return (

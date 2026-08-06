@@ -1,0 +1,168 @@
+/* About — cinema voxel face + DOM reading plate; lite/still full DOM. */
+
+/* Containing block for absolute fallback / a11y — height comes only from field. */
+.about {
+  position: relative;
+}
+
+/* Cinema: face yields to voxels; quote/bio stay DOM for readable type. */
+.about__fallback {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 1;
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--s8) var(--gutter) 0;
+  pointer-events: none;
+}
+
+.about--cinema .about__fallback .about__grid {
+  margin-top: clamp(10vh, 16vh, 20vh);
+  align-items: center;
+  /* Wide left lane for the voxel face; bio stays clear on the right. */
+  grid-template-columns: minmax(300px, 44vw) minmax(0, 1fr);
+}
+
+.about--cinema .about__portrait--void {
+  border-color: transparent;
+  background: transparent;
+  min-height: 420px;
+  pointer-events: none;
+}
+
+.about--cinema .about__body {
+  max-width: 32rem;
+  justify-self: end;
+  padding: clamp(22px, 3vw, 34px) clamp(24px, 3vw, 38px);
+  border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+  background: color-mix(in srgb, var(--base) 94%, transparent);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--base) 55%, transparent);
+}
+
+.about--cinema .about__quote {
+  font: 500 clamp(20px, 2.1vw, 28px) / 1.35 var(--display);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.about--cinema .about__body .lead {
+  margin-top: 1.1rem !important;
+  font-size: clamp(14px, 1.35vw, 16px) !important;
+  line-height: 1.55;
+  color: var(--ink-80, var(--ink-70));
+}
+
+.about--cinema .about__body .spec {
+  margin-top: 1.25rem;
+}
+
+.about--cinema .about__body .spec__key,
+.about--cinema .about__body .spec__row {
+  color: var(--ink-70);
+}
+
+/* Cinema scroll lane — must clear the absolute safety plate (portrait + bio),
+   including the stacked single-column layout under 1080px. */
+.about__field {
+  min-height: max(160vh, 1100px);
+  pointer-events: none;
+}
+
+/* Clipped bio for SR / SEO on cinema. */
+.about__a11y {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.about__a11y dd {
+  margin: 0;
+}
+
+/* Lite/still — full DOM plate when cinema voxels are off. */
+.about__grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 380px) 1fr;
+  gap: var(--s6);
+  margin-top: var(--s5);
+  align-items: start;
+}
+
+.about__portrait {
+  height: 420px;
+  /* No overflow:hidden — clipping over WebGL can flash black; crop via object-fit. */
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+}
+
+.about__img {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 25%;
+  pointer-events: none;
+}
+
+.about__portrait > span {
+  position: relative;
+  z-index: 1;
+  color: var(--ink-70);
+  background: color-mix(in srgb, var(--base) 88%, transparent);
+}
+
+.about__body {
+  max-width: 580px;
+  padding: 28px 32px;
+}
+
+.about__quote {
+  font: 500 clamp(22px, 2.2vw, 30px) / 1.3 var(--display);
+  letter-spacing: -0.02em;
+}
+
+.spec {
+  margin-top: var(--s4);
+  border-top: 1px solid var(--line);
+}
+
+.spec__row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: var(--s2);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  font: 400 12px var(--mono);
+  letter-spacing: 0.08em;
+}
+
+.spec__row:last-child {
+  border-bottom: 0;
+}
+
+.spec__key {
+  color: var(--ink-45);
+}
+
+@media (max-width: 1080px) {
+  .about__grid {
+    grid-template-columns: 1fr;
+    gap: var(--s5);
+  }
+}
+
+@media (max-width: 900px) {
+  .about__field {
+    /* Stacked portrait + bio needs more lane than a side-by-side desktop plate. */
+    min-height: max(200vh, 1400px);
+  }
+}

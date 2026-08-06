@@ -48,9 +48,9 @@ progress, 0 → 1):
 | `sceneState.ts` | Mutable singleton for per-frame values + Zustand store for discrete state |
 | `ReconstructMaterial.ts` | The signature shader: shards → solid → lit |
 | `shardGeometry.ts` | Splits a geometry into free triangles for that shader |
-| `layout.ts` | Camera/target splines, artifact and portal placement, fog |
+| `layout.ts` | Camera/target splines, artifact/portal placement, fog, cinema voxel LOD helpers |
 | `Rig.tsx` | Dollies the camera along the spline with pointer parallax |
-| `Artifacts.tsx` / `Structures.tsx` / `Lattice.tsx` / `GridFloor.tsx` | Room contents |
+| `Artifacts.tsx` / `AboutPortrait.tsx` / `portraitVoxels.ts` / `PortraitVoxelMaterial.ts` / `Structures.tsx` / `Lattice.tsx` / `GridFloor.tsx` | Room contents — Artifacts = 6 Work panels; AboutPortrait = JPG→coloured voxel cubes timed to the About scroll window |
 | `Atmosphere.tsx` | Fog and the portal the room powers on toward |
 
 ## World copy (`scene/ui/`)
@@ -58,14 +58,16 @@ progress, 0 → 1):
 Headings, section signage and numerals also exist as fragments in the room. The
 glyphs are rasterised from the live webfonts into one runtime atlas, then drawn
 as a single instanced mesh whose shader interpolates each fragment from its
-scattered origin to its home as `build` advances.
+scattered origin to its home as `build` advances. Hero + project labels are
+CPU-voxelised from atlas ink into opaque lit cubes; other copy stays thin
+atlas plates.
 
 | File | Role |
 |------|------|
-| `glyphAtlas.ts` | Rasterises the needed glyphs from CSS fonts into one `CanvasTexture` |
-| `glyphLayout.ts` | Wraps text and flattens blocks into instance attributes |
-| `GlyphMaterial.ts` | Per-fragment scatter → settle, wireframe → solid, fog and light |
-| `GlyphField.tsx` | The instanced mesh; one draw call for all world typography |
+| `glyphAtlas.ts` | Rasterises glyphs + exposes pixel buffer for CPU voxel sampling |
+| `glyphLayout.ts` | Wraps text; `form: 'voxel' | 'flat'` → instance attributes |
+| `GlyphMaterial.ts` | Scatter → settle; opaque voxels or atlas plates + fog |
+| `GlyphField.tsx` | Instanced unit `BoxGeometry`; one draw call for all world typography |
 | `worldBlocks.ts` | What exists in world space per section, with enter/exit windows |
 | `WorldCopy.tsx` | Atlas lifecycle, tier gating, and the DOM hand-off flag |
 | `sectionRanges.ts` / `useSectionWindows.ts` | Maps DOM section positions onto `build` |
@@ -85,25 +87,36 @@ read. It waits for all of: an atlas that fit every glyph it was asked for
 for the HTML (`GlyphField` reports that once). Miss any one of them and the DOM
 stays the visible layer — copy showing twice is recoverable, copy missing is not.
 
+Work cinema has no dossier DOM: `#work` is a scroll spacer + clipped a11y list
+(`.work__a11y`); shots and labels live only as Artifacts shards + world-copy
+glyphs. Panel rim accent follows the nearest live panel on the dolly
+(`sceneState.focus`), with keyboard focus on the a11y links taking priority.
+Lite/still render a readable DOM fallback list (`.work__fallback`) instead of
+an empty spacer.
+
+About cinema is a scroll spacer; the portrait is voxels. Quote/bio/specs stay
+DOM (`.about__fallback`) for legible reading — long body type as world-copy was
+unreadable. The DOM face plate voids when `aboutVoxels === 'live'`; reading
+never voids. Clipped a11y always mounted. Field height must clear the absolute
+safety plate. Lite/still keep the full DOM plate.
+
 ## Overlay assembly (`styles/assemble.css`)
 
 The HTML on top of the scene arrives in pieces too. Anything marked `.shard`
 starts offset from its home and converges when an ancestor reports
-`data-shown='true'` — the flag `useInView` already sets on reveals, artifact
-cards, process steps and the footer, and that `Hud` and the hero cue take from
-`booted`. Six offset vectors cycle over `:nth-child`, so siblings come from
-different directions and land at different moments without any per-element
-bookkeeping.
+`data-shown='true'` — the flag `useInView` already sets on reveals, process
+steps and the footer, and that `Hud` and the hero cue take from `booted`. Six
+offset vectors cycle over `:nth-child`, so siblings come from different
+directions and land at different moments without any per-element bookkeeping.
 
 Two rules to keep:
 
 - **Translate and rotate only, as the individual properties.** A 3D transform,
   `perspective`, `filter` or clipping on this layer paints solid black rectangles
-  for a frame over the live canvas on Chromium and WebKit — this is why
-  `.artifact` documents the same constraint and why the cards never tilt on
-  hover. Using `translate` / `rotate` rather than `transform` also lets a piece
-  that writes its own `transform`, such as a magnetic CTA, compose with the
-  arrival instead of overriding it.
+  for a frame over the live canvas on Chromium and WebKit. Using `translate` /
+  `rotate` rather than `transform` also lets a piece that writes its own
+  `transform`, such as a magnetic CTA, compose with the arrival instead of
+  overriding it.
 - **Never put a shard on an element that animates its own `opacity`.** An
   animation beats a transition, so the piece would skip its fade. `.contact__live`
   pulses on its indicator dot for exactly this reason, and `.hud__fill`, written

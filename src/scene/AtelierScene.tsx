@@ -4,6 +4,7 @@ import { Bloom, EffectComposer, Noise } from '@react-three/postprocessing'
 import { BlendFunction, type BloomEffect } from 'postprocessing'
 import * as THREE from 'three'
 import { useCopy } from '../i18n/copy'
+import { AboutPortrait } from './AboutPortrait'
 import { Artifacts } from './Artifacts'
 import { Atmosphere } from './Atmosphere'
 import { GridFloor } from './GridFloor'
@@ -15,20 +16,21 @@ import {
   sceneColors,
 } from './sceneColors'
 import { Structures } from './Structures'
-import { buildFor, liveFor, type Tier } from './sceneState'
+import { buildFor, livePowerFor, type Tier } from './sceneState'
 import { useSectionWindows } from './ui/useSectionWindows'
 import { WorldCopy } from './ui/WorldCopy'
 
 /**
- * Two passes, both earning their cost: bloom so the accent rim actually glows
- * when the room powers on, and a whisper of grain to kill banding in the fog.
+ * Two passes, both earning their cost: bloom gates on only with LIVE's portal,
+ * and a whisper of grain kills banding in the fog.
  */
 const Post = ({ tier }: { tier: Tier }) => {
   const bloom = useRef<BloomEffect>(null)
 
   useFrame(() => {
     if (!bloom.current) return
-    bloom.current.intensity = 0.16 + liveFor(buildFor(tier)) * 0.7
+    // Keep power-on bloom on the portal, not smearing world-copy strokes.
+    bloom.current.intensity = livePowerFor(buildFor(tier)) * 0.4
   })
 
   // Composer black-frame sources while the camera parallaxes on pointermove:
@@ -44,9 +46,9 @@ const Post = ({ tier }: { tier: Tier }) => {
     >
       <Bloom
         ref={bloom}
-        intensity={0.16}
-        luminanceThreshold={0.42}
-        luminanceSmoothing={0.3}
+        intensity={0}
+        luminanceThreshold={0.55}
+        luminanceSmoothing={0.35}
         levels={3}
         mipmapBlur={false}
       />
@@ -140,7 +142,8 @@ export const AtelierScene = ({ tier }: { tier: Tier }) => {
         <GridFloor tier={tier} />
         <Lattice tier={tier} />
         <Structures tier={tier} />
-        <Artifacts tier={tier} shots={shots} />
+        <Artifacts tier={tier} shots={shots} windows={windows} />
+        <AboutPortrait tier={tier} windows={windows} />
         <WorldCopy copy={copy} tier={tier} windows={windows} />
         {tier === 'cinema' && <Post tier={tier} />}
         {tier === 'still' && <StillFrame />}

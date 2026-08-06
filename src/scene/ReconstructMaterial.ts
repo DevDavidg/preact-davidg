@@ -27,6 +27,7 @@ varying vec2 vUv;
 varying float vWorldY;
 varying float vAssembled;
 varying float vStage;
+varying float vViewDistance;
 
 // Axis-angle rotation, written column-major for GLSL.
 mat3 rotateAxis(vec3 rawAxis, float angle) {
@@ -81,6 +82,7 @@ void main() {
   vWorldY = worldPos.y;
   vAssembled = assembled;
   vStage = assembleBuild;
+  vViewDistance = length(cameraPosition - worldPos.xyz);
 
   gl_Position = projectionMatrix * viewMatrix * worldPos;
 }
@@ -105,6 +107,7 @@ varying vec2 vUv;
 varying float vWorldY;
 varying float vAssembled;
 varying float vStage;
+varying float vViewDistance;
 
 // GLSL3 has no gl_FragColor; three aliases attribute/varying but not the output.
 layout(location = 0) out vec4 fragColor;
@@ -115,15 +118,20 @@ void main() {
   vec3 smoothed = smoothstep(vec3(0.0), delta * 1.5, vBary);
   float edge = 1.0 - min(min(smoothed.x, smoothed.y), smoothed.z);
 
-  // Three overlapping stages: faces fill, then shading and rim light arrive.
-  // Filling follows the mesh's own assembly so an object that owns a slice of the
-  // scroll is solid the moment it lands; lighting stays on the room's phase.
-  float solid = smoothstep(0.10, 0.62, vStage);
-  float lit = smoothstep(0.50, 0.90, uBuild);
-  float wire = 1.0 - solid * 0.80;
+  // Four-stage read: wire dominates SCANNING, matter locks during ASSEMBLING,
+  // light opens through BEAUTY, then accent is reserved for LIVE.
+  float solidArch = smoothstep(0.16, 0.48, vStage);
+  // Textured panels keep a readable face while tumbling, so a project enters as
+  // photo-debris rather than an empty wireframe.
+  float solidShot = mix(0.42, 1.0, smoothstep(0.04, 0.68, vAssembled));
+  float solid = mix(solidArch, solidShot, uHasMap);
+  float lit = smoothstep(0.48, 0.78, uBuild);
+  float liveAccent = smoothstep(0.72, 0.84, uBuild) * uLive;
+  // Photo shards keep triangulation until they nearly lock; then bury the mesh.
+  float wire = 1.0 - solid * mix(0.80, smoothstep(0.55, 0.98, vAssembled) * 0.98, uHasMap);
 
   // Reconstruction band rides the scroll; time only breathes it slightly.
-  float bandY = mix(-1.4, 5.8, uBuild) + sin(uTime * 0.22) * 0.28;
+  float bandY = mix(-1.4, 5.8, smoothstep(0.1, 0.54, uBuild)) + sin(uTime * 0.22) * 0.28;
   float band = exp(-pow((vWorldY - bandY) * 2.1, 2.0));
 
   vec3 normal = normalize(vNormalW);
@@ -138,29 +146,49 @@ void main() {
 
   vec3 face = uInk * (0.05 + key * 0.17 + fill * 0.1);
   face += uInk * spec * lit * 0.35;
-  face = mix(face, uAccent * 0.4, uLive * fresnel * 0.55);
+  face = mix(face, uAccent * 0.4, liveAccent * fresnel * 0.55);
 
-  // Artifact panels carry the real project shot: it resolves onto the surface as
-  // the shards land, so the work itself is what the reconstruction reveals.
+  // Full plate photo fills as shards lock. Loose debris keeps colour via edge
+  // tint only — painting the map at uHasMap alone doubled the dossier JPEG
+  // until per-card DOM void (~assemble 0.58+).
   vec3 shot = texture(uMap, vUv).rgb;
-  // Kept under full brightness: a blown-out photo would break the dark room.
-  vec3 litShot = shot * (0.3 + key * 0.34 + fill * 0.16) + uInk * spec * lit * 0.2;
-  float shotMix = uHasMap * solid * vAssembled;
+  float shotExposure = mix(0.48, 0.78, vAssembled);
+  vec3 litShot = shot * (shotExposure + key * 0.38 + fill * 0.2) + uInk * spec * lit * 0.14;
+  litShot = mix(litShot, litShot * uAccent * 1.12, uFocus * 0.1);
+  float shotMix = uHasMap * smoothstep(0.52, 0.9, vAssembled);
   face = mix(face, litShot, shotMix);
 
-  vec3 edgeTint = mix(uInk, uAccent, max(uLive, uFocus * 0.75));
+  // Focus is a brighter neutral rim during Work; gold is held for LIVE.
+  vec3 edgeTint = mix(uInk * (1.0 + uFocus * 0.18), uAccent, liveAccent);
+  // Loose photo shards outline in their own colour so debris matches the lattice
+  // language without waiting for a solid plate.
+  edgeTint = mix(edgeTint, mix(shot, uAccent, 0.22), uHasMap * (0.55 + 0.35 * (1.0 - vAssembled)));
   float edgeGlow = edge * (0.26 + wire * 0.6 + uFocus * 0.55 + band * 0.7);
+  // Keep a thin accent rim on settled shots; bury the interior triangulation.
+  edgeGlow *= mix(1.0, 0.18 + uFocus * 0.5, shotMix * smoothstep(0.5, 0.95, vAssembled));
 
-  vec3 rim = uAccent * fresnel * lit * (0.3 + uLive * 0.95 + uFocus * 0.55);
+  vec3 rim = uAccent * fresnel * lit * liveAccent * (0.28 + uFocus * 0.55);
+
+  // Controlled depth without a full-screen DOF pass: distant, unfocused matter
+  // loses contrast in BEAUTY, while the active bay/panel stays optically crisp.
+  float depthFocus =
+    smoothstep(7.0, 20.0, vViewDistance) *
+    smoothstep(0.48, 0.72, uBuild) *
+    (1.0 - uFocus * 0.65);
+  face = mix(face, uInk * 0.035, depthFocus * 0.45);
+  edgeGlow *= 1.0 - depthFocus * 0.55;
+  rim *= 1.0 - depthFocus * 0.35;
 
   vec3 color = face * solid + edgeTint * edgeGlow + rim;
-  // A hint of heat on shards still in flight. Kept low: the accent is a 10%
-  // colour in this system, and loose shards are most of the frame early on.
-  color += uAccent * (1.0 - vAssembled) * 0.06;
+  // Heat on shards still in flight — hotter on photo debris so it reads as
+  // project matter before it locks into a plate.
+  color += uAccent * (1.0 - vAssembled) * mix(0.06, 0.2, uHasMap);
 
   float alpha = solid * (0.40 + key * 0.32) + edgeGlow + fresnel * lit * 0.22;
-  alpha += shotMix * 0.55;
-  alpha *= uOpacity * mix(0.35, 1.0, vAssembled);
+  // Textured panels need presence while flying and hold against the lattice when home.
+  alpha += shotMix * mix(0.55, 0.92, vAssembled);
+  alpha *= 1.0 - depthFocus * 0.18;
+  alpha *= uOpacity * mix(mix(0.35, 0.82, uHasMap), 1.0, vAssembled);
 
   if (alpha < 0.004) discard;
   fragColor = vec4(color, clamp(alpha, 0.0, 1.0));
@@ -261,6 +289,10 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
     uniforms.uAccent.value.copy(sceneColors.accent)
     uniforms.uInk.value.copy(sceneColors.ink)
     // Once faces carry the read, real occlusion beats blended transparency.
-    this.depthWrite = (state.assembleAt ?? state.build) > 0.55
+    // Textured panels wait until nearly locked (high alpha + stagger). Follow
+    // the threshold both ways so scrolling back clears writers mid-flight.
+    const stage = state.assembleAt ?? state.build
+    const mapped = this.uniforms.uHasMap.value > 0.5
+    this.depthWrite = stage > (mapped ? 0.72 : 0.55)
   }
 }

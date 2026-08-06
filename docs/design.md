@@ -98,6 +98,7 @@ Progress bar 2px acento en top — OK (funcional, no ruido).
 - CTAs: `RESERVÁ 15 MIN` (primary) · `EXPLORAR ESCENA` (ghost)
 - Meta: años / stack / disponibilidad Q1 2027
 - Cue: `SCROLL TO BUILD`
+- **Cinema idle (firma):** en reposo (`build≈0`) la sala respira sola — lattice drift + lean al pointer, breath suave de cámara/FOV, barrido idle del grid que cede al beam de scroll al salir de SCANNING (~18%). Lite/still: estático.
 
 **Budget primer viewport:** marca DG® (nav) + H1 + lead + CTAs + escena. Sin stats strip, sin cards, sin badges flotantes sobre el 3D.
 
@@ -111,7 +112,7 @@ Progress bar 2px acento en top — OK (funcional, no ruido).
 | 02 | MOTION | Scrollytelling |
 | 03 | FULL-STACK | SaaS / producto |
 
-Cada artefacto: shot (`image-slot` / media real) + número outline + título + 2 líneas. Focus → panel HTML overlay (drei `Html` en prod).
+Cada artefacto vive solo en la escena 3D (shards + world-copy numeral/título). Sin cards DOM / links / chrome de sección — Work es spacer de scroll + `sr-only` para a11y.
 
 ### Services (ASSEMBLING)
 
@@ -123,7 +124,7 @@ Sticky número morph `01–04` + título de fase. Steps: Descubrimiento → Prot
 
 ### About (BEAUTY)
 
-Retrato + quote del atelier + meta (base, stack, estado).
+Retrato en voxel shards (JPG con fondo studio cull → cubos de color; assemble desde el final de Process). Quote/bio/specs en DOM legible al lado (cinema); world-copy solo signage ABOUT. `#about` = spacer + a11y clipped + plate de lectura.
 
 ### Contact (LIVE)
 
@@ -140,9 +141,13 @@ Portal: glow acento, copy “¿Encendemos la escena?”, mailto hero, links soci
 | H1 char weight por proximidad mouse | Desktop; off en coarse/reduced |
 | Reveal IO suave en overlays | Una vez; easing `.22,1,.36,1` |
 | Sticky process number sync | ScrollTrigger / IO |
-| Tipografía fragmentada en world space (títulos, signage, numerales) | Solo tier cine; el DOM queda transparente pero presente (SEO/a11y) |
+| Tipografía fragmentada en world space (títulos, signage, numerales) | Solo tier cine; hero + proyectos = voxels opacos 3D desde el atlas; signage/process = placas; el DOM queda transparente pero presente (SEO/a11y) |
 | Overlay que se arma por piezas (`.shard`): cards, filas, HUD, botones, links, steps | Translate/rotate 2D + opacidad; nunca sobre un elemento que ya anima transform. Nav excluido |
+| Work: solo galería 3D (shards + world-copy); sin dossier DOM | Cinema: spacer `#work` + a11y; lite/still: lista DOM fallback |
+| About cinema: retrato voxel 3D + DOM quote/bio | Assemble voxels = ventana About; lite/still = plate DOM completo |
 | Web Audio sutil (opcional v2) | Solo si refuerza BUILD/LIVE; mute default |
+
+**Contrato plate Work (cinema):** enter → debris 3D → hold: mesh texturado cuando el plate es legible (`PLATE_ON≈0.68`) → scroll-back hysteresis (`PLATE_OFF`) → retire al pasar. Sin dossier DOM. About: spacer + voxels + DOM quote/bio (void solo el face).
 
 | Evitar | Por qué |
 |--------|---------|

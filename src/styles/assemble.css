@@ -6,9 +6,9 @@
    existing `useInView` already sets on reveals, cards and steps.
 
    Translate and rotate only. A 3D transform, `perspective` or a `filter` on this
-   layer paints solid black rectangles for a frame over the live WebGL canvas —
-   the same trap documented on `.artifact` and in `Work.tsx`. Both properties
-   here are composited, so a section landing costs no layout and no paint.
+   layer paints solid black rectangles for a frame over the live WebGL canvas.
+   Both properties here are composited, so a section landing costs no layout
+   and no paint.
 
    They are also the individual `translate` / `rotate` properties rather than a
    `transform`, so a piece that owns its own `transform` composes with the

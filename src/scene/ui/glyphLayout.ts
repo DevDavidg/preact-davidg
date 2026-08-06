@@ -1,12 +1,28 @@
 import * as THREE from 'three'
-import { glyphKey, type FontRole, type GlyphAtlas } from './glyphAtlas'
+import {
+  glyphAlphaAt,
+  glyphKey,
+  type FontRole,
+  type GlyphAtlas,
+  type GlyphMetric,
+} from './glyphAtlas'
 
 /**
- * Turns declarative text blocks into the flat instance buffers `GlyphField`
- * uploads once. Every letter can be sliced into a grid of sub-quads, so display
- * type is literally built from separate fragments that fly in from the depth of
- * the room and lock into a legible word.
+ * Turns declarative text blocks into instance buffers for `GlyphField`.
+ * Hero / project copy can voxelise from the atlas (opaque cubes); everything
+ * else stays a thin atlas plate so signage stays cheap and legible.
  */
+
+export type GlyphForm = 'flat' | 'voxel'
+
+export interface VoxelSpec {
+  /** Target cell size in em — smaller = denser. */
+  cellEm: number
+  /** Extrusion layers along the text normal. */
+  layers: number
+  /** Atlas alpha cutoff for keeping a cell. */
+  threshold?: number
+}
 
 export interface TextBlock {
   id: string
@@ -33,18 +49,20 @@ export interface TextBlock {
   exit?: number
   /** Build span the block takes to come apart. */
   exitSpan?: number
-  /** Sub-quads per glyph as [columns, rows]. `[1, 1]` keeps letters whole. */
+  /** Flat only: sub-cells per glyph as [columns, rows]. */
   slice?: [number, number]
   /** Scatter radius of the start position, in world units. */
   chaos?: number
   /** How far behind the plane fragments start, in world units. */
   depth?: number
+  /** `voxel` = opaque cubes from ink; default `flat` = atlas plate. */
+  form?: GlyphForm
+  /** Required when `form` is `voxel`. */
+  voxel?: VoxelSpec
   /** 0 = ink, 1 = accent. */
   accent?: number
   /** Opacity multiplier. */
   weight?: number
-  /** Strength of the wireframe outline drawn around each fragment while loose. */
-  frame?: number
 }
 
 export interface GlyphInstances {
@@ -59,9 +77,11 @@ export interface GlyphInstances {
   quaternion: Float32Array
   axis: Float32Array
   rect: Float32Array
+  /** Per instance `[width, height, thickness]`. */
   size: Float32Array
   seed: Float32Array
   window: Float32Array
+  /** accent, weight, form (0 = flat, 1 = voxel). */
   style: Float32Array
 }
 
@@ -131,23 +151,53 @@ interface Cursor {
   }
 }
 
+const gridFor = (metric: GlyphMetric, cellEm: number) => {
+  const cols = Math.max(3, Math.round(metric.width / cellEm))
+  const rows = Math.max(3, Math.round(metric.height / cellEm))
+  return { cols, rows }
+}
+
+/** Worst-case instance count so buffers allocate once. */
+const countFragments = (blocks: TextBlock[], atlas: GlyphAtlas) =>
+  blocks.reduce((total, block) => {
+    const glyphs = Array.from(block.text).filter((char) => char !== ' ' && char !== '\n')
+    if (block.form === 'voxel') {
+      const cellEm = block.voxel?.cellEm ?? 0.1
+      const layers = block.voxel?.layers ?? 3
+      return (
+        total +
+        glyphs.reduce((sum, char) => {
+          const metric = atlas.metrics.get(glyphKey(block.role, char))
+          if (!metric || metric.width <= 0) return sum
+          const { cols, rows } = gridFor(metric, cellEm)
+          return sum + cols * rows * layers
+        }, 0)
+      )
+    }
+    const [columns, rows] = block.slice ?? [1, 1]
+    return total + glyphs.length * columns * rows
+  }, 0)
+
 const pushFragment = (
   out: GlyphInstances,
   cursor: Cursor,
   block: TextBlock,
   centreX: number,
   centreY: number,
+  centreZ: number,
   width: number,
   height: number,
+  depth: number,
   rect: [number, number, number, number],
+  form: number,
 ) => {
   const index = cursor.index
   const { local, world, axis, normal } = cursor.scratch
   const seed = hash(index * 1.7 + block.em * 13.1 + block.enter * 97.3)
   const chaosRadius = block.chaos ?? 4.2
-  const depth = block.depth ?? 7
+  const scatter = block.depth ?? 7
 
-  local.set(centreX, centreY, 0).applyQuaternion(block.quaternion)
+  local.set(centreX, centreY, centreZ).applyQuaternion(block.quaternion)
   world.copy(block.position).add(local)
 
   out.home[index * 3] = world.x
@@ -157,7 +207,7 @@ const pushFragment = (
   // Fragments start deeper in the room than the text plane and scattered around
   // it, so the copy reads as arriving out of the background, not fading in.
   normal.set(0, 0, 1).applyQuaternion(block.quaternion)
-  world.addScaledVector(normal, -depth * (0.55 + seed * 0.9))
+  world.addScaledVector(normal, -scatter * (0.55 + seed * 0.9))
   world.x += (hash(index * 3.31) - 0.5) * chaosRadius * 2
   world.y += (hash(index * 5.77) - 0.5) * chaosRadius
   world.z += (hash(index * 9.13) - 0.5) * chaosRadius
@@ -184,51 +234,137 @@ const pushFragment = (
   out.rect[index * 4 + 2] = rect[2]
   out.rect[index * 4 + 3] = rect[3]
 
-  out.size[index * 2] = width
-  out.size[index * 2 + 1] = height
+  out.size[index * 3] = width
+  out.size[index * 3 + 1] = height
+  out.size[index * 3 + 2] = depth
 
   out.seed[index] = seed
   out.window[index * 4] = block.enter
   out.window[index * 4 + 1] = block.span
-  // Past 1 the exit never triggers, since build itself tops out there.
   out.window[index * 4 + 2] = block.exit ?? 2
   out.window[index * 4 + 3] = block.exitSpan ?? 0.08
   out.style[index * 3] = block.accent ?? 0
   out.style[index * 3 + 1] = block.weight ?? 1
-  out.style[index * 3 + 2] = block.frame ?? 1
+  out.style[index * 3 + 2] = form
 
   cursor.index += 1
 }
 
-/** Upper bound on instances so buffers can be allocated in one pass. */
-const countFragments = (blocks: TextBlock[]) =>
-  blocks.reduce((total, block) => {
-    const [columns, rows] = block.slice ?? [1, 1]
-    const glyphs = Array.from(block.text).filter((char) => char !== ' ').length
-    return total + glyphs * columns * rows
-  }, 0)
+const pushFlatGlyph = (
+  out: GlyphInstances,
+  cursor: Cursor,
+  capacity: number,
+  block: TextBlock,
+  metric: GlyphMetric,
+  quadLeft: number,
+  quadTop: number,
+) => {
+  const [columns, rows] = block.slice ?? [1, 1]
+  const cellWidth = (metric.width * block.em) / columns
+  const cellHeight = (metric.height * block.em) / rows
+  const uSpan = (metric.u1 - metric.u0) / columns
+  const vSpan = (metric.v1 - metric.v0) / rows
+  const plate = Math.min(cellWidth, cellHeight) * 0.04
+
+  for (let row = 0; row < rows; row++) {
+    for (let column = 0; column < columns; column++) {
+      if (cursor.index >= capacity) return false
+      pushFragment(
+        out,
+        cursor,
+        block,
+        quadLeft + cellWidth * (column + 0.5),
+        quadTop - cellHeight * (row + 0.5),
+        0,
+        cellWidth,
+        cellHeight,
+        Math.max(plate, 0.012),
+        [
+          metric.u0 + uSpan * column,
+          metric.v1 - vSpan * (row + 1),
+          metric.u0 + uSpan * (column + 1),
+          metric.v1 - vSpan * row,
+        ],
+        0,
+      )
+    }
+  }
+  return true
+}
+
+const pushVoxelGlyph = (
+  out: GlyphInstances,
+  cursor: Cursor,
+  capacity: number,
+  block: TextBlock,
+  atlas: GlyphAtlas,
+  metric: GlyphMetric,
+  quadLeft: number,
+  quadTop: number,
+) => {
+  const spec = block.voxel ?? { cellEm: 0.1, layers: 3 }
+  const threshold = spec.threshold ?? 0.42
+  const { cols, rows } = gridFor(metric, spec.cellEm)
+  const cellW = (metric.width * block.em) / cols
+  const cellH = (metric.height * block.em) / rows
+  // Cubes — slight inset so facets read as voxels, not a fused blob.
+  const edge = Math.min(cellW, cellH) * 0.88
+  const layers = Math.max(1, spec.layers)
+  const layerPitch = edge
+
+  for (let row = 0; row < rows; row++) {
+    for (let column = 0; column < cols; column++) {
+      const uNorm = (column + 0.5) / cols
+      const vNorm = (row + 0.5) / rows
+      if (glyphAlphaAt(atlas, metric, uNorm, vNorm) < threshold) continue
+
+      for (let layer = 0; layer < layers; layer++) {
+        if (cursor.index >= capacity) return false
+        const centreZ = (layer - (layers - 1) * 0.5) * layerPitch
+        pushFragment(
+          out,
+          cursor,
+          block,
+          quadLeft + cellW * (column + 0.5),
+          quadTop - cellH * (row + 0.5),
+          centreZ,
+          edge,
+          edge,
+          edge,
+          [0, 0, 0, 0],
+          1,
+        )
+      }
+    }
+  }
+  return true
+}
 
 /**
  * Lays every block out into one shared instance buffer. `budget` caps the total
- * fragment count so a lower tier can drop slicing density without touching the
- * block definitions.
+ * fragment count so a lower tier can drop density without touching the blocks.
  */
 export const layoutBlocks = (
   blocks: TextBlock[],
   atlas: GlyphAtlas,
   budget = Infinity,
 ): GlyphInstances => {
-  const needed = countFragments(blocks)
-  const capacity = Math.min(needed, budget)
+  // Prefer the tier budget as capacity so sparse voxel fill cannot truncate
+  // early from a pessimistic full-rectangle estimate. Unbounded layouts still
+  // size from the estimate.
+  const estimate = countFragments(blocks, atlas)
+  const capacity = Number.isFinite(budget)
+    ? Math.max(1, Math.min(budget, Math.max(estimate, 1)))
+    : Math.max(estimate, 1)
   const out: GlyphInstances = {
     count: 0,
-    complete: needed <= budget,
+    complete: true,
     chaos: new Float32Array(capacity * 3),
     home: new Float32Array(capacity * 3),
     quaternion: new Float32Array(capacity * 4),
     axis: new Float32Array(capacity * 3),
     rect: new Float32Array(capacity * 4),
-    size: new Float32Array(capacity * 2),
+    size: new Float32Array(capacity * 3),
     seed: new Float32Array(capacity),
     window: new Float32Array(capacity * 4),
     style: new Float32Array(capacity * 3),
@@ -247,14 +383,12 @@ export const layoutBlocks = (
   for (const block of blocks) {
     const tracking = block.tracking ?? 0
     const leading = block.leading ?? 1.15
-    const [columns, rows] = block.slice ?? [1, 1]
     const lines = wrapLines(block, atlas)
 
     for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
       const line = lines[lineIndex]
       const baseline = -lineIndex * leading * block.em
-      let pen =
-        block.align === 'centre' ? (-line.width / 2) * block.em : 0
+      let pen = block.align === 'centre' ? (-line.width / 2) * block.em : 0
 
       for (const char of line.chars) {
         const metric = atlas.metrics.get(glyphKey(block.role, char))
@@ -263,34 +397,31 @@ export const layoutBlocks = (
         if (metric.width > 0 && metric.height > 0) {
           const quadLeft = pen - metric.bearingX * block.em
           const quadTop = baseline + metric.top * block.em
-          const cellWidth = (metric.width * block.em) / columns
-          const cellHeight = (metric.height * block.em) / rows
-          const uSpan = (metric.u1 - metric.u0) / columns
-          const vSpan = (metric.v1 - metric.v0) / rows
-
-          for (let row = 0; row < rows; row++) {
-            for (let column = 0; column < columns; column++) {
-              if (cursor.index >= capacity) {
-                out.count = cursor.index
-                return out
-              }
-              pushFragment(
-                out,
-                cursor,
-                block,
-                quadLeft + cellWidth * (column + 0.5),
-                quadTop - cellHeight * (row + 0.5),
-                cellWidth,
-                cellHeight,
-                [
-                  metric.u0 + uSpan * column,
-                  // Rows run top-down in layout, V runs bottom-up in the atlas.
-                  metric.v1 - vSpan * (row + 1),
-                  metric.u0 + uSpan * (column + 1),
-                  metric.v1 - vSpan * row,
-                ],
-              )
-            }
+          const ok =
+            block.form === 'voxel'
+              ? pushVoxelGlyph(
+                  out,
+                  cursor,
+                  capacity,
+                  block,
+                  atlas,
+                  metric,
+                  quadLeft,
+                  quadTop,
+                )
+              : pushFlatGlyph(
+                  out,
+                  cursor,
+                  capacity,
+                  block,
+                  metric,
+                  quadLeft,
+                  quadTop,
+                )
+          if (!ok) {
+            out.count = cursor.index
+            out.complete = false
+            return out
           }
         }
 

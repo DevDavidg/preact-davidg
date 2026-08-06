@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useCopy } from '../i18n/copy'
-import { liveFor, sceneState, useSceneStore } from '../scene/sceneState'
+import { livePowerFor, sceneState, useSceneStore } from '../scene/sceneState'
 
 const GLYPHS = '▚▞█▛▜/\\_—'
 const SCRAMBLE_STEPS = 5
@@ -40,12 +40,18 @@ export const Hud = () => {
       if (bar.current) bar.current.style.transform = scale
       if (fill.current) fill.current.style.transform = scale
       if (portal.current) {
-        portal.current.style.opacity = (liveFor(build) * 0.26).toFixed(3)
+        // A restrained screen veil confirms the physical portal; it no longer
+        // lights before LIVE or competes with the scene's actual destination.
+        const portalPower = tier === 'still' ? 0 : livePowerFor(build)
+        portal.current.style.opacity = (portalPower * 0.1).toFixed(3)
       }
 
-      // Instrumentation retires once the build finishes, which also keeps it
-      // clear of the footer at the very bottom of the page.
-      const retire = (1 - Math.max(0, (build - 0.94) / 0.06)).toFixed(3)
+      // Retire before Contact's mail lands in this corner — waiting until 0.94
+      // stacked the cluster on top of the address.
+      const retire = Math.max(
+        0,
+        1 - Math.max(0, (build - 0.86) / 0.08),
+      ).toFixed(3)
       if (cluster.current) cluster.current.style.opacity = retire
       if (hint.current) hint.current.style.opacity = retire
 

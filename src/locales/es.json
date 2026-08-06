@@ -148,7 +148,8 @@
   },
   "about": {
     "label": "04 — SOBRE MÍ ⁄ ABOUT",
-    "portrait": "RETRATO — ARRASTRÁ TU FOTO",
+    "portrait": "RETRATO — DAVID GUILLEN",
+    "portraitAlt": "Retrato de David Guillen, cabello oscuro rizado y gafas",
     "quote": "\"Full stack orientado a frontend y mobile: del wireframe a la app en producción.\"",
     "copy": "Soy David Guillen, 23 años. Front-End & Mobile Developer / Full Stack Senior. +4 años de experiencia (freelance desde 2018). Hoy Líder Técnico en Grupo Mariva; también en Bayer (Salesforce) y Nonconformist. Antes: Santander España, GlobalLogic (Claro), Skyblue, VinciU, Orion2Pay.",
     "spec": [

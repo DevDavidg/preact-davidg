@@ -1,102 +1,72 @@
-import { useCallback } from 'react'
-import { useCopy, type Copy } from '../i18n/copy'
-import { useInView } from '../hooks/useInView'
-import { sceneState } from '../scene/sceneState'
-import { Reveal } from './ui/Reveal'
-
-interface ArtifactPanelProps {
-  index: number
-  item: Copy['work']['items'][number]
-}
+import { useCopy } from '../i18n/copy'
+import { useSceneStore } from '../scene/sceneState'
 
 /**
- * An overlay panel bound to one 3D artifact. Hovering or tab-focusing the panel
- * publishes the index to `sceneState`, and the matching object in the scene lifts
- * its accent rim — so the flat card and the solid it describes are one thing.
- *
- * No CSS 3D tilt: `perspective` / rotateX/Y on a layer over the WebGL canvas
- * paints solid black rectangles for a frame on Chromium/WebKit (hover flash).
+ * Work is a scroll spacer + accessible project list. The visual gallery lives
+ * only in the 3D room (shards + world-copy). No visible dossier cards — the
+ * a11y list stays clipped until keyboard focus, then surfaces below the nav.
  */
-const ArtifactPanel = ({ index, item }: ArtifactPanelProps) => {
-  // Reveal lives on the article itself: a wrapper with a transform would become
-  // the containing block and break the absolute placement in the field.
-  const { ref, inView } = useInView<HTMLElement>()
-
-  const handleFocus = useCallback(() => {
-    // One panel in the room per card, so the index maps straight across.
-    sceneState.focus = index
-  }, [index])
-
-  const handleBlur = useCallback(() => {
-    sceneState.focus = -1
-  }, [])
-
-  return (
-    <article
-      ref={ref}
-      data-hit
-      data-shown={inView}
-      className={`artifact artifact--${index + 1}`}
-      style={{ transitionDelay: `${index * 90}ms` }}
-      onPointerEnter={handleFocus}
-      onPointerLeave={handleBlur}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
-    >
-      <div className="artifact__shot window shard shard--plate">
-        <img
-          src={item.image}
-          alt=""
-          className="artifact__img"
-          width={720}
-          height={450}
-          loading="lazy"
-          decoding="async"
-        />
-        <span>{item.shot}</span>
-      </div>
-      <div className="artifact__body">
-        <div className="artifact__top">
-          <span className="numeral artifact__num shard">
-            {String(index + 1).padStart(2, '0')}
-          </span>
-          <span className="meta shard">{item.tag}</span>
-        </div>
-        <h3 className="artifact__title shard">{item.title}</h3>
-        <p className="body-sm shard" style={{ marginTop: 10 }}>
-          {item.copy}
-        </p>
-        <a
-          href={item.href}
-          className="artifact__link shard"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`${item.title}: ${item.link}`}
-        >
-          {item.link}
-        </a>
-      </div>
-    </article>
-  )
-}
-
 export const Work = () => {
   const { copy } = useCopy()
+  const tier = useSceneStore((state) => state.tier)
+
+  if (tier !== 'cinema') {
+    return (
+      <section
+        id="work"
+        className="section section--scrim work"
+        aria-labelledby="work-label"
+      >
+        <h2 id="work-label" className="eyebrow">
+          {copy.work.label}
+        </h2>
+        <ol className="work__fallback">
+          {copy.work.items.map((item, index) => (
+            <li key={item.title} className="work__fallback-item">
+              <span className="work__fallback-index" aria-hidden="true">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              <div>
+                <a
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="work__fallback-title"
+                  aria-label={`${item.title}: ${item.link}`}
+                >
+                  {item.title} ↗
+                </a>
+                <p className="body-sm">{item.copy}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+    )
+  }
 
   return (
     <section id="work" className="section work" aria-labelledby="work-label">
-      <Reveal className="section__head">
-        <h2 id="work-label" className="eyebrow shard">
-          {copy.work.label}
-        </h2>
-        <span className="meta shard">{copy.work.note}</span>
-      </Reveal>
-
-      <div className="work__field">
+      <h2 id="work-label" className="sr-only">
+        {copy.work.label}
+      </h2>
+      <ul className="work__a11y">
         {copy.work.items.map((item, index) => (
-          <ArtifactPanel key={item.title} index={index} item={item} />
+          <li key={item.title}>
+            <a
+              href={item.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-artifact={index}
+              aria-label={`${item.title}: ${item.link}`}
+            >
+              {item.title}
+            </a>
+            <p>{item.copy}</p>
+          </li>
         ))}
-      </div>
+      </ul>
+      <div className="work__field" aria-hidden="true" />
     </section>
   )
 }

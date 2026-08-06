@@ -60,6 +60,10 @@ export interface GlyphAtlas {
   texture: THREE.Texture
   /** Key is `${role}:${char}`. */
   metrics: Map<string, GlyphMetric>
+  /** Canvas pixel buffer for CPU voxelisation (RGBA). */
+  pixels: Uint8ClampedArray
+  width: number
+  height: number
   /**
    * False when the requested glyphs did not fit the atlas. Missing metrics would
    * drop characters out of the middle of a word, so the caller must keep the DOM
@@ -67,6 +71,30 @@ export interface GlyphAtlas {
    */
   complete: boolean
   dispose: () => void
+}
+
+/**
+ * Alpha inside a glyph's atlas rect. `uNorm`/`vNorm` are 0→1 across the glyph
+ * quad (vNorm 0 = top, matching layout rows).
+ */
+export const glyphAlphaAt = (
+  atlas: GlyphAtlas,
+  metric: GlyphMetric,
+  uNorm: number,
+  vNorm: number,
+): number => {
+  const u = metric.u0 + (metric.u1 - metric.u0) * uNorm
+  // Metrics store texture V (flipY on): v1 = top of glyph, v0 = bottom.
+  const v = metric.v1 + (metric.v0 - metric.v1) * vNorm
+  const x = Math.min(
+    atlas.width - 1,
+    Math.max(0, Math.floor(u * atlas.width)),
+  )
+  const y = Math.min(
+    atlas.height - 1,
+    Math.max(0, Math.floor((1 - v) * atlas.height)),
+  )
+  return atlas.pixels[(y * atlas.width + x) * 4 + 3] / 255
 }
 
 export const glyphKey = (role: FontRole, char: string) => `${role}:${char}`
@@ -260,9 +288,15 @@ export const buildGlyphAtlas = async (
   texture.anisotropy = 4
   texture.needsUpdate = true
 
+  // Snapshot before the texture owns the canvas — voxels sample ink on the CPU.
+  const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data
+
   return {
     texture,
     metrics,
+    pixels,
+    width: canvas.width,
+    height: canvas.height,
     complete,
     dispose: () => texture.dispose(),
   }

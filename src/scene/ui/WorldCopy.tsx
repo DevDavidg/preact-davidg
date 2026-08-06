@@ -22,8 +22,9 @@ interface WorldCopyProps {
   windows: SectionWindows
 }
 
-/** Fragment budget per tier. One instanced draw call either way. */
-const BUDGET: Record<Tier, number> = { cinema: 900, lite: 280, still: 0 }
+/** Fragment budget per tier. Cinema hosts voxelised hero + project labels. */
+/** Cinema hosts voxel hero/projects + About reading plate beside the portrait. */
+const BUDGET: Record<Tier, number> = { cinema: 10500, lite: 280, still: 0 }
 
 /** Reference aspect the world placements were composed for. */
 const REFERENCE_ASPECT = 1.6
@@ -93,7 +94,14 @@ export const WorldCopy = ({ copy, tier, windows }: WorldCopyProps) => {
     [atlas, blocks, tier],
   )
 
-  useEffect(() => setFaded(false), [instances])
+  // Atlas rebuild always re-earns the hand-off. Remeasuring windows reshuffles
+  // instance buffers — do not clear `faded` on those swaps or DOM headings flash
+  // over an already-readable field. Incomplete/empty layouts must clear it so a
+  // remounted GlyphField (opacity 0) cannot keep `data-world-copy` on.
+  useEffect(() => setFaded(false), [atlas])
+  useEffect(() => {
+    if (!instances?.complete || !instances.count) setFaded(false)
+  }, [instances])
 
   // Only the cinema tier replaces DOM headings; see `buildWorldCopy`. Everything
   // here has to be true at once: a partial atlas or a layout the budget cut short
@@ -106,7 +114,9 @@ export const WorldCopy = ({ copy, tier, windows }: WorldCopyProps) => {
       faded,
   )
 
-  if (!atlas || !instances?.count) return null
+  // Incomplete atlas or layout must not paint — the DOM flag stays off when
+  // either `complete` is false, so missing About glyphs never replace HTML.
+  if (!atlas?.complete || !instances?.count || !instances.complete) return null
 
   return (
     <GlyphField

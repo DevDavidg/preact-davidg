@@ -76,12 +76,18 @@ const Bay = ({
     const artifactIndex = sceneState.focus
     const artifactZ =
       artifactIndex >= 0 ? ARTIFACTS[artifactIndex]?.position[2] : null
-    const targetFocus =
+    const workFocus =
+      THREE.MathUtils.smoothstep(build, 0.16, 0.23) *
+      (1 - THREE.MathUtils.smoothstep(build, 0.44, 0.52))
+    const proximity =
       artifactZ === null
         ? 0
         : THREE.MathUtils.clamp(1 - Math.abs(artifactZ - bay.z) / 6.5, 0, 1)
+    // A focused project briefly pulls its nearest bay forward in contrast. The
+    // squared falloff keeps neighbouring columns present but not equally loud.
+    const targetFocus = proximity * proximity * workFocus
 
-    focus.current = THREE.MathUtils.damp(focus.current, targetFocus, 5, delta)
+    focus.current = THREE.MathUtils.damp(focus.current, targetFocus, 7, delta)
 
     material.sync({
       build,

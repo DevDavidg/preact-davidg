@@ -14,16 +14,10 @@
   user-select: none;
 }
 
-/* For decorative text whose box should collapse — already `aria-hidden`. */
+/* Decorative text whose box should collapse — already `aria-hidden`. */
 [data-world-copy='on'] .world-copy--void {
   display: none;
 }
-
-/* The card keeps its shot even though the room carries a textured panel for the
-   same project. The panel hangs deep in the corridor and is rarely in frame at
-   the same moment as the card that describes it, so emptying the plate read as a
-   broken image rather than as art direction. The two are complementary: the
-   panel is the artifact in space, the card is its dossier. */
 
 /* Sticky panel without its numeral: pull the remaining copy up. */
 [data-world-copy='on'] .process__sticky {

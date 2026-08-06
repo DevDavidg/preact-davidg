@@ -4,11 +4,9 @@ import { FOG_DENSITY } from '../layout'
 import { STAGGER_RATIO } from './fragmentSettle'
 
 /**
- * The typography half of the signature. Same three stages as
- * `ReconstructMaterial` — wire → solid → lit — but the "wire" is the fragment's
- * own quad frame and the "solid" is the glyph ink from the atlas. Every fragment
- * flies chaos → home on the GPU, so scrolling the whole page's copy into place
- * costs uniform writes and nothing else on the CPU.
+ * World typography shader. Two forms share one draw call:
+ * - voxel (`aStyle.z ≥ 0.5`): opaque lit cubes — letter body as room matter
+ * - flat: thin atlas plates for cheap signage
  */
 
 const vertexShader = /* glsl */ `
@@ -17,9 +15,8 @@ attribute vec3 aHome;
 attribute vec4 aQuat;
 attribute vec3 aAxis;
 attribute vec4 aRect;
-attribute vec2 aSize;
+attribute vec3 aSize;
 attribute float aSeed;
-/** enter, span, exit, exitSpan — the block's slice of the scroll. */
 attribute vec4 aWindow;
 attribute vec3 aStyle;
 
@@ -30,14 +27,15 @@ uniform float uFogDensity;
 uniform float uStaggerRatio;
 
 varying vec2 vAtlasUv;
-varying vec2 vQuadUv;
+varying vec3 vNormalW;
+varying vec3 vViewDir;
 varying float vSettled;
 varying float vAccent;
 varying float vWeight;
-varying float vFrame;
 varying float vFog;
+varying float vVoxel;
+varying float vGlyphFace;
 
-// Spelled out because "half" is a reserved word in GLSL.
 vec4 quatFromAxisAngle(vec3 axis, float angle) {
   float halfAngle = angle * 0.5;
   return vec4(normalize(axis) * sin(halfAngle), cos(halfAngle));
@@ -55,40 +53,45 @@ vec3 applyQuat(vec3 v, vec4 q) {
 }
 
 void main() {
-  // Each block owns a slice of the scroll; each fragment delays inside it.
   float span = max(aWindow.y, 0.0001);
-  float stagger = aWindow.x + aSeed * span * uStaggerRatio;
-  float arrive = clamp((uBuild - stagger) / span, 0.0, 1.0);
+  float delay = aSeed * span * uStaggerRatio;
+  float travel = max(span * (1.0 - uStaggerRatio), 0.0001);
+  float arrive = clamp((uBuild - (aWindow.x + delay)) / travel, 0.0, 1.0);
   arrive = arrive * arrive * (3.0 - 2.0 * arrive);
 
-  // Past its moment a block comes apart again and drifts back into the void,
-  // which is also what keeps a hero headline from occluding the next section.
   float exitSpan = max(aWindow.w, 0.0001);
   float leaving = clamp((uBuild - aWindow.z - aSeed * exitSpan * 0.5) / exitSpan, 0.0, 1.0);
   leaving = leaving * leaving * (3.0 - 2.0 * leaving);
 
   float settled = arrive * (1.0 - leaving);
-  float loose = 1.0 - settled;
-  float speed = clamp(abs(uVelocity) * 0.012, 0.0, 1.5);
+  // Snap transform home before alpha fully locks — residual spin reads as
+  // double-exposed type once the letter is mostly on its plate.
+  float lock = smoothstep(0.72, 0.96, settled);
+  float loose = 1.0 - lock;
+  float speed = clamp(abs(uVelocity) * 0.012, 0.0, 1.5) * loose;
 
-  vec3 local = vec3(position.xy * aSize, 0.0);
+  vec3 local = position * aSize;
   vec4 spin = quatFromAxisAngle(aAxis, loose * (2.2 + aSeed * 4.6) * (1.0 + speed * 0.4));
-  vec3 rotated = applyQuat(local, quatMul(aQuat, spin));
+  vec4 orient = quatMul(aQuat, spin);
+  vec3 rotated = applyQuat(local, orient);
+  vec3 rotatedN = applyQuat(normal, orient);
 
-  vec3 centre = mix(aChaos, aHome, settled);
+  vec3 centre = mix(aChaos, aHome, lock);
   centre += aAxis * sin(uTime * 0.75 + aSeed * 6.2831) * 0.14 * loose * (1.0 + speed * 0.5);
 
   vec4 world = modelMatrix * vec4(centre + rotated, 1.0);
   vec4 viewPos = viewMatrix * world;
 
   vAtlasUv = mix(aRect.xy, aRect.zw, uv);
-  vQuadUv = uv;
+  vNormalW = normalize(mat3(modelMatrix) * rotatedN);
+  vViewDir = normalize(cameraPosition - world.xyz);
   vSettled = settled;
   vAccent = aStyle.x;
   vWeight = aStyle.y * (1.0 - leaving * 0.85);
-  vFrame = aStyle.z;
+  vVoxel = step(0.5, aStyle.z);
+  // Local ±Z faces of the unit box — the readable plate for flat glyphs.
+  vGlyphFace = step(0.5, abs(normal.z));
 
-  // Matches THREE.FogExp2 so world copy dissolves into the same void as the room.
   float depth = length(viewPos.xyz);
   vFog = 1.0 - exp(-uFogDensity * uFogDensity * depth * depth);
 
@@ -105,37 +108,61 @@ uniform float uLive;
 uniform float uOpacity;
 
 varying vec2 vAtlasUv;
-varying vec2 vQuadUv;
+varying vec3 vNormalW;
+varying vec3 vViewDir;
 varying float vSettled;
 varying float vAccent;
 varying float vWeight;
-varying float vFrame;
 varying float vFog;
+varying float vVoxel;
+varying float vGlyphFace;
 
 layout(location = 0) out vec4 fragColor;
 
 void main() {
-  float coverage = texture(uAtlas, vAtlasUv).a;
-  float ink = smoothstep(0.40, 0.56, coverage);
+  vec3 normal = normalize(vNormalW);
+  if (!gl_FrontFacing) normal = -normal;
+  vec3 view = normalize(vViewDir);
+  vec3 keyLight = normalize(vec3(0.45, 0.82, 0.34));
+  vec3 fillLight = normalize(vec3(-0.6, 0.3, -0.5));
 
-  // Wire stage: the fragment's own outline, one pixel wide at any depth.
-  vec2 border = min(vQuadUv, 1.0 - vQuadUv);
-  float distance = min(border.x, border.y);
-  float width = fwidth(distance) * 1.5;
-  float frame = (1.0 - smoothstep(0.0, width, distance)) * vFrame;
+  float key = max(dot(normal, keyLight), 0.0);
+  float fill = max(dot(normal, fillLight), 0.0) * 0.35;
+  float fresnel = pow(1.0 - max(dot(normal, view), 0.0), 2.6);
+  float spec = pow(max(dot(reflect(-keyLight, normal), view), 0.0), 36.0);
+  float lit = mix(0.35, 1.0, vSettled);
+  // Bloom loves hot edges — keep settled type matte enough to stay sharp.
+  float bloomGuard = mix(1.0, 0.35, smoothstep(0.7, 1.0, vSettled));
 
-  float wire = frame * 0.6 + ink * 0.22;
-  float alpha = mix(wire, ink, vSettled) * vWeight * uOpacity;
-  alpha *= 1.0 - vFog * 0.9;
-  if (alpha < 0.004) discard;
+  vec3 tint = mix(uInk, uAccent, clamp(vAccent + uLive * 0.18, 0.0, 1.0));
+  vec3 shade = tint * (0.28 + key * 0.5 + fill * 0.2);
+  shade += tint * spec * lit * 0.22 * bloomGuard;
+  shade += uAccent * fresnel * lit * (0.08 + uLive * 0.28) * bloomGuard;
+  shade += uAccent * (1.0 - vSettled) * 0.12;
 
-  vec3 tint = mix(uInk, uAccent, clamp(vAccent + uLive * 0.3, 0.0, 1.0));
-  vec3 color = tint * (0.6 + vSettled * 0.4);
-  // The same hint of heat the loose shards carry, so both layers read as one system.
-  color += uAccent * (1.0 - vSettled) * 0.24;
-  color = mix(color, uFogColor, vFog);
+  float alpha = 1.0;
 
-  fragColor = vec4(color, clamp(alpha, 0.0, 1.0));
+  if (vVoxel < 0.5) {
+    // Plate faces only — side/atlas-on-box sampling stacked mirrored ink.
+    if (vGlyphFace < 0.5) discard;
+    // Locked letters: drop the back face (DoubleSide + no depthWrite = ghost).
+    if (vSettled > 0.8 && !gl_FrontFacing) discard;
+    float coverage = texture(uAtlas, vAtlasUv).a;
+    float ink = smoothstep(0.36, 0.5, coverage);
+    if (ink < 0.02) discard;
+    // Flat readable ink — less shade modelling that softens strokes.
+    shade = tint * (0.72 + key * 0.28);
+    // Dim while flying; full contrast only once home (matches transform lock).
+    alpha = ink * mix(0.18, 1.0, smoothstep(0.25, 0.88, vSettled));
+  }
+
+  alpha *= vWeight * uOpacity;
+  // Fog wash was eating contrast on corridor signage and Contact.
+  alpha *= 1.0 - vFog * mix(0.85, 0.45, smoothstep(0.65, 1.0, vSettled));
+  if (alpha < 0.02) discard;
+
+  shade = mix(shade, uFogColor, vFog * mix(0.75, 0.35, smoothstep(0.65, 1.0, vSettled)));
+  fragColor = vec4(shade, clamp(alpha, 0.0, 1.0));
 }
 `
 
@@ -154,7 +181,6 @@ export class GlyphMaterial extends THREE.ShaderMaterial {
       vertexShader,
       fragmentShader,
       transparent: true,
-      // Fragments tumble through every orientation before they settle.
       side: THREE.DoubleSide,
       depthWrite: false,
       uniforms: {
@@ -183,5 +209,7 @@ export class GlyphMaterial extends THREE.ShaderMaterial {
     uniforms.uInk.value.copy(sceneColors.ink)
     uniforms.uAccent.value.copy(sceneColors.accent)
     uniforms.uFogColor.value.copy(sceneColors.base)
+    // Mixed voxels + transparent atlas plates — never write depth from this
+    // draw call or thin signage punches holes through panels behind it.
   }
 }
