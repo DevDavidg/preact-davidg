@@ -26,16 +26,16 @@ export const homeConsoleSpecs = (
     {
       id: 'hero',
       section: 'hero',
-      width: 3.8,
-      height: 2.35,
-      z: 6.2,
+      width: 2.9,
+      height: 1.85,
+      z: 6.1,
       side: -1,
-      lateral: -1.35,
-      rise: 0.22,
+      lateral: -0.9,
+      rise: 0.08,
       rows: [
         { kind: 'eyebrow', text: copy.hero.eyebrow },
-        { kind: 'title', text: trimTitle(copy.hero.headline, 42), em: 0.34 },
-        { kind: 'lead', text: trimLead(copy.hero.lead, 88) },
+        { kind: 'title', text: trimTitle(copy.hero.headline, 40), em: 0.24 },
+        { kind: 'lead', text: trimLead(copy.hero.lead, 78) },
         { kind: 'data', text: copy.hero.factStack },
         { kind: 'data', text: copy.hero.factAvailability },
       ],
@@ -66,12 +66,12 @@ export const homeConsoleSpecs = (
     specs.push({
       id: `module-${study.slug}`,
       section: 'work',
-      width: 3.5,
-      height: 2.05,
+      width: 3.05,
+      height: 1.85,
       z: artifact?.position[2] ?? 4.2 - index * 4.0,
       side,
-      lateral: side * 1.35,
-      rise: 0.14,
+      lateral: side * 0.75,
+      rise: 0.1,
       moduleIndex: index,
       timing: aw
         ? {
@@ -89,8 +89,8 @@ export const homeConsoleSpecs = (
           kind: 'eyebrow',
           text: `MÓDULO ${String(index + 1).padStart(2, '0')}  ·  ${study.kindLabel.toUpperCase()}`,
         },
-        { kind: 'title', text: trimTitle(study.title, 28), em: 0.3 },
-        { kind: 'lead', text: trimLead(study.summary, 80) },
+        { kind: 'title', text: trimTitle(study.title, 28), em: 0.22 },
+        { kind: 'lead', text: trimLead(study.summary, 76) },
         { kind: 'data', text: study.tags.slice(0, 4).join(' · ').toUpperCase() },
       ],
       actions: [
@@ -118,15 +118,15 @@ export const homeConsoleSpecs = (
     {
       id: 'lab',
       section: 'lab',
-      width: 3.2,
-      height: 1.9,
+      width: 2.7,
+      height: 1.6,
       z: -5.2,
       side: -1,
-      rise: 0.2,
+      rise: 0.12,
       rows: [
         { kind: 'eyebrow', text: `SECTOR 02 / ${copy.work.labLabel.toUpperCase()}` },
-        { kind: 'title', text: trimTitle(copy.work.labLabel, 24), em: 0.3 },
-        { kind: 'lead', text: trimLead(copy.work.labIntro, 85) },
+        { kind: 'title', text: trimTitle(copy.work.labLabel, 24), em: 0.22 },
+        { kind: 'lead', text: trimLead(copy.work.labIntro, 78) },
         {
           kind: 'data',
           text: [...copy.lab, ...copy.archive]
@@ -139,16 +139,16 @@ export const homeConsoleSpecs = (
     {
       id: 'experience',
       section: 'experience',
-      width: 3.5,
-      height: 2.35,
+      width: 3.15,
+      height: 1.95,
       z: -9.6,
       side: -1,
-      rise: 0.2,
+      rise: 0.1,
       rows: [
         { kind: 'eyebrow', text: copy.experience.label },
-        { kind: 'title', text: trimTitle(copy.experience.heading, 40) },
-        { kind: 'lead', text: trimLead(copy.experience.intro, 85) },
-        ...copy.experience.roles.slice(0, 4).map((role) => ({
+        { kind: 'title', text: trimTitle(copy.experience.heading, 42), em: 0.2 },
+        { kind: 'lead', text: trimLead(copy.experience.intro, 78) },
+        ...copy.experience.roles.slice(0, 3).map((role) => ({
           kind: 'data' as const,
           text: `${role.current ? '●' : '○'} ${role.company} — ${role.role}`,
         })),
@@ -165,33 +165,33 @@ export const homeConsoleSpecs = (
     {
       id: 'services',
       section: 'services',
-      width: 3.4,
-      height: 2.2,
+      width: 2.8,
+      height: 1.75,
       z: -12.0,
       side: 1,
-      rise: 0.15,
+      rise: 0.1,
       rows: [
         { kind: 'eyebrow', text: copy.services.label },
-        { kind: 'title', text: trimTitle(copy.services.heading, 36) },
-        { kind: 'lead', text: trimLead(copy.services.intro, 80) },
-        ...copy.services.items.map((item, i) => ({
+        { kind: 'title', text: trimTitle(copy.services.heading, 40), em: 0.2 },
+        { kind: 'lead', text: trimLead(copy.services.intro, 78) },
+        ...copy.services.items.slice(0, 3).map((item, i) => ({
           kind: 'data' as const,
-          text: `${String(i + 1).padStart(2, '0')}  ${trimTitle(item.title, 34)}`,
+          text: `${String(i + 1).padStart(2, '0')}  ${trimTitle(item.title, 30)}`,
         })),
       ],
     },
     {
       id: 'process',
       section: 'process',
-      width: 3.3,
-      height: 2.15,
+      width: 2.75,
+      height: 1.7,
       z: -14.2,
       side: -1,
-      lateral: -1.3,
-      rise: 0.2,
+      lateral: -1.1,
+      rise: 0.12,
       rows: [
         { kind: 'eyebrow', text: copy.process.label },
-        { kind: 'title', text: trimTitle(copy.process.heading, 36) },
+        { kind: 'title', text: trimTitle(copy.process.heading, 40), em: 0.2 },
         ...copy.process.steps.map((step) => ({
           kind: 'data' as const,
           text: `${step.num}  ${step.title.toUpperCase()}`,
@@ -201,20 +201,20 @@ export const homeConsoleSpecs = (
     {
       id: 'about',
       section: 'about',
-      width: 3.4,
-      height: 2.25,
+      width: 2.8,
+      height: 1.8,
       z: -16.0,
       side: 1,
-      lateral: 1.4,
-      rise: 0.25,
+      lateral: 1.15,
+      rise: 0.14,
       rows: [
         { kind: 'eyebrow', text: copy.about.label },
-        { kind: 'title', text: trimTitle(copy.about.heading, 36) },
+        { kind: 'title', text: trimTitle(copy.about.heading, 40), em: 0.2 },
         {
           kind: 'lead',
-          text: trimLead(copy.about.quote.replace(/[«»]/g, ''), 90),
+          text: trimLead(copy.about.quote.replace(/[«»]/g, ''), 80),
         },
-        ...copy.about.spec.map((entry) => ({
+        ...copy.about.spec.slice(0, 3).map((entry) => ({
           kind: 'data' as const,
           text: `${entry.key}  ${entry.value}`,
         })),
@@ -223,18 +223,17 @@ export const homeConsoleSpecs = (
     {
       id: 'contact',
       section: 'contact',
-      width: 3.5,
-      height: 2.3,
+      width: 3.2,
+      height: 2.0,
       z: -18.4,
       side: 0,
       lateral: 0,
-      rise: 0.3,
+      rise: 0.12,
       rows: [
         { kind: 'eyebrow', text: copy.contact.label, accent: 0.4 },
-        { kind: 'title', text: trimTitle(copy.contact.title, 36), accent: 0.2 },
-        { kind: 'lead', text: trimLead(copy.contact.lead, 85) },
+        { kind: 'title', text: trimTitle(copy.contact.title, 42), accent: 0.2, em: 0.2 },
+        { kind: 'lead', text: trimLead(copy.contact.lead, 80) },
         { kind: 'data', text: copy.contact.responseTime },
-        { kind: 'data', text: copy.contact.email },
       ],
       actions: [
         {
@@ -249,7 +248,7 @@ export const homeConsoleSpecs = (
           kind: 'locale',
           target: locale === 'es' ? 'en' : 'es',
         },
-        ...copy.contact.social.slice(0, 2).map((link) => ({
+        ...copy.contact.social.slice(0, 1).map((link) => ({
           id: `social-${link.label}`,
           label: link.label,
           kind: (link.external ? 'external' : 'route') as 'external' | 'route',

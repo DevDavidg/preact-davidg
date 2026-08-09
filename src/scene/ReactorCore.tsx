@@ -1,6 +1,9 @@
 /**
- * Geodesic reactor — faceted cage + rings + core. Assembles hard as the hero,
- * then docks beside the reading lane as a readable ornament (never a light blob).
+ * Geodesic reactor — faceted cage + core.
+ *
+ * Never parks in the hero lane (that filled the lens and hid early cards). It
+ * only appears already docked beside the camera once the first work beats have
+ * cleared, then rides as a side ornament into the finale.
  */
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
@@ -14,18 +17,16 @@ import { livePowerFor, sceneState, clamp01 } from './sceneState'
 import { toShards } from './shardGeometry'
 import { punchScale, softAssemble } from './ui/assembleDrama'
 
-const ASSEMBLED_AT = 0.16
-const DOCK_START = 0.12
-const DOCK_END = 0.24
-
-const HERO_POS = new THREE.Vector3(REACTOR_CORE[0], REACTOR_CORE[1], REACTOR_CORE[2])
-const HERO_SCALE = 1.18
-const DOCK_SCALE = 0.78
+/** After modules 01–02 — Signal Reactor is the first clear reading beat. */
+const CORRIDOR_REVEAL_START = 0.4
+const CORRIDOR_REVEAL_END = 0.5
+const DOCK_SCALE = 0.58
 const _right = new THREE.Vector3()
 const _up = new THREE.Vector3()
 const _fwd = new THREE.Vector3()
 const _dock = new THREE.Vector3()
 const _finale = new THREE.Vector3()
+const _spawn = new THREE.Vector3()
 
 interface ReactorCoreProps {
   quality: Quality
@@ -34,16 +35,14 @@ interface ReactorCoreProps {
 export const ReactorCore = ({ quality }: ReactorCoreProps) => {
   const group = useRef<THREE.Group>(null)
   const cage = useRef<THREE.Mesh>(null)
-  const ringA = useRef<THREE.Mesh>(null)
-  const ringB = useRef<THREE.Mesh>(null)
-  const ringC = useRef<THREE.Mesh>(null)
   const inner = useRef<THREE.Mesh>(null)
   const spin = useRef(0)
   const camera = useThree((state) => state.camera)
+  const booted = useRef(false)
   const target = useMemo(
     () => ({
-      pos: new THREE.Vector3().copy(HERO_POS),
-      scale: HERO_SCALE,
+      pos: new THREE.Vector3(REACTOR_CORE[0] + 2.8, REACTOR_CORE[1], REACTOR_CORE[2]),
+      scale: DOCK_SCALE,
     }),
     [],
   )
@@ -57,13 +56,6 @@ export const ReactorCore = ({ quality }: ReactorCoreProps) => {
     return shards
   }, [detail])
 
-  const ringGeo = useMemo(() => {
-    const source = new THREE.TorusGeometry(0.95, 0.025, 6, 28)
-    const shards = toShards(source)
-    source.dispose()
-    return shards
-  }, [])
-
   const cageMat = useMemo(
     () =>
       new ReconstructMaterial({
@@ -71,16 +63,6 @@ export const ReactorCore = ({ quality }: ReactorCoreProps) => {
         jitter: 0.18,
         depthSpan: 0.02,
         opacity: 1,
-      }),
-    [],
-  )
-  const ringMat = useMemo(
-    () =>
-      new ReconstructMaterial({
-        spread: 0.65,
-        jitter: 0.12,
-        depthSpan: 0.01,
-        opacity: 0.85,
       }),
     [],
   )
@@ -104,13 +86,11 @@ export const ReactorCore = ({ quality }: ReactorCoreProps) => {
   useEffect(
     () => () => {
       cageGeo.dispose()
-      ringGeo.dispose()
       cageMat.dispose()
-      ringMat.dispose()
       innerGeometry.dispose()
       innerMaterial.dispose()
     },
-    [cageGeo, ringGeo, cageMat, ringMat, innerGeometry, innerMaterial],
+    [cageGeo, cageMat, innerGeometry, innerMaterial],
   )
 
   useFrame((state, delta) => {
@@ -119,38 +99,49 @@ export const ReactorCore = ({ quality }: ReactorCoreProps) => {
     const power = livePowerFor(build)
     const velocity = sceneState.velocity
 
-    const assembleEase = softAssemble(clamp01(build / ASSEMBLED_AT))
     const finale = THREE.MathUtils.smoothstep(build, 0.78, 0.96)
     const finaleAssemble = softAssemble(finale)
-    const dockT = clamp01((build - DOCK_START) / (DOCK_END - DOCK_START))
-    const dockEase = dockT * dockT * (3 - 2 * dockT) * (1 - finale * 0.85)
+    const corridorPresence = THREE.MathUtils.smoothstep(
+      build,
+      CORRIDOR_REVEAL_START,
+      CORRIDOR_REVEAL_END,
+    )
+    const visible = corridorPresence > 0.012 || finale > 0.012
+    const assembleEase = softAssemble(corridorPresence)
 
     camera.getWorldDirection(_fwd)
     _right.crossVectors(_fwd, camera.up).normalize()
     if (_right.lengthSq() < 1e-4) _right.set(1, 0, 0)
     _up.crossVectors(_right, _fwd).normalize()
+    // Side ornament — clear of the reading plates in the centre lane.
     _dock
       .copy(camera.position)
-      .addScaledVector(_fwd, 3.8)
-      .addScaledVector(_right, 2.35)
-      .addScaledVector(_up, 0.35)
+      .addScaledVector(_fwd, 4.2)
+      .addScaledVector(_right, 2.65)
+      .addScaledVector(_up, 0.2)
 
-    // Finale: return toward path centre ahead of the camera.
     _finale
       .copy(_dock)
-      .addScaledVector(_right, -2.35)
-      .addScaledVector(_fwd, 0.8)
-    target.pos.lerpVectors(HERO_POS, _dock, dockEase)
+      .addScaledVector(_right, -1.4)
+      .addScaledVector(_fwd, 0.6)
+
+    target.pos.copy(_dock)
     if (finale > 0.01) target.pos.lerp(_finale, finale)
-    const baseScale = THREE.MathUtils.lerp(
-      HERO_SCALE,
-      THREE.MathUtils.lerp(DOCK_SCALE, 1.08, finale),
-      Math.max(dockEase, finale),
-    )
-    target.scale = baseScale * punchScale(Math.max(assembleEase, finaleAssemble), 0)
+    target.scale =
+      THREE.MathUtils.lerp(DOCK_SCALE, 0.95, finale) *
+      punchScale(Math.max(assembleEase, finaleAssemble), 0)
 
     const root = group.current
     if (root) {
+      root.visible = visible
+      if (visible && !booted.current) {
+        // First frame on-screen: snap to dock so it never sweeps through the lens.
+        _spawn.copy(_dock)
+        root.position.copy(_spawn)
+        root.scale.setScalar(target.scale * 0.01)
+        booted.current = true
+      }
+      if (!visible) booted.current = false
       damp3(root.position, target.pos, 5.2, delta)
       const s = THREE.MathUtils.damp(root.scale.x, target.scale, 5.2, delta)
       root.scale.setScalar(s)
@@ -158,7 +149,7 @@ export const ReactorCore = ({ quality }: ReactorCoreProps) => {
 
     const settle = Math.max(assembleEase, finaleAssemble * 0.85)
     const spinRate =
-      THREE.MathUtils.lerp(0.85, 0.18, settle) *
+      THREE.MathUtils.lerp(0.55, 0.16, settle) *
       (1 + Math.abs(velocity) * 0.002) *
       (1 + finale * 0.6)
     spin.current += delta * spinRate
@@ -168,33 +159,17 @@ export const ReactorCore = ({ quality }: ReactorCoreProps) => {
       shell.rotation.y = spin.current
       shell.rotation.x =
         Math.sin(spin.current * 0.28) *
-        THREE.MathUtils.lerp(0.35, 0.06, settle)
+        THREE.MathUtils.lerp(0.22, 0.05, settle)
       shell.rotation.z =
         Math.cos(spin.current * 0.18) *
-        THREE.MathUtils.lerp(0.22, 0.03, settle)
+        THREE.MathUtils.lerp(0.14, 0.03, settle)
     }
 
-    const ra = ringA.current
-    const rb = ringB.current
-    const rc = ringC.current
-    if (ra) {
-      ra.rotation.x = Math.PI / 2
-      ra.rotation.z = spin.current * 0.7
-    }
-    if (rb) {
-      rb.rotation.y = spin.current * 0.85
-      rb.rotation.x = 0.4 + Math.sin(time * 0.6) * 0.08
-    }
-    if (rc) {
-      rc.rotation.y = -spin.current * 0.55
-      rc.rotation.z = 0.9
-    }
+    const opacity = (0.55 + settle * 0.3) * Math.max(corridorPresence, finale)
 
-    const opacity = THREE.MathUtils.lerp(1, 0.82, dockEase * (1 - finale))
-
-    const settleSpread = THREE.MathUtils.lerp(0.9, 0.04, settle)
-    const settleJitter = THREE.MathUtils.lerp(0.18, 0.02, settle)
-    const settleDrift = THREE.MathUtils.lerp(1, 0.03, settle)
+    const settleSpread = THREE.MathUtils.lerp(0.55, 0.04, settle)
+    const settleJitter = THREE.MathUtils.lerp(0.12, 0.02, settle)
+    const settleDrift = THREE.MathUtils.lerp(0.7, 0.03, settle)
 
     cageMat.uniforms.uSpread.value = settleSpread
     cageMat.uniforms.uJitter.value = settleJitter
@@ -202,26 +177,12 @@ export const ReactorCore = ({ quality }: ReactorCoreProps) => {
     cageMat.sync({
       build,
       live: power,
-      focus: 0.3 + finale * 0.55,
+      focus: 0.25 + finale * 0.5,
       time,
       velocity,
       assembleAt: settle * 0.95,
     })
     cageMat.uniforms.uOpacity.value = opacity
-
-    const ringAssemble = clamp01((settle - 0.12) / 0.88)
-    ringMat.uniforms.uSpread.value = THREE.MathUtils.lerp(0.65, 0.03, ringAssemble)
-    ringMat.uniforms.uJitter.value = THREE.MathUtils.lerp(0.12, 0.02, ringAssemble)
-    ringMat.uniforms.uDrift.value = THREE.MathUtils.lerp(1, 0.03, ringAssemble)
-    ringMat.sync({
-      build,
-      live: power,
-      focus: 0.4 + power * 0.3,
-      time,
-      velocity,
-      assembleAt: ringAssemble * 0.92,
-    })
-    ringMat.uniforms.uOpacity.value = opacity * (0.5 + ringAssemble * 0.45)
 
     const heart = inner.current
     if (heart) {
@@ -231,18 +192,20 @@ export const ReactorCore = ({ quality }: ReactorCoreProps) => {
       const pulse =
         0.5 + 0.5 * Math.sin(time * (1.8 + settle * 2) + build * 10)
       innerMaterial.opacity =
-        settle * (0.1 + pulse * 0.08 + power * 0.22 + finale * 0.2) * opacity
-      heart.scale.setScalar(0.75 + pulse * 0.08 + power * 0.12)
+        settle * (0.08 + pulse * 0.06 + power * 0.18 + finale * 0.18) * opacity
+      heart.scale.setScalar(0.7 + pulse * 0.06 + power * 0.1)
       heart.rotation.y = -spin.current * 0.7
     }
   })
 
   return (
-    <group ref={group} position={REACTOR_CORE} scale={HERO_SCALE} renderOrder={-2}>
+    <group
+      ref={group}
+      position={[REACTOR_CORE[0] + 2.8, REACTOR_CORE[1], REACTOR_CORE[2]]}
+      scale={DOCK_SCALE}
+      renderOrder={-2}
+    >
       <mesh ref={cage} geometry={cageGeo} material={cageMat} frustumCulled={false} />
-      <mesh ref={ringA} geometry={ringGeo} material={ringMat} frustumCulled={false} />
-      <mesh ref={ringB} geometry={ringGeo} material={ringMat} frustumCulled={false} />
-      <mesh ref={ringC} geometry={ringGeo} material={ringMat} frustumCulled={false} />
       <mesh
         ref={inner}
         geometry={innerGeometry}

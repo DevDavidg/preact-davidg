@@ -76,6 +76,7 @@ const Bay = ({
 
   useFrame((state, delta) => {
     const build = sceneState.build
+    const corridorPresence = THREE.MathUtils.smoothstep(build, 0.15, 0.28)
     const artifactIndex = sceneState.focus
     const artifactZ =
       artifactIndex >= 0 ? ARTIFACTS[artifactIndex]?.position[2] : null
@@ -100,6 +101,7 @@ const Bay = ({
       velocity: sceneState.velocity,
       buildBias: bay.buildBias,
     })
+    material.uniforms.uOpacity.value = 0.55 * corridorPresence
   })
 
   return (

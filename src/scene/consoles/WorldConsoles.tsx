@@ -19,9 +19,9 @@ import { buildPlacedConsoles } from './placement'
 import { resolveAction } from './resolveAction'
 import { TelemetryStrip } from './TelemetryStrip'
 import type { BuiltConsole, ConsoleActionSpec } from './types'
+import { computeViewportFit, consoleSizeFit } from '../viewportFit'
 
-const BUDGET: Record<Quality, number> = { cinema: 16000, lite: 3500 }
-const REFERENCE_ASPECT = 1.6
+const BUDGET: Record<Quality, number> = { cinema: 22000, lite: 9000 }
 
 interface WorldConsolesProps {
   copy: Copy
@@ -34,6 +34,7 @@ interface WorldConsolesProps {
 
 const actionLabelBlocks = (
   built: BuiltConsole[],
+  sizeFit: number,
   resolve: (action: ConsoleActionSpec) => void,
 ): { blocks: TextBlock[]; binders: Array<{ action: ConsoleActionSpec; console: BuiltConsole; index: number }> } => {
   const blocks: TextBlock[] = []
@@ -46,15 +47,16 @@ const actionLabelBlocks = (
   for (const entry of built) {
     const actions = entry.spec.actions ?? []
     if (!actions.length) continue
-    const actionY = -entry.spec.height / 2 + 0.28
-    const actionStartX =
-      actions.length <= 1 ? 0 : -((actions.length - 1) * 1.45) / 2
+    const height = entry.spec.height * sizeFit
+    const gap = Math.min(1.35, (entry.spec.width * sizeFit * 0.9) / Math.max(actions.length, 1))
+    const actionY = -height / 2 + 0.24 * sizeFit
+    const actionStartX = actions.length <= 1 ? 0 : -((actions.length - 1) * gap) / 2
 
     actions.forEach((action, index) => {
       const local = new THREE.Vector3(
-        actionStartX + index * 1.45,
+        actionStartX + index * gap,
         actionY,
-        0.09,
+        0.1,
       )
       const world = local
         .clone()
@@ -65,8 +67,8 @@ const actionLabelBlocks = (
         id: `${entry.spec.id}-action-${action.id}`,
         text: action.label,
         role: 'mono',
-        em: 0.09,
-        tracking: 0.1,
+        em: 0.11 * sizeFit,
+        tracking: 0.06,
         align: 'centre',
         position: world,
         quaternion: entry.quaternion.clone(),
@@ -75,11 +77,11 @@ const actionLabelBlocks = (
         exit: entry.exit,
         exitSpan: entry.exitSpan,
         slice: [1, 1],
-        chaos: 0.35,
-        depth: 1.0,
-        accent: 0.35,
-        weight: 1,
-        priority: 4,
+        chaos: 0.015,
+        depth: -0.1,
+        accent: 0.9,
+        weight: 1.25,
+        priority: 5,
       })
       binders.push({ action, console: entry, index })
       void resolve
@@ -102,10 +104,9 @@ export const WorldConsoles = ({
   const { pathname } = useLocation()
   const [atlas, setAtlas] = useState<GlyphAtlas | null>(null)
   const aspect = useThree((state) => state.viewport.aspect)
-
-  const fit =
-    Math.round(THREE.MathUtils.clamp(aspect / REFERENCE_ASPECT, 0.42, 1) * 50) /
-    50
+  const heightPx = useThree((state) => state.size.height)
+  const fit = computeViewportFit(aspect, heightPx)
+  const sizeFit = consoleSizeFit(fit)
 
   const sources = useMemo(() => {
     if (mode === 'cv') return cvConsoleSources(copy, locale)
@@ -178,7 +179,11 @@ export const WorldConsoles = ({
         ...layoutConsoleRows(
           entry.spec.id,
           entry.spec.rows,
-          { width: entry.spec.width, height: entry.spec.height, pad: 0.28 },
+          {
+            width: entry.spec.width * sizeFit,
+            height: entry.spec.height * sizeFit,
+            pad: 0.28 * sizeFit,
+          },
           {
             position: entry.position,
             quaternion: entry.quaternion,
@@ -192,10 +197,10 @@ export const WorldConsoles = ({
         ),
       )
     }
-    const { blocks: labels } = actionLabelBlocks(placed, handleAction)
+    const { blocks: labels } = actionLabelBlocks(placed, sizeFit, handleAction)
     blocks.push(...labels)
     return blocks
-  }, [atlas, placed, fit, handleAction])
+  }, [atlas, placed, fit, sizeFit, handleAction])
 
   const instances = useMemo(
     () => (atlas ? layoutBlocks(textBlocks, atlas, BUDGET[quality]) : null),
@@ -209,8 +214,8 @@ export const WorldConsoles = ({
       {placed.map((entry) => (
         <Console
           key={entry.spec.id}
-          width={entry.spec.width}
-          height={entry.spec.height}
+          width={entry.spec.width * sizeFit}
+          height={entry.spec.height * sizeFit}
           position={entry.position.toArray() as [number, number, number]}
           quaternion={entry.quaternion}
           enter={entry.enter}

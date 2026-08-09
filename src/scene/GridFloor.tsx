@@ -73,6 +73,10 @@ void main() {
   alpha += idleBeam * fade * (0.12 + structure * 0.28) * idleW;
   alpha *= 1.0 + scanning * pulse * 0.1;
   alpha *= 1.0 - workQuiet * 0.28;
+  // The opening has its own product-shot lighting; keep the floor as a faint
+  // ground plane until the corridor begins to take over.
+  float corridorPresence = smoothstep(0.08, 0.22, uBuild);
+  alpha *= mix(0.22, 1.0, corridorPresence);
 
   vec3 color = mix(
     uInk,

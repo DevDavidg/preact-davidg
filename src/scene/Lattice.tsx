@@ -129,7 +129,7 @@ export const Lattice = ({ quality }: { quality: Quality }) => {
       new ReconstructMaterial({
         spread: 0.35,
         jitter: 0.08,
-        opacity: 0.48,
+        opacity: 0.32,
         drift: false,
         depthSpan: 0.08,
       }),
@@ -163,6 +163,7 @@ export const Lattice = ({ quality }: { quality: Quality }) => {
     const live = liveFor(build)
     const time = state.clock.elapsedTime
     const { dummy } = scratch
+    const corridorPresence = THREE.MathUtils.smoothstep(build, 0.15, 0.28)
 
     ;(Object.keys(groups) as PartKind[]).forEach((kind) => {
       const mesh = refs.current[kind]
@@ -205,8 +206,8 @@ export const Lattice = ({ quality }: { quality: Quality }) => {
       velocity: sceneState.velocity,
     })
     material.depthWrite = false
-    // Readable structure through the whole journey — never near-invisible.
-    material.uniforms.uOpacity.value = 0.26 + live * 0.14
+    // The opening is a dedicated product shot; corridor architecture enters after it.
+    material.uniforms.uOpacity.value = (0.26 + live * 0.14) * corridorPresence
     material.uniforms.uSpread.value = 0.12
     material.uniforms.uJitter.value = 0.04
   })

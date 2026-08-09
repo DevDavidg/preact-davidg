@@ -11,9 +11,10 @@ import {
   TARGET_PATH,
 } from './layout'
 import { sceneState } from './sceneState'
+import { computeViewportFit, fovCompensation } from './viewportFit'
 
 /** Matches the Canvas default; the standby breath oscillates around this. */
-const BASE_FOV = 42
+const BASE_FOV = 46
 
 /**
  * The camera.
@@ -27,7 +28,11 @@ const BASE_FOV = 42
  */
 export const Rig = ({ quality }: { quality: Quality }) => {
   const camera = useThree((state) => state.camera)
+  const aspect = useThree((state) => state.viewport.aspect)
+  const heightPx = useThree((state) => state.size.height)
   const cinema = quality === 'cinema'
+  const fit = computeViewportFit(aspect, heightPx)
+  const fovBump = fovCompensation(fit)
 
   const vectors = useMemo(
     () => ({
@@ -87,9 +92,13 @@ export const Rig = ({ quality }: { quality: Quality }) => {
     camera.rotateZ(roll.current)
 
     if (camera instanceof THREE.PerspectiveCamera) {
-      const targetFov =
-        (cinema ? cameraFovFor(scrollBuild, BASE_FOV) : BASE_FOV) + breath * 0.5
-      camera.fov = THREE.MathUtils.damp(camera.fov, targetFov, 2.2, delta)
+      // Wider FOV on short viewports so plates and the hero stay framed.
+      const base =
+        (cinema ? cameraFovFor(scrollBuild, BASE_FOV) : BASE_FOV) +
+        breath * 0.5 +
+        fovBump
+      const targetFov = THREE.MathUtils.lerp(base, 42 + fovBump * 0.55, standby)
+      camera.fov = THREE.MathUtils.damp(camera.fov, targetFov, 2.4, delta)
       camera.updateProjectionMatrix()
     }
   })

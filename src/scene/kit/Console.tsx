@@ -158,16 +158,26 @@ export const Console = ({
     const faceOpacity =
       THREE.MathUtils.smoothstep(assemble, 0.15, 0.75) * leavePresence
     faceMat.opacity = faceOpacity * 0.98
-    faceMat.depthWrite = faceOpacity > 0.7
+    // Never occlude glyphs — letters assemble in front of an opaque writer.
+    faceMat.depthWrite = false
     rimMat.opacity = faceOpacity * (0.4 + focus.current * 0.3)
 
     const faceNode = face.current
     if (faceNode) faceNode.visible = faceOpacity > 0.02
   })
 
-  const actionY = -height / 2 + 0.28
+  const actionY = -height / 2 + 0.24
+  const actionGap = Math.min(
+    1.25,
+    (width * 0.88) / Math.max(actions.length, 1),
+  )
+  const actionWidth = Math.min(
+    1.2,
+    actionGap * 0.9,
+    width * 0.42,
+  )
   const actionStartX =
-    actions.length <= 1 ? 0 : -((actions.length - 1) * 1.5) / 2
+    actions.length <= 1 ? 0 : -((actions.length - 1) * actionGap) / 2
 
   return (
     <group ref={group} position={position} quaternion={quaternion}>
@@ -186,11 +196,11 @@ export const Console = ({
         <ActionPlate
           key={action.id}
           label={action.label}
-          width={Math.min(1.45, width * 0.42)}
-          height={0.3}
-          position={[actionStartX + index * 1.5, actionY, 0.04]}
-          enter={enter + span * 0.25}
-          span={span * 0.65}
+          width={actionWidth}
+          height={0.28}
+          position={[actionStartX + index * actionGap, actionY, 0.05]}
+          enter={enter + span * 0.35}
+          span={span * 0.55}
           exit={exit}
           exitSpan={exitSpan}
           onActivate={action.onActivate}

@@ -67,9 +67,9 @@ const KIND_DEFAULTS: Record<
   },
   title: {
     role: 'display',
-    em: 0.28,
+    em: 0.22,
     tracking: -0.02,
-    leading: 1.05,
+    leading: 1.08,
     // Flat atlas plates stay sharp at console scale; voxels read as noise here.
     form: 'flat',
     priority: 5,
@@ -77,9 +77,9 @@ const KIND_DEFAULTS: Record<
   },
   lead: {
     role: 'mono',
-    em: 0.13,
+    em: 0.115,
     tracking: 0.02,
-    leading: 1.25,
+    leading: 1.28,
     form: 'flat',
     priority: 4,
     weight: 0.95,
@@ -185,15 +185,18 @@ export const layoutConsoleRows = (
   atlas: GlyphAtlas,
   fit = 1,
 ): TextBlock[] => {
-  const pad = rect.pad ?? 0.12
+  const pad = rect.pad ?? 0.14
+  // Keep a clear band for ActionPlates so copy never collides with CTAs.
+  const actionBand = 0.36
   const contentW = Math.max(rect.width - pad * 2, 0.4)
-  const contentH = Math.max(rect.height - pad * 2, 0.4)
-  const topY = contentH / 2
+  const contentH = Math.max(rect.height - pad * 2 - actionBand, 0.45)
+  const topY = contentH / 2 + actionBand * 0.5
   let cursorY = topY
-  const gap = 0.08 * fit
+  const gap = 0.07 * fit
   const blocks: TextBlock[] = []
 
   const localNormal = new THREE.Vector3(0, 0, 1).applyQuaternion(placement.quaternion)
+  const floorY = -contentH / 2 + actionBand * 0.5
 
   for (let index = 0; index < rows.length; index++) {
     const row = rows[index]
@@ -217,10 +220,10 @@ export const layoutConsoleRows = (
 
     const blockHeight = wrapped.length * leading * em
     // Leave room for remaining rows — drop low-priority if we run out.
-    if (cursorY - blockHeight < -contentH / 2) {
+    if (cursorY - blockHeight < floorY) {
       if ((row.priority ?? defaults.priority) < 4) continue
       // High priority: clamp into remaining space by dropping lines.
-      const remaining = cursorY + contentH / 2
+      const remaining = cursorY - floorY
       const keep = Math.max(1, Math.floor(remaining / (leading * em)))
       wrapped.length = Math.min(wrapped.length, keep)
     }
@@ -229,7 +232,7 @@ export const layoutConsoleRows = (
     const finalHeight = wrapped.length * leading * em
     // Baseline of first line sits near top of this row band.
     const baselineY = cursorY - em * 0.85
-    const local = new THREE.Vector3(-contentW / 2, baselineY, 0.02)
+    const local = new THREE.Vector3(-contentW / 2, baselineY, 0.03)
     const world = local.clone().applyQuaternion(placement.quaternion).add(placement.position)
 
     blocks.push({
@@ -244,7 +247,7 @@ export const layoutConsoleRows = (
       position: world,
       quaternion: placement.quaternion.clone(),
       enter: placement.enter,
-      span: placement.span,
+      span: placement.span * 0.85,
       exit: placement.exit,
       exitSpan: placement.exitSpan,
       form: row.form ?? defaults.form,
@@ -253,16 +256,16 @@ export const layoutConsoleRows = (
           ? (row.voxel ?? { cellEm: 0.12, layers: 2, threshold: 0.55 })
           : undefined,
       slice: (row.form ?? defaults.form) === 'flat' ? [1, 1] : undefined,
-      // Tight soft drift — panels glide home, no debris spray.
-      chaos: row.kind === 'title' ? 0.45 : 0.32,
-      depth: row.kind === 'title' ? 1.1 : 0.85,
-      accent: row.accent ?? (row.kind === 'action' ? 0.35 : 0),
+      // Near-home soft drift — readable while gathering, no corridor spray.
+      chaos: row.kind === 'title' ? 0.04 : 0.025,
+      depth: row.kind === 'title' ? -0.22 : -0.16,
+      accent: row.accent ?? (row.kind === 'action' ? 0.7 : 0),
       weight: row.weight ?? defaults.weight,
       priority: row.priority ?? defaults.priority,
     })
 
     // Nudge slightly along face normal so glyphs sit in front of the plate.
-    blocks[blocks.length - 1].position.addScaledVector(localNormal, 0.04)
+    blocks[blocks.length - 1].position.addScaledVector(localNormal, 0.05)
 
     cursorY -= finalHeight + gap
   }

@@ -88,13 +88,15 @@ export const GlyphField = ({ instances, atlas }: GlyphFieldProps) => {
   useFrame((state, delta) => {
     const build = sceneState.build
     opacity.current = THREE.MathUtils.damp(opacity.current, 1, 3.5, delta)
+    // Reserve the opening for the product shot; fade in as the first console enters.
+    const corridorPresence = THREE.MathUtils.smoothstep(build, 0.055, 0.1)
 
     material.sync({
       build,
       live: liveFor(build),
       time: state.clock.elapsedTime,
       velocity: sceneState.velocity,
-      opacity: opacity.current,
+      opacity: opacity.current * corridorPresence,
     })
   })
 

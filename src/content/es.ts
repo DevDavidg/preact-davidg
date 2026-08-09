@@ -64,7 +64,7 @@ export const es: Copy = {
     factExperience: 'FREELANCE DESDE 2018 · EQUIPOS DE PRODUCTO, BANCA Y SALUD',
     factStack: 'REACT · REACT NATIVE · NEXT · ANGULAR · NODE',
     factAvailability: 'BUENOS AIRES (GMT−3) · REMOTO',
-    cue: 'SCROLL PARA CARGAR',
+    cue: 'SCROLL PARA ENTRAR',
   },
 
   work: {

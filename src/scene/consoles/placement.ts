@@ -7,6 +7,7 @@ import {
 } from '../layout'
 import type { SectionWindow } from '../ui/sectionRanges'
 import type { BuiltConsole, ConsoleBuildInput, ConsoleSpec } from './types'
+import { consoleDistanceFor } from '../viewportFit'
 
 const WORLD_UP = new THREE.Vector3(0, 1, 0)
 
@@ -40,19 +41,26 @@ export const placeConsole = (
   const right = forward.clone().cross(WORLD_UP).normalize()
   const up = right.clone().cross(forward).normalize()
 
-  // Clear of the docked reactor (right/back) + mild yaw for legibility.
-  const distance = 5.85
+  // Reading distance ahead of the eye — never park a plate in the near clip.
+  const distance = consoleDistanceFor(fit)
   const sideSign = spec.side === 0 ? 0 : spec.side
-  const lateral =
-    (spec.lateral ?? 1.2 * sideSign) * fit
-  const rise = spec.rise ?? 0.1
+  const lateral = (spec.lateral ?? 0.55 * sideSign) * fit * 0.85
+  const rise = (spec.rise ?? 0.05) * fit
 
   const position = eye
     .clone()
     .addScaledVector(forward, distance)
     .addScaledVector(right, lateral)
     .addScaledVector(up, rise)
-  position.z = THREE.MathUtils.lerp(position.z, spec.z, 0.35)
+  // Soft corridor slot only — a hard z pull used to yank plates into the lens.
+  position.z = THREE.MathUtils.lerp(position.z, spec.z, 0.12)
+
+  // Enforce a floor distance after the slot blend.
+  const fromEye = position.clone().sub(eye)
+  const minDist = distance * 0.92
+  if (fromEye.lengthSq() < minDist * minDist) {
+    position.copy(eye).addScaledVector(fromEye.normalize(), minDist)
+  }
 
   // Aim slightly past the plate so the face reads flatter to the lens.
   const lookAt = position.clone().addScaledVector(forward, -0.2)
@@ -79,22 +87,25 @@ export const serializeTimings = (built: BuiltConsole[]): BuiltConsole[] => {
 
   const ordered = [...built].sort((a, b) => a.enter - b.enter || a.spec.z - b.spec.z)
   const n = ordered.length
-  // Soft windows — enough time to ease in/out without frantic overlap.
-  const ASSEMBLE = 0.055
-  const EXIT_SPAN = 0.038
-  const GAP = 0.008
-  const budget = 0.97
-  const fixed = n * (ASSEMBLE + EXIT_SPAN * 0.55 + GAP)
-  const holdEach = Math.max(0.032, (budget - fixed) / n)
+  // Reserve the first viewport for the cinematic product shot. Every console
+  // then gets a proportional, exclusive reading slice.
+  // Short cinematic beat — avoid a long empty void after the hero sphere.
+  const INTRO_END = 0.07
+  const END = 0.98
+  const slice = (END - INTRO_END) / n
+  // Longer hold, shorter assemble — copy should read locked, not mid-flight.
+  const assembleSpan = Math.min(0.035, slice * 0.22)
+  const exitSpan = Math.min(0.028, slice * 0.14)
+  const gap = Math.min(0.01, slice * 0.08)
+  const holdEach = Math.max(0.02, slice - assembleSpan - exitSpan - gap)
 
-  let cursor = -0.04
+  let cursor = INTRO_END
 
-  const sequenced = ordered.map((entry, index) => {
-    const enter = index === 0 ? -0.04 : cursor
-    const span = ASSEMBLE
+  const sequenced = ordered.map((entry) => {
+    const enter = cursor
+    const span = assembleSpan
     const exit = enter + span + holdEach
-    const exitSpan = EXIT_SPAN
-    cursor = exit + exitSpan * 0.55 + GAP
+    cursor = exit + exitSpan + gap
 
     return {
       ...entry,
@@ -105,19 +116,7 @@ export const serializeTimings = (built: BuiltConsole[]): BuiltConsole[] => {
     }
   })
 
-  // If we still overshot (many consoles), normalize into [0, 0.98].
-  const last = sequenced.at(-1)!
-  const end = last.exit + last.exitSpan
-  if (end <= 0.98) return sequenced
-
-  const scale = 0.98 / end
-  return sequenced.map((entry) => ({
-    ...entry,
-    enter: entry.enter * scale,
-    span: Math.max(entry.span * scale, 0.03),
-    exit: entry.exit * scale,
-    exitSpan: Math.max(entry.exitSpan * scale, 0.02),
-  }))
+  return sequenced
 }
 
 export const assertNoOverlap = (built: BuiltConsole[]) => {

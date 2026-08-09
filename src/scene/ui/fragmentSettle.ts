@@ -16,7 +16,7 @@ export const STAGGER_CAP = 0.42
  * `(1 - STAGGER_RATIO)` is the travel itself — so the last seed always finishes
  * exactly at `enter + span`, never past the end of the page.
  */
-export const STAGGER_RATIO = 0.28
+export const STAGGER_RATIO = 0.14
 
 export const clamp01 = (value: number) => Math.min(1, Math.max(0, value))
 

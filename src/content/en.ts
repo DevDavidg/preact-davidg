@@ -54,7 +54,7 @@ export const en: Copy = {
     factExperience: 'FREELANCE SINCE 2018 · PRODUCT, BANKING & HEALTHCARE TEAMS',
     factStack: 'REACT · REACT NATIVE · NEXT · ANGULAR · NODE',
     factAvailability: 'BUENOS AIRES (GMT−3) · REMOTE',
-    cue: 'SCROLL TO CHARGE',
+    cue: 'SCROLL TO ENTER',
   },
 
   work: {

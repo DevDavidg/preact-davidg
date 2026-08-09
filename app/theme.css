@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 /*
  * Signal Reactor — the design system.
@@ -24,10 +24,10 @@
   --color-ink-soft: #d3ccc0;
   --color-ink-dim: #9a948c;
 
-  /* Signal accents. Amber is the primary action; cyan is telemetry only. */
+  /* Signal accents. Amber is the primary action; champagne is telemetry only. */
   --color-ignition: #ffb454;
   --color-ignition-bright: #ffc87a;
-  --color-ion: #76e6f2;
+  --color-ion: #e6c891;
   --color-alert: #ff6b5d;
 
   /* Hairlines. Alpha so they sit on any surface without a second token. */
@@ -35,9 +35,9 @@
   --color-line-strong: oklch(from var(--color-ink) l c h / 22%);
   --color-line-signal: oklch(from var(--color-ignition) l c h / 55%);
 
-  --font-display: 'Bricolage Grotesque', 'Outfit', system-ui, sans-serif;
-  --font-body: 'Newsreader', 'Iowan Old Style', Georgia, serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+  --font-display: "Bricolage Grotesque", "Outfit", system-ui, sans-serif;
+  --font-body: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
 
   /* Motion. One easing family; durations are the tokens from the plan. */
   --ease-signal: cubic-bezier(0.22, 1, 0.36, 1);

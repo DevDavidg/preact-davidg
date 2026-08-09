@@ -114,10 +114,11 @@ export const ActionPlate = ({
     )
     press.current = THREE.MathUtils.damp(press.current, 0, 10, delta)
 
-    faceMat.opacity = presence * (0.9 + hoverAmt.current * 0.08)
-    faceMat.color.set(hoverAmt.current > 0.3 ? '#141820' : '#0c0e14')
-    rimMat.opacity = presence * (0.65 + hoverAmt.current * 0.25)
-    rimMat.color.set(hoverAmt.current > 0.3 ? '#ffb454' : '#f0ebe0')
+    // Keep the face airy so glyph labels stay readable on top.
+    faceMat.opacity = presence * (0.55 + hoverAmt.current * 0.2)
+    faceMat.color.set(hoverAmt.current > 0.3 ? '#1c1814' : '#0e0c0a')
+    rimMat.opacity = presence * (0.9 + hoverAmt.current * 0.1)
+    rimMat.color.set(hoverAmt.current > 0.3 ? '#ffb454' : '#f4efe6')
 
     const node = group.current
     if (node) {

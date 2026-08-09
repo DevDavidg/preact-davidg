@@ -65,18 +65,19 @@ void main() {
 
   // Soft settle in; leave fades in place — no explode cloud.
   float settled = arrive * (1.0 - leaving);
-  float lock = smoothstep(0.45, 0.92, arrive);
+  // Lock home earlier so copy reads while still gathering.
+  float lock = smoothstep(0.18, 0.72, arrive);
   float loose = (1.0 - lock) * (1.0 - leaving);
-  float speed = clamp(abs(uVelocity) * 0.006, 0.0, 0.8) * loose;
+  float speed = clamp(abs(uVelocity) * 0.004, 0.0, 0.5) * loose;
 
   vec3 local = position * aSize;
-  vec4 spin = quatFromAxisAngle(aAxis, loose * (0.9 + aSeed * 1.6) * (1.0 + speed * 0.25));
+  vec4 spin = quatFromAxisAngle(aAxis, loose * (0.35 + aSeed * 0.55) * (1.0 + speed * 0.2));
   vec4 orient = quatMul(aQuat, spin);
   vec3 rotated = applyQuat(local, orient);
   vec3 rotatedN = applyQuat(normal, orient);
 
   vec3 centre = mix(aChaos, aHome, lock);
-  centre += aAxis * sin(uTime * 0.4 + aSeed * 6.2831) * 0.035 * loose;
+  centre += aAxis * sin(uTime * 0.4 + aSeed * 6.2831) * 0.012 * loose;
 
   vec4 world = modelMatrix * vec4(centre + rotated, 1.0);
   vec4 viewPos = viewMatrix * world;
@@ -86,7 +87,8 @@ void main() {
   vViewDir = normalize(cameraPosition - world.xyz);
   vSettled = settled;
   vAccent = aStyle.x;
-  vWeight = aStyle.y * (1.0 - smoothstep(0.0, 0.7, leaving));
+  // Kill pre-enter + post-exit fully so other modules never ghost as debris.
+  vWeight = aStyle.y * settled * (1.0 - smoothstep(0.0, 0.55, leaving));
   vVoxel = step(0.5, aStyle.z);
   // Local ±Z faces of the unit box — the readable plate for flat glyphs.
   vGlyphFace = step(0.5, abs(normal.z));
@@ -149,10 +151,10 @@ void main() {
     float coverage = texture(uAtlas, vAtlasUv).a;
     float ink = smoothstep(0.36, 0.5, coverage);
     if (ink < 0.02) discard;
-    // Flat readable ink — less shade modelling that softens strokes.
-    shade = tint * (0.72 + key * 0.28);
-    // Dim while flying; full contrast only once home (matches transform lock).
-    alpha = ink * mix(0.18, 1.0, smoothstep(0.25, 0.88, vSettled));
+    // Flat readable ink — bright enough for CTA labels on dark plates.
+    shade = tint * (0.88 + key * 0.12);
+    // Invisible until arriving — chaos-parked glyphs were debris from other modules.
+    alpha = ink * smoothstep(0.04, 0.55, vSettled);
   } else {
     // Relief / stack matter: darken side facets so elongated depth reads like
     // bay columns, not a flat grid of cubes.
@@ -162,11 +164,11 @@ void main() {
   }
 
   alpha *= vWeight * uOpacity;
-  // Fog wash was eating contrast on corridor signage and Contact.
-  alpha *= 1.0 - vFog * mix(0.85, 0.45, smoothstep(0.65, 1.0, vSettled));
+  // Fog barely touches locked type — corridor depth used to wash CTA labels.
+  alpha *= 1.0 - vFog * mix(0.55, 0.06, smoothstep(0.55, 1.0, vSettled));
   if (alpha < 0.02) discard;
 
-  shade = mix(shade, uFogColor, vFog * mix(0.75, 0.35, smoothstep(0.65, 1.0, vSettled)));
+  shade = mix(shade, uFogColor, vFog * mix(0.45, 0.08, smoothstep(0.55, 1.0, vSettled)));
   fragColor = vec4(shade, clamp(alpha, 0.0, 1.0));
 }
 `
@@ -188,6 +190,7 @@ export class GlyphMaterial extends THREE.ShaderMaterial {
       transparent: true,
       side: THREE.DoubleSide,
       depthWrite: false,
+      depthTest: false,
       uniforms: {
         uAtlas: { value: atlas },
         uBuild: { value: 0 },
