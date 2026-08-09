@@ -1,0 +1,12 @@
+---
+description: Keep multi-step task plans atomic and context-light
+globs: docs/TASK.md
+alwaysApply: false
+---
+
+# Context-efficient task plans
+
+- Define each task with its goal, affected files, dependencies, and acceptance check.
+- Plan with a reasoning model before implementation; keep final code out of the plan.
+- Implement one task per focused chat with only this plan and the files it changes.
+- Record cross-task decisions here instead of repeating broad repository context.

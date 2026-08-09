@@ -3,17 +3,23 @@ import { PHASE_BOUNDARIES } from './sceneState'
 import type { SectionWindow } from './ui/sectionRanges'
 
 /**
- * The camera dollies along this spline as the page scrolls, so scrolling reads
- * as travelling through one room rather than cutting between sections.
+ * The room, in metres.
+ *
+ * The camera dollies along a spline as the page scrolls, so scrolling reads as
+ * travelling through one space rather than cutting between sections. Every object
+ * is placed relative to that spline, and every assembly window is derived from a
+ * measured DOM section — no hand-tuned scroll percentages, which drift the moment
+ * copy length or language changes.
  */
+
 export const CAMERA_PATH = new THREE.CatmullRomCurve3(
   [
     new THREE.Vector3(0, 1.75, 10.2),
-    new THREE.Vector3(2.6, 1.35, 5.6),
-    new THREE.Vector3(-1.5, 1.95, 1.8),
-    new THREE.Vector3(1.9, 2.45, -2.4),
-    new THREE.Vector3(-1.0, 1.4, -6.2),
-    new THREE.Vector3(0, 1.6, -10.6),
+    new THREE.Vector3(2.4, 1.4, 5.8),
+    new THREE.Vector3(-1.6, 1.95, 1.6),
+    new THREE.Vector3(1.7, 2.4, -2.6),
+    new THREE.Vector3(-1.0, 1.45, -6.4),
+    new THREE.Vector3(0, 1.6, -10.8),
   ],
   false,
   'catmullrom',
@@ -37,37 +43,43 @@ export const TARGET_PATH = new THREE.CatmullRomCurve3(
 
 export interface ArtifactPlacement {
   position: [number, number, number]
-  /** Yaw in radians, angling the panel back toward the corridor centre. */
+  /** Yaw in radians, angling the module back toward the corridor centre. */
   yaw: number
-  /** Pitch in radians, tipping the panel down toward the dolly. */
+  /** Pitch in radians, tipping the module down toward the dolly. */
   pitch: number
   scale: number
 }
 
 /**
- * Artifacts line the corridor like a gallery: eye height, on the wall opposite
- * the camera's swing at that depth, angled back into the lane. Index matches the
- * DOM artifact index.
+ * Three featured modules, alternating sides of the corridor.
  *
- * Lateral ~2.35 keeps them inside the frustum without parking them on the lens —
- * at ±1.85 and scale >1 they filled the frame and read as a full-bleed wallpaper
- * instead of objects in the room.
+ * There used to be six, each the same size, which made the gallery a slalom with
+ * no hierarchy and loaded six full-resolution textures for a scene the visitor
+ * scrolls through in seconds. Three modules match the three featured cases, give
+ * each one a real beat, and cut texture memory by half.
  */
 export const ARTIFACTS: ArtifactPlacement[] = [
-  { position: [-2.15, 1.55, 5.2], yaw: 0.62, pitch: -0.12, scale: 1.12 },
-  { position: [2.2, 1.6, 2.6], yaw: -0.65, pitch: -0.14, scale: 1.08 },
-  { position: [-2.2, 1.5, 0.0], yaw: 0.68, pitch: -0.12, scale: 1.16 },
-  { position: [2.15, 1.58, -2.6], yaw: -0.6, pitch: -0.14, scale: 1.1 },
-  { position: [-2.1, 1.52, -5.2], yaw: 0.64, pitch: -0.14, scale: 1.14 },
-  { position: [2.2, 1.55, -7.8], yaw: -0.66, pitch: -0.12, scale: 1.08 },
+  { position: [-2.15, 1.55, 4.6], yaw: 0.6, pitch: -0.12, scale: 1.18 },
+  { position: [2.2, 1.6, 0.4], yaw: -0.62, pitch: -0.13, scale: 1.14 },
+  { position: [-2.1, 1.52, -3.8], yaw: 0.64, pitch: -0.12, scale: 1.2 },
 ]
 
-/** Aspect of the artifact panels, matching the 16:10 project shots. */
-export const ARTIFACT_PANEL = { width: 2.8, height: 1.75 } as const
+/** Aspect of the module panels, matching the 16:10 project shots. */
+export const ARTIFACT_PANEL = { width: 2.9, height: 1.8125 } as const
 
 /**
- * About headshot — left of the lane at eye height. Kept in-frame (not clipped
- * on the left edge) while the dolly sits on About centre.
+ * The reactor core: the object the whole room is wired to. It sits behind the
+ * opening vantage point so the first chapter has something to charge, and the
+ * conduits below run from it toward each module.
+ */
+export const REACTOR_CORE: [number, number, number] = [0, 1.85, -1.4]
+
+/** Conduit spine height — below eye level so it never crosses a module face. */
+export const CONDUIT_Y = 0.42
+
+/**
+ * About headshot — left of the lane at eye height, kept clear of the right-hand
+ * reading column in the DOM.
  */
 export const ABOUT_PORTRAIT: ArtifactPlacement = {
   position: [-1.15, 1.42, -7.35],
@@ -79,7 +91,6 @@ export const ABOUT_PORTRAIT: ArtifactPlacement = {
 /** ~3:4 plate for the headshot voxel field. */
 export const ABOUT_PANEL = { width: 1.35, height: 1.85 } as const
 
-/** Public URL for the cinema portrait texture sampled into voxels. */
 export const ABOUT_PORTRAIT_URL = '/about/david-portrait.jpg'
 
 /**
@@ -92,9 +103,9 @@ export const PORTAL_POSITION: [number, number, number] = [0, 1.8, -24]
 export const FOG_DENSITY = 0.052
 
 /**
- * Build value at which the dolly reaches a given depth. Objects planted in the
- * room use this to time their own assembly against the camera instead of against
- * a section's scroll range, so nothing lands after the camera has driven past it.
+ * Charge value at which the dolly reaches a given depth. Objects planted in the
+ * room time their assembly against the camera rather than against a section's
+ * scroll range, so nothing lands after the camera has already driven past it.
  */
 export const buildAtDepth = (() => {
   const SAMPLES = 96
@@ -118,10 +129,9 @@ export const buildAtDepth = (() => {
 })()
 
 /**
- * Scroll remains continuous, but camera speed eases down at each gallery object
- * and the About portrait. These are soft dwell points, not hard stops: panels,
- * typography and the DOM keep following real build progress while the eye gets
- * a moment to read each shot.
+ * Scroll stays continuous, but camera speed eases down at each module and at the
+ * portrait. These are soft dwell points, not stops: everything else keeps
+ * following real scroll progress while the eye gets a moment to read.
  */
 const cameraBeatProgresses = (() => {
   const beats = [
@@ -140,7 +150,7 @@ const cameraBeatProgresses = (() => {
 
 const easeDwell = (value: number) => value * value * (3 - 2 * value)
 
-/** Strength near a gallery/portrait beat; used to add a little camera weight. */
+/** Proximity to a dwell beat, used to add a little camera weight. */
 export const cameraHoldFor = (build: number) => {
   const nearest = cameraBeatProgresses
     .slice(1, -1)
@@ -153,9 +163,9 @@ export const cameraHoldFor = (build: number) => {
 }
 
 /**
- * A monotonic remap with the same endpoints as scroll. Its zero-velocity
- * tangents create cinematic micro-holds without desynchronising world geometry
- * that must continue to assemble against the real `build` value.
+ * A monotonic remap with the same endpoints as scroll. Its zero-velocity tangents
+ * create cinematic micro-holds without desynchronising geometry that has to keep
+ * assembling against the real charge value.
  */
 export const cameraProgressFor = (build: number) => {
   const progress = THREE.MathUtils.clamp(build, 0, 1)
@@ -174,52 +184,37 @@ export const cameraProgressFor = (build: number) => {
 }
 
 /**
- * SCANNING is closer and watchful, BEAUTY opens once the room has settled, and
- * LIVE tightens toward the portal. The base remains owned by the Canvas camera.
+ * Focal length as a story beat. Standby is wide and watchful, transmission is
+ * longer and more observational, ignition tightens onto the portal.
+ *
+ * Framed as focal length rather than raw field of view because that is the unit
+ * the shot list is written in: ~38 mm opening, ~55 mm mid, ~40 mm axial close.
  */
 export const cameraFovFor = (build: number, baseFov: number) => {
-  const scanning =
-    1 -
-    THREE.MathUtils.smoothstep(
-      build,
-      0.03,
-      PHASE_BOUNDARIES.scanningEnd,
-    )
-  const beauty =
-    THREE.MathUtils.smoothstep(
-      build,
-      PHASE_BOUNDARIES.assemblingEnd,
-      0.66,
-    ) *
-    (1 -
-      THREE.MathUtils.smoothstep(
-        build,
-        PHASE_BOUNDARIES.beautyEnd,
-        0.9,
-      ))
-  const live = THREE.MathUtils.smoothstep(
+  const standby =
+    1 - THREE.MathUtils.smoothstep(build, 0.03, PHASE_BOUNDARIES.standbyEnd)
+  const transmit =
+    THREE.MathUtils.smoothstep(build, PHASE_BOUNDARIES.chargeEnd, 0.66) *
+    (1 - THREE.MathUtils.smoothstep(build, PHASE_BOUNDARIES.transmitEnd, 0.9))
+  const ignition = THREE.MathUtils.smoothstep(
     build,
-    PHASE_BOUNDARIES.beautyEnd,
+    PHASE_BOUNDARIES.transmitEnd,
     0.92,
   )
 
-  return baseFov - scanning * 1.25 + beauty * 0.7 - live * 1.05
+  // Longer lens through transmission (narrower fov), opening again at ignition.
+  return baseFov + standby * 1.4 - transmit * 4.2 + ignition * 2.6
 }
 
 /**
- * Metres ahead of the panel along the corridor. Assembly is timed to visibility,
- * not to the moment the dolly draws alongside (that read as “arms only after I
- * already passed it”).
+ * Metres ahead of a module along the corridor. Assembly is timed to visibility,
+ * not to the moment the dolly draws alongside — otherwise a module only finishes
+ * arriving once the visitor has scrolled past it.
  */
 const VIEW_START_Z = 5.5
-/** Fully locked while the camera is still this far in front — plate readable in frame. */
+/** Fully locked while the camera is still this far in front. */
 const VIEW_LOCK_Z = 1.6
 
-/**
- * Scroll window shared by artifact shard panels and their world-copy labels.
- * Starts when the panel enters the approach view; finishes before `pass` so the
- * project is assembled while the visitor is looking at it.
- */
 export const artifactAssembleWindow = (
   z: number,
 ): { enter: number; span: number; pass: number; lock: number } => {
@@ -228,8 +223,7 @@ export const artifactAssembleWindow = (
   const rawLock = buildAtDepth(z + VIEW_LOCK_Z)
   const enter = Math.max(Math.min(rawEnter, rawLock - 0.04), 0)
   const lock = Math.max(rawLock, enter + 0.04)
-  const span = Math.max(lock - enter, 0.04)
-  return { enter, span, pass, lock }
+  return { enter, span: Math.max(lock - enter, 0.04), pass, lock }
 }
 
 export interface ArtifactWindow {
@@ -239,15 +233,11 @@ export interface ArtifactWindow {
 }
 
 /**
- * `artifactAssembleWindow` times each panel purely off camera depth, which
- * drifts from the DOM the moment Work's measured height (or the camera path)
- * changes — measured drift on this build reached ~900px for the middle panel
- * and ~1800px for the last one (of a ~6100px page), i.e. panels were only
- * passing the camera once the visitor had already scrolled into
- * Services/Process, sometimes About. This keeps each panel's relative pacing
- * (nearer objects still land first) but rescales the whole gallery to fit
- * inside Work's own measured bounds, so the last panel always finishes its
- * pass before Work is done on screen.
+ * Camera-depth timing alone drifts from the document the moment Work's measured
+ * height changes, which had modules passing the camera only once the visitor was
+ * already reading a later section. This keeps each module's relative pacing —
+ * nearer objects still land first — but rescales the gallery into Work's own
+ * measured bounds, so the last module always finishes before Work leaves.
  */
 export const artifactGroupWindows = (
   work: SectionWindow | undefined,
@@ -270,22 +260,16 @@ export const artifactGroupWindows = (
   }))
 }
 
-/** World-copy title lands after the panel starts; holds past the camera pass. */
+/** Plate label window: lands after the module starts, holds past the pass. */
 const LABEL_ENTER_FRAC = 0.15
 const LABEL_SPAN_FRAC = 0.7
 const LABEL_HOLD_PAST_PASS = 0.12
 const LABEL_EXIT_SPAN = 0.05
 
-/**
- * Scroll window for the 3D artifact title / numeral labels.
- * Kept in one place so world-copy glyphs stay aligned with the panel shards.
- */
 export const artifactLabelWindow = (
   window: ArtifactWindow,
 ): { enter: number; span: number; exit: number; exitSpan: number } => {
   const { enter, span, pass } = window
-  // Cap at 1 so deep cards never keep DOM titles transparent past scroll end
-  // (build clamps to 1 while pass + hold can exceed it).
   const exit = Math.min(pass + LABEL_HOLD_PAST_PASS, 1)
   return {
     enter: enter + span * LABEL_ENTER_FRAC,
@@ -295,37 +279,21 @@ export const artifactLabelWindow = (
   }
 }
 
-/**
- * Cinema shard density. Narrow / short viewports keep one draw call but fewer
- * tris — fill-rate is the cinema cost, not draw count.
- */
-export const cinemaPanelSegments = (): [number, number] => {
-  if (typeof window === 'undefined') return [12, 8]
-  if (window.innerWidth < 1200 || window.innerHeight < 720) return [9, 6]
-  return [12, 8]
-}
-
-/**
- * Voxel grid for the About headshot. Background cull drops most cells; denser
- * sampling keeps face/glasses readable. Narrow viewports thin the grid.
- */
-export const cinemaPortraitVoxelGrid = (): [number, number] => {
-  if (typeof window === 'undefined') return [64, 86]
-  if (window.innerWidth < 1200 || window.innerHeight < 720) return [48, 64]
-  return [64, 86]
-}
-
-/** True when the cinema tier should use the lighter instance budgets. */
-export const cinemaCompactViewport = () =>
+/** True when the viewport is tight enough to want the lighter instance budgets. */
+export const compactViewport = () =>
   typeof window !== 'undefined' &&
   (window.innerWidth < 1200 || window.innerHeight < 720)
 
 /**
- * Em cell size for world-copy voxels. Compact viewports use a coarser grid so
- * hero + project labels stay under the cinema instance budget.
+ * Shard density for the module panels. Narrow or short viewports keep the single
+ * draw call but fewer triangles — fill rate is the cost here, not draw count.
  */
-export const cinemaTypeVoxelCellEm = (kind: 'hero' | 'numeral') => {
-  const compact = cinemaCompactViewport()
-  if (kind === 'hero') return compact ? 0.13 : 0.11
-  return compact ? 0.13 : 0.11
-}
+export const panelSegments = (): [number, number] =>
+  compactViewport() ? [9, 6] : [12, 8]
+
+/** Voxel grid for the About headshot; background cull drops most cells. */
+export const portraitVoxelGrid = (): [number, number] =>
+  compactViewport() ? [48, 64] : [64, 86]
+
+/** Em cell size for decorative world type. */
+export const typeVoxelCellEm = () => (compactViewport() ? 0.13 : 0.11)

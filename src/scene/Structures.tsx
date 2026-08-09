@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { ReconstructMaterial } from './ReconstructMaterial'
+import type { Quality } from './capability'
 import { ARTIFACTS } from './layout'
 import { toShards } from './shardGeometry'
-import { buildFor, liveFor, sceneState, type Tier } from './sceneState'
+import { liveFor, sceneState } from './sceneState'
 
 interface Structure {
   /** Built at final size rather than scaled, so shard drift is not stretched. */
@@ -62,17 +63,15 @@ const Bay = ({
   bay,
   geometries,
   material,
-  tier,
 }: {
   bay: BayBuild
   geometries: THREE.BufferGeometry[]
   material: ReconstructMaterial
-  tier: Tier
 }) => {
   const focus = useRef(0)
 
   useFrame((state, delta) => {
-    const build = buildFor(tier)
+    const build = sceneState.build
     const artifactIndex = sceneState.focus
     const artifactZ =
       artifactIndex >= 0 ? ARTIFACTS[artifactIndex]?.position[2] : null
@@ -113,7 +112,7 @@ const Bay = ({
   )
 }
 
-export const Structures = ({ tier }: { tier: Tier }) => {
+export const Structures = ({ quality }: { quality: Quality }) => {
   const geometries = useMemo(
     () =>
       BAY_BUILDS.map((bay) =>
@@ -150,15 +149,18 @@ export const Structures = ({ tier }: { tier: Tier }) => {
 
   return (
     <>
-      {BAY_BUILDS.map((bay, index) => (
-        <Bay
-          key={bay.z}
-          bay={bay}
-          geometries={geometries[index]}
-          material={materials[index]}
-          tier={tier}
-        />
-      ))}
+      {/* The far bays are the first thing to go when fill rate is scarce: they
+          frame the corridor rather than carry any content. */}
+      {BAY_BUILDS.slice(0, quality === 'cinema' ? BAY_BUILDS.length : 2).map(
+        (bay, index) => (
+          <Bay
+            key={bay.z}
+            bay={bay}
+            geometries={geometries[index]}
+            material={materials[index]}
+          />
+        ),
+      )}
     </>
   )
 }

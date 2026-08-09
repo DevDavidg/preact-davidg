@@ -1,0 +1,275 @@
+@import 'tailwindcss';
+
+/*
+ * Signal Reactor — the design system.
+ *
+ * Tokens live in `@theme` so Tailwind generates utilities from them and the
+ * WebGL layer can read the very same custom properties (see `sceneColors.ts`).
+ * One palette drives DOM and shaders; there is no second source of colour.
+ *
+ * Contrast rule enforced below: every colour used for informational text clears
+ * 4.5:1 against `--color-reactor` (#050608). The dim ramp stops at `ink-dim`
+ * (#9A948C, 6.0:1); nothing quieter than that is ever allowed to carry meaning.
+ */
+
+@theme {
+  /* Surfaces — carbon and graphite, warm-neutral rather than blue-black. */
+  --color-reactor: #050608;
+  --color-graphite: #0d1117;
+  --color-graphite-raised: #151b23;
+  --color-graphite-hover: #1d242e;
+
+  /* Ink ramp. `ink` for body, `ink-soft` for secondary, `ink-dim` for metadata. */
+  --color-ink: #f3eee4;
+  --color-ink-soft: #d3ccc0;
+  --color-ink-dim: #9a948c;
+
+  /* Signal accents. Amber is the primary action; cyan is telemetry only. */
+  --color-ignition: #ffb454;
+  --color-ignition-bright: #ffc87a;
+  --color-ion: #76e6f2;
+  --color-alert: #ff6b5d;
+
+  /* Hairlines. Alpha so they sit on any surface without a second token. */
+  --color-line: oklch(from var(--color-ink) l c h / 12%);
+  --color-line-strong: oklch(from var(--color-ink) l c h / 22%);
+  --color-line-signal: oklch(from var(--color-ignition) l c h / 55%);
+
+  --font-display: 'Bricolage Grotesque', 'Outfit', system-ui, sans-serif;
+  --font-body: 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* Motion. One easing family; durations are the tokens from the plan. */
+  --ease-signal: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-signal-io: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-input: 140ms;
+  --duration-hover: 220ms;
+  --duration-state: 320ms;
+  --duration-reveal: 560ms;
+  --duration-chapter: 1000ms;
+
+  /* Chrome geometry shared by fixed elements and scroll offsets. */
+  --spacing-nav: 4.75rem;
+  --spacing-gutter: clamp(1.25rem, 4vw, 4rem);
+}
+
+/* Layer order: the scene sits under the document, chrome above it. */
+@theme {
+  --z-index-scene: 0;
+  --z-index-overlay: 10;
+  --z-index-nav: 200;
+  --z-index-hud: 240;
+  --z-index-boot: 400;
+}
+
+/* Custom variants ------------------------------------------------------- */
+
+/* Motion is opt-out, not opt-in: `motion-safe:` guards every moving thing. */
+@custom-variant reduce-motion (@media (prefers-reduced-motion: reduce));
+@custom-variant forced (@media (forced-colors: active));
+/* Hover styles must not stick on touch, where `:hover` latches after a tap. */
+@custom-variant pointer-fine (@media (hover: hover) and (pointer: fine));
+
+@layer base {
+  :root {
+    /* Fixes native scrollbars, form controls and the UA dark palette. */
+    color-scheme: dark;
+    --scene-vignette: 0.62;
+  }
+
+  html {
+    background-color: var(--color-reactor);
+    /* Lenis owns smooth scrolling; native smooth would fight it. */
+    scroll-behavior: auto;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-reactor);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* Removes the 300ms tap delay without disabling pinch zoom. */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Anchored sections must clear the fixed nav when scrolled into view. */
+  [id] {
+    scroll-margin-top: calc(var(--spacing-nav) + 1.5rem);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.08;
+    text-wrap: balance;
+  }
+
+  p {
+    margin: 0;
+    text-wrap: pretty;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* Long words and pasted URLs must never widen the page. */
+  p,
+  li,
+  dd,
+  h1,
+  h2,
+  h3 {
+    overflow-wrap: break-word;
+  }
+
+  ::selection {
+    background-color: var(--color-ignition);
+    color: var(--color-reactor);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ignition);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* Windows high-contrast mode: keep structure visible without our colours. */
+  @media (forced-colors: active) {
+    :focus-visible {
+      outline-color: Highlight;
+    }
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  dl,
+  dd,
+  dt {
+    margin: 0;
+  }
+}
+
+/* Type roles ------------------------------------------------------------- */
+
+@utility text-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.35;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+@utility text-meta {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+@utility text-lead {
+  font-size: 1.125rem;
+  line-height: 1.62;
+  color: var(--color-ink-soft);
+  max-width: 62ch;
+}
+
+@utility text-body {
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--color-ink-soft);
+  max-width: 68ch;
+}
+
+@utility text-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.04;
+  text-wrap: balance;
+}
+
+/* Numbers in columns must not shimmy as they change. */
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Keyframes — the only ambient loops in the document layer. */
+
+@keyframes signal-blink {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  56%,
+  100% {
+    opacity: 0.2;
+  }
+}
+
+@keyframes signal-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(0.5rem);
+  }
+}
+
+@keyframes signal-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@theme {
+  --animate-signal-blink: signal-blink 1.8s ease infinite;
+  --animate-signal-bob: signal-bob 2.4s ease-in-out infinite;
+  --animate-signal-pulse: signal-pulse 2s ease infinite;
+}
+
+/*
+ * Reduced motion is a hard stop, not a softening: no transitions, no loops, and
+ * the scene never mounts (see `capability.ts`).
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

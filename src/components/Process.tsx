@@ -1,48 +1,53 @@
 import { useEffect, useRef, useState } from 'react'
-import gsap from 'gsap'
-import { useGSAP } from '@gsap/react'
-import { useCopy, type Copy } from '../i18n/copy'
 import { useInView } from '../hooks/useInView'
+import { useCopy } from '../lib/locale'
 import { useSceneStore } from '../scene/sceneState'
 import { Reveal } from './ui/Reveal'
+import { Section } from './ui/Section'
 
 interface ProcessStepProps {
-  index: number
-  active: boolean
-  step: Copy['process']['steps'][number]
+  phase: string
+  heading: string
+  body: string
+  dimmed: boolean
 }
 
 /**
- * One phase of the method. It assembles on its own approach rather than with the
- * whole column, so the reader always meets a phase that is still landing.
+ * One calibration phase.
+ *
+ * `dimmed` styles only the phase label, never the prose. The previous version
+ * dropped the whole step to 40% opacity, which pushed informational body text well
+ * below the contrast floor for every phase the reader was not currently on.
  */
-const ProcessStep = ({ index, active, step }: ProcessStepProps) => {
+const ProcessStep = ({ phase, heading, body, dimmed }: ProcessStepProps) => {
   const { ref, inView } = useInView<HTMLDivElement>()
 
   return (
-    <div
-      ref={ref}
-      className="step"
-      data-step-index={index}
-      data-active={active}
-      data-shown={inView}
-    >
-      <p className="meta shard">{step.phase}</p>
-      <h3 className="step__title shard">{step.heading}</h3>
-      <p className="body-sm step__copy shard">{step.copy}</p>
+    <div ref={ref} data-shown={inView} className="flex flex-col gap-3">
+      <p
+        className={`text-meta shard shard-fine transition-colors duration-state ease-signal ${
+          dimmed ? 'text-ink-dim' : 'text-ignition'
+        }`}
+      >
+        {phase}
+      </p>
+      <h3 className="text-display shard text-xl sm:text-2xl">{heading}</h3>
+      <p className="text-body shard max-w-[52ch]">{body}</p>
     </div>
   )
 }
 
+/**
+ * The four calibration phases.
+ *
+ * An ordered list, because the order is the content. The sticky numeral tracks the
+ * phase the reader is in; the 3D layer answers by transforming a single piece
+ * rather than spelling the same numeral again in the room.
+ */
 export const Process = () => {
   const { copy } = useCopy()
-  const tier = useSceneStore((state) => state.tier)
-  const worldCopy = useSceneStore((state) => state.worldCopy)
-  const container = useRef<HTMLElement>(null)
-  const numeral = useRef<HTMLDivElement>(null)
-  // The sticky panel is its own assembly root: wrapping it would move the sticky
-  // containing block up a level and unstick it.
-  const sticky = useInView<HTMLDivElement>()
+  const experience = useSceneStore((state) => state.experience)
+  const container = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState(0)
 
   useEffect(() => {
@@ -54,10 +59,7 @@ export const Process = () => {
       (entries) => {
         const entering = entries.find((entry) => entry.isIntersecting)
         if (!entering) return
-        const index = Number(
-          (entering.target as HTMLElement).dataset.stepIndex ?? 0,
-        )
-        setActive(index)
+        setActive(Number(entering.target.getAttribute('data-step-index') ?? 0))
       },
       { rootMargin: '-40% 0px -40% 0px' },
     )
@@ -66,77 +68,63 @@ export const Process = () => {
     return () => observer.disconnect()
   }, [])
 
-  // The numeral re-materialises on every phase change: it is the visual hero of
-  // this section, so a plain text swap would undersell it. When the scene builds
-  // the numeral out of fragments instead, this element is gone from the layout.
-  useGSAP(
-    () => {
-      if (tier === 'still' || worldCopy || !numeral.current) return
-      gsap.fromTo(
-        numeral.current,
-        { yPercent: 16, opacity: 0, filter: 'blur(5px)' },
-        {
-          yPercent: 0,
-          opacity: 1,
-          filter: 'blur(0px)',
-          duration: 0.6,
-          ease: 'expo.out',
-        },
-      )
-    },
-    { dependencies: [active, tier, worldCopy] },
-  )
-
   const step = copy.process.steps[active]
 
   return (
-    <section
+    <Section
       id="process"
-      ref={container}
-      className="section section--scrim"
-      aria-labelledby="process-label"
+      label={copy.process.label}
+      heading={copy.process.heading}
+      scrim
     >
-      <Reveal>
-        <h2 id="process-label" className="eyebrow shard">
-          {copy.process.label}
-        </h2>
-      </Reveal>
-
-      <div className="process__grid">
-        <div
-          ref={sticky.ref}
-          className="process__sticky panel"
-          data-shown={sticky.inView}
-        >
+      <div
+        ref={container}
+        className="mt-14 grid gap-10 lg:grid-cols-[22rem_minmax(0,1fr)] lg:gap-24"
+      >
+        <Reveal className="lg:sticky lg:top-[calc(var(--spacing-nav)+4rem)] lg:self-start">
           <div
-            ref={numeral}
-            className="process__num world-copy--void"
-            aria-hidden="true"
+            data-hairline
+            className="border border-line bg-graphite/60 p-7 backdrop-blur-sm"
           >
-            {step.num}
+            {/*
+              Decorative: the active step's own heading already announces the
+              phase, so repeating the numeral to a screen reader would be noise.
+              `key` restarts the rise on each change; opacity and transform only,
+              never a blur, which would soften type and repaint over the canvas.
+            */}
+            <p
+              aria-hidden="true"
+              key={step.num}
+              className="text-display text-[clamp(5rem,10vw,9rem)] leading-none text-ink-dim/40 motion-safe:animate-[vt-rise-in_var(--duration-state)_var(--ease-signal)]"
+            >
+              {step.num}
+            </p>
+            <p className="text-display shard mt-3 text-2xl">{step.title}</p>
+            <p className="text-body shard mt-3 max-w-[28ch] text-sm">
+              {copy.process.caption}
+            </p>
           </div>
-          <p className="process__num-title shard" aria-live="polite">
-            {step.title}
-          </p>
-          <p
-            className="body-sm shard"
-            style={{ marginTop: 12, maxWidth: '28ch' }}
-          >
-            {copy.process.caption}
-          </p>
-        </div>
+        </Reveal>
 
-        <div>
+        <ol className="flex flex-col">
           {copy.process.steps.map((item, index) => (
-            <ProcessStep
+            <li
               key={item.num}
-              index={index}
-              active={active === index}
-              step={item}
-            />
+              data-step-index={index}
+              className="border-t border-line py-10 sm:py-14"
+            >
+              <ProcessStep
+                phase={item.phase}
+                heading={item.heading}
+                body={item.copy}
+                // Before the capability check resolves there is no scroll
+                // choreography yet, so nothing should read as inactive.
+                dimmed={experience !== 'checking' && active !== index}
+              />
+            </li>
           ))}
-        </div>
+        </ol>
       </div>
-    </section>
+    </Section>
   )
 }

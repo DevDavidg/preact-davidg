@@ -1,149 +1,97 @@
 import * as THREE from 'three'
 
-/** Dispatched after `data-palette` / `data-tone` / `data-model` attrs change (DEV debug). */
-export const DESIGN_DEBUG_CHANGE_EVENT = 'dg-design-debug-change'
+/**
+ * The bridge between the CSS palette and the shaders.
+ *
+ * Token names match the `@theme` block in `app/theme.css`. The scene reads the live
+ * computed values rather than duplicating hex codes, so DOM and shaders cannot drift
+ * apart — there is one palette, and CSS owns it.
+ *
+ * An earlier version resolved values by appending a probe `<span>` to
+ * `document.documentElement` and reading its computed colour. That element became a
+ * foreign child of the `<html>` node React hydrates, which broke hydration on every
+ * prerendered page and made React discard the server-rendered tree. Nothing here
+ * touches the document any more.
+ */
 
-const FALLBACK = {
-  base: '#070605',
-  ink: '#f4efe6',
-  accent: '#d4a054',
+const TOKENS = {
+  base: '--color-reactor',
+  ink: '--color-ink',
+  accent: '--color-ignition',
+  signal: '--color-ion',
 } as const
 
-/** Sentinel so a rejected `style.color` assignment is detectable. */
-const PROBE_SENTINEL = 'rgb(1, 2, 3)'
+type TokenName = keyof typeof TOKENS
+
+const FALLBACK: Record<TokenName, string> = {
+  base: '#050608',
+  ink: '#f3eee4',
+  accent: '#ffb454',
+  signal: '#76e6f2',
+}
 
 /**
- * Live scene palette — mirrors CSS tokens on `:root`.
- * Materials that run every frame should `.copy()` from these; background/fog
- * listeners refresh on `DESIGN_DEBUG_CHANGE_EVENT`.
+ * Live scene palette. Materials that run every frame should `.copy()` from these
+ * rather than reading the DOM, which would be a style query per frame.
  */
 export const sceneColors = {
   base: new THREE.Color(FALLBACK.base),
   ink: new THREE.Color(FALLBACK.ink),
+  /** Ignition amber: primary action, portal, focused module. */
   accent: new THREE.Color(FALLBACK.accent),
+  /** Ion cyan: telemetry and conduits only, never a call to action. */
+  signal: new THREE.Color(FALLBACK.signal),
   revision: 0,
 }
 
-/** Reused probe — `getPropertyValue('--x')` keeps `color-mix`/`var` raw; computed `color` is resolved. */
-let colorProbe: HTMLSpanElement | null = null
-let canvasCtx: CanvasRenderingContext2D | null = null
+let canvasContext: CanvasRenderingContext2D | null = null
 
-const ensureColorProbe = (): HTMLSpanElement => {
-  if (colorProbe?.isConnected) return colorProbe
-
-  colorProbe = document.createElement('span')
-  colorProbe.setAttribute('aria-hidden', 'true')
-  colorProbe.style.cssText =
-    'position:absolute;width:0;height:0;overflow:hidden;pointer-events:none;visibility:hidden'
-  document.documentElement.appendChild(colorProbe)
-  return colorProbe
-}
-
-/** `color(srgb r g b)` → `rgb()` — Three does not accept the CSS Color 4 form. */
-const fromCssColorFunction = (value: string): string | null => {
-  const match = value.match(
-    /^color\(srgb\s+([0-9.]+)\s+([0-9.]+)\s+([0-9.]+)(?:\s*\/\s*([0-9.]+))?\)$/i,
-  )
-  if (!match) return null
-
-  const r = Math.round(Number(match[1]) * 255)
-  const g = Math.round(Number(match[2]) * 255)
-  const b = Math.round(Number(match[3]) * 255)
-  const alpha = match[4] === undefined ? 1 : Number(match[4])
-  if (![r, g, b, alpha].every((n) => Number.isFinite(n))) return null
-  if (alpha < 1) return `rgba(${r}, ${g}, ${b}, ${alpha})`
-  return `rgb(${r}, ${g}, ${b})`
-}
-
-/** Canvas rasterization — last resort for odd computed formats. */
-const fromCanvas = (cssColor: string): string | null => {
-  if (!canvasCtx) {
+/**
+ * Rasterises one pixel to resolve a colour form Three cannot parse, such as
+ * `color-mix()` or `oklch()`. Off-document, so it is invisible to React.
+ */
+const viaCanvas = (cssColor: string): string | null => {
+  if (!canvasContext) {
     const canvas = document.createElement('canvas')
     canvas.width = 1
     canvas.height = 1
-    canvasCtx = canvas.getContext('2d', { willReadFrequently: true })
+    canvasContext = canvas.getContext('2d', { willReadFrequently: true })
   }
-  if (!canvasCtx) return null
+  if (!canvasContext) return null
 
-  canvasCtx.clearRect(0, 0, 1, 1)
-  canvasCtx.fillStyle = cssColor
-  canvasCtx.fillRect(0, 0, 1, 1)
-  const [r, g, b, a] = canvasCtx.getImageData(0, 0, 1, 1).data
+  canvasContext.clearRect(0, 0, 1, 1)
+  // An unparseable value leaves `fillStyle` at its previous value, so set a known
+  // sentinel first and treat "unchanged" as failure.
+  canvasContext.fillStyle = '#000000'
+  canvasContext.fillStyle = cssColor
+  canvasContext.fillRect(0, 0, 1, 1)
+
+  const [r, g, b, a] = canvasContext.getImageData(0, 0, 1, 1).data
   if (a === 0) return null
-  if (a === 255) return `rgb(${r}, ${g}, ${b})`
-  return `rgba(${r}, ${g}, ${b}, ${Number((a / 255).toFixed(3))})`
+  return `rgb(${r}, ${g}, ${b})`
 }
 
-/** Normalize any resolved CSS color into a Three-parseable rgb/rgba/hex string. */
-const toThreeColor = (resolved: string, fallback: string): string => {
-  if (
-    resolved.startsWith('#') ||
-    resolved.startsWith('rgb') ||
-    resolved.startsWith('hsl')
-  ) {
-    return resolved
-  }
+const parseable = (value: string) =>
+  value.startsWith('#') || value.startsWith('rgb') || value.startsWith('hsl')
 
-  const fromSrgb = fromCssColorFunction(resolved)
-  if (fromSrgb) return fromSrgb
+const readToken = (name: TokenName): string => {
+  if (typeof document === 'undefined') return FALLBACK[name]
 
-  return fromCanvas(resolved) ?? fallback
-}
-
-/**
- * Resolve any CSS color string (including `color-mix` / `var`) to `rgb()`/`rgba()`
- * that THREE.Color can parse.
- */
-const resolveCssColor = (raw: string, fallback: string): string => {
-  if (typeof document === 'undefined' || !raw) return fallback
-
-  const probe = ensureColorProbe()
-  probe.style.color = PROBE_SENTINEL
-  probe.style.color = raw
-  const resolved = getComputedStyle(probe).color.trim()
-  probe.style.color = ''
-
-  // Browser kept the sentinel → assignment was rejected / not a color.
-  if (!resolved || resolved === PROBE_SENTINEL) return fallback
-  return toThreeColor(resolved, fallback)
-}
-
-const readCssColor = (prop: keyof typeof FALLBACK): string => {
-  if (typeof document === 'undefined') return FALLBACK[prop]
-  const value = getComputedStyle(document.documentElement)
-    .getPropertyValue(`--${prop}`)
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue(TOKENS[name])
     .trim()
-  return resolveCssColor(value, FALLBACK[prop])
+  if (!raw) return FALLBACK[name]
+  // The four tokens the scene reads are authored as plain hex, so this is the path
+  // that normally runs; the canvas below only exists for future token forms.
+  if (parseable(raw)) return raw
+  return viaCanvas(raw) ?? FALLBACK[name]
 }
 
-/** Pull `--base` / `--ink` / `--accent` from the document (theme-aware). */
+/** Pulls the palette out of the document. */
 export const refreshSceneColors = () => {
-  sceneColors.base.set(readCssColor('base'))
-  sceneColors.ink.set(readCssColor('ink'))
-  sceneColors.accent.set(readCssColor('accent'))
+  sceneColors.base.set(readToken('base'))
+  sceneColors.ink.set(readToken('ink'))
+  sceneColors.accent.set(readToken('accent'))
+  sceneColors.signal.set(readToken('signal'))
   sceneColors.revision += 1
-}
-
-/**
- * Subscribe to design-debug theme changes. Always refreshes CSS→Three colors
- * before invoking the listener. Safe in production (event never fires).
- */
-export const onDesignDebugChange = (listener: () => void): (() => void) => {
-  if (typeof window === 'undefined') return () => {}
-
-  const handleChange = () => {
-    refreshSceneColors()
-    listener()
-  }
-
-  window.addEventListener(DESIGN_DEBUG_CHANGE_EVENT, handleChange)
-  return () => window.removeEventListener(DESIGN_DEBUG_CHANGE_EVENT, handleChange)
-}
-
-if (typeof document !== 'undefined') {
-  refreshSceneColors()
-  // Module eval can precede stylesheet / data-* application; re-sync next frame.
-  requestAnimationFrame(() => {
-    refreshSceneColors()
-  })
 }

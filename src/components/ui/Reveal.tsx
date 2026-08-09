@@ -6,20 +6,37 @@ interface RevealProps {
   className?: string
   /** Stagger within a group, in milliseconds. */
   delay?: number
+  as?: 'div' | 'li'
+  /** Index the motion runtime binds scroll triggers to. */
+  'data-module-index'?: number
 }
 
-/** Fades an overlay block up once, the first time it enters the viewport. */
-export const Reveal = ({ children, className, delay = 0 }: RevealProps) => {
-  const { ref, inView } = useInView<HTMLDivElement>()
+/**
+ * Marks a block as arrived so its `.shard` children converge into place.
+ *
+ * The wrapper itself never animates opacity: it only flips `data-shown`. That
+ * keeps the content present for anything that does not run the observer — search
+ * crawlers reading prerendered HTML, reduced-motion visitors, forced-colors mode —
+ * which is why nothing here can leave content permanently invisible.
+ */
+export const Reveal = ({
+  children,
+  className,
+  delay = 0,
+  as: Tag = 'div',
+  ...rest
+}: RevealProps) => {
+  const { ref, inView } = useInView<HTMLElement>()
 
   return (
-    <div
-      ref={ref}
-      className={className ? `reveal ${className}` : 'reveal'}
+    <Tag
+      ref={ref as React.Ref<HTMLDivElement & HTMLLIElement>}
+      className={className}
       data-shown={inView}
       style={delay ? { transitionDelay: `${delay}ms` } : undefined}
+      {...rest}
     >
       {children}
-    </div>
+    </Tag>
   )
 }

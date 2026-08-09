@@ -1,0 +1,362 @@
+/*
+ * The parts of the visual system that utilities cannot express: the fixed WebGL
+ * stage, the fragment-arrival choreography, route transitions and the
+ * forced-colors contract.
+ *
+ * Hard rule for this layer: it never hides document text. An earlier version made
+ * DOM headings transparent so 3D glyphs could stand in for them, which broke text
+ * selection, high-contrast mode and user stylesheets. The scene now renders only
+ * decorative telemetry that appears nowhere in the DOM, so the document is always
+ * the readable layer.
+ */
+
+/* Stage ------------------------------------------------------------------ */
+
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-index-scene);
+  /* The scene is decorative; the document above it owns every interaction. */
+  pointer-events: none;
+  /* Matches the WebGL clear colour so a dropped frame never flashes. */
+  background-color: var(--color-reactor);
+}
+
+.stage-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 74% 60% at 50% 45%,
+    transparent 0%,
+    color-mix(in srgb, var(--color-reactor) 78%, transparent) 100%
+  );
+}
+
+/*
+ * Grain.
+ *
+ * This used to be a `Noise` post-processing pass, which meant a full-screen
+ * ping-pong render target every frame for a static texture. It is generated once
+ * by the browser from an SVG filter instead: identical read, zero per-frame cost,
+ * and it works on the static experience where there is no renderer at all.
+ *
+ * `soft-light` keeps it from lifting the blacks the way `overlay` would.
+ */
+.stage-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Screen-space confirmation of the physical portal; opacity is driven per frame. */
+.stage-ignition {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    ellipse 36% 32% at 50% 56%,
+    color-mix(in srgb, var(--color-ignition) 26%, transparent) 0%,
+    transparent 72%
+  );
+}
+
+/*
+ * The document column. Gaps between sections stay transparent to the scene, but
+ * anything a visitor can act on takes the pointer back.
+ */
+.overlay {
+  position: relative;
+  z-index: var(--z-index-overlay);
+}
+
+/* Directional scrim so copy sitting straight on the scene keeps its contrast. */
+.scrim::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--color-reactor) 88%, transparent) 0%,
+    color-mix(in srgb, var(--color-reactor) 64%, transparent) 38%,
+    transparent 78%
+  );
+}
+
+/* Fragment arrival ------------------------------------------------------- */
+
+/*
+ * The room reconstructs itself out of fragments, so blocks of HTML cannot simply
+ * fade in whole. Anything marked `.shard` starts offset from its home and
+ * converges when its container reports `data-shown`.
+ *
+ * Only `translate`, `rotate` and `opacity` — all compositor properties, and all
+ * *individual* transform properties, so an element that owns its own `transform`
+ * (a magnetic button leaning toward the pointer) composes with the arrival
+ * instead of overriding it. A `filter` or 3D transform on this layer paints solid
+ * rectangles over the live canvas for a frame.
+ */
+.shard {
+  --shard-x: 0px;
+  --shard-y: 1.375rem;
+  --shard-r: 0deg;
+  --shard-delay: 0ms;
+
+  opacity: 0;
+  translate: var(--shard-x) var(--shard-y);
+  rotate: var(--shard-r);
+  transition:
+    opacity var(--duration-reveal) var(--ease-signal),
+    translate var(--duration-reveal) var(--ease-signal),
+    rotate var(--duration-reveal) var(--ease-signal);
+  transition-delay: var(--shard-delay);
+}
+
+[data-shown='true'] .shard {
+  opacity: 1;
+  translate: none;
+  rotate: none;
+}
+
+/*
+ * Six vectors on rotation so siblings converge from different directions and at
+ * different moments, rather than marching in as one row.
+ *
+ * The lateral and rotational components are declared only from `lg` up. A sideways
+ * translate is a real box on the page: below that width the gutter is narrower than
+ * the offset, so an element still on its way in stuck out past the viewport and gave
+ * the whole document a horizontal scrollbar. Narrow screens get the vertical arrival,
+ * which reads the same and cannot overflow.
+ */
+.shard:nth-child(6n + 1) {
+  --shard-y: 0.875rem;
+  --shard-delay: 0ms;
+}
+.shard:nth-child(6n + 2) {
+  --shard-y: 1.5rem;
+  --shard-delay: 70ms;
+}
+.shard:nth-child(6n + 3) {
+  --shard-y: -1.25rem;
+  --shard-delay: 150ms;
+}
+.shard:nth-child(6n + 4) {
+  --shard-y: -0.75rem;
+  --shard-delay: 40ms;
+}
+.shard:nth-child(6n + 5) {
+  --shard-y: 1.75rem;
+  --shard-delay: 200ms;
+}
+.shard:nth-child(6n) {
+  --shard-y: -1.625rem;
+  --shard-delay: 110ms;
+}
+
+@media (min-width: 64rem) {
+  .shard:nth-child(6n + 1) {
+    --shard-x: -1rem;
+    --shard-r: -1deg;
+  }
+  .shard:nth-child(6n + 2) {
+    --shard-x: 0.875rem;
+    --shard-r: 0.8deg;
+  }
+  .shard:nth-child(6n + 3) {
+    --shard-x: -0.75rem;
+    --shard-r: 1deg;
+  }
+  .shard:nth-child(6n + 4) {
+    --shard-x: 1rem;
+    --shard-r: -0.7deg;
+  }
+  .shard:nth-child(6n + 5) {
+    --shard-x: -0.875rem;
+    --shard-r: 1.2deg;
+  }
+  .shard:nth-child(6n) {
+    --shard-x: 0.75rem;
+    --shard-r: -1.2deg;
+  }
+}
+
+/*
+ * The hero heading arrives word by word out of a clipping mask. A CSS animation
+ * rather than a tween, so the animation engine stays out of the critical bundle,
+ * and staggered by sibling position so the markup carries no timing values at all.
+ */
+[data-revealed='true'] [data-word] {
+  animation: word-rise 1.1s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+[data-revealed='true'] > span:nth-of-type(2) [data-word] {
+  animation-delay: 70ms;
+}
+[data-revealed='true'] > span:nth-of-type(3) [data-word] {
+  animation-delay: 140ms;
+}
+[data-revealed='true'] > span:nth-of-type(4) [data-word] {
+  animation-delay: 210ms;
+}
+[data-revealed='true'] > span:nth-of-type(5) [data-word] {
+  animation-delay: 280ms;
+}
+[data-revealed='true'] > span:nth-of-type(n + 6) [data-word] {
+  animation-delay: 350ms;
+}
+
+@keyframes word-rise {
+  from {
+    transform: translateY(115%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-revealed='true'] [data-word] {
+    animation: none;
+  }
+}
+
+/* Plates carrying an image read as machined parts: no tilt. */
+.shard.shard-plate {
+  --shard-r: 0deg;
+}
+
+/* Instrumentation is small and dense, so it travels a shorter distance. */
+.shard.shard-fine {
+  --shard-x: 0px;
+  --shard-y: 0.625rem;
+  --shard-r: 0deg;
+}
+
+/*
+ * Fragments never withhold content. Reduced motion, and any environment where the
+ * observer cannot run, must land on the finished state.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .shard {
+    opacity: 1;
+    translate: none;
+    rotate: none;
+  }
+}
+
+/* Route transitions ------------------------------------------------------ */
+
+/*
+ * Home ⇄ case study is a hierarchical move, so the shared project image morphs
+ * and the page slides directionally. Browsers without the API simply cut, which
+ * is the correct fallback for a navigation.
+ */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-group(*) {
+  animation-duration: var(--duration-state);
+  animation-timing-function: var(--ease-signal);
+}
+
+::view-transition-old(root) {
+  animation: vt-fade-out var(--duration-state) var(--ease-signal) both;
+}
+
+::view-transition-new(root) {
+  animation: vt-rise-in var(--duration-state) var(--ease-signal) both;
+}
+
+@keyframes vt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vt-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* Forced colours --------------------------------------------------------- */
+
+/*
+ * High-contrast mode replaces our palette with the user's. The scene and every
+ * decorative wash must disappear so nothing is left painting over system colours,
+ * and hairlines have to become real borders to keep the structure readable.
+ */
+@media (forced-colors: active) {
+  .stage,
+  .stage-vignette,
+  .stage-ignition,
+  .stage-grain,
+  .scrim::before {
+    display: none;
+  }
+
+  .shard {
+    opacity: 1;
+    translate: none;
+    rotate: none;
+  }
+
+  [data-hairline] {
+    border-color: CanvasText;
+  }
+}
+
+/* Print ------------------------------------------------------------------ */
+
+/*
+ * The CV route is meant to be printed or saved as PDF, so the scene, chrome and
+ * anything non-documentary is dropped and the palette inverts to ink on paper.
+ */
+@media print {
+  .stage,
+  .stage-vignette,
+  .stage-ignition,
+  .stage-grain,
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    color-scheme: light;
+  }
+
+  .shard {
+    opacity: 1 !important;
+    translate: none !important;
+    rotate: none !important;
+  }
+
+  a {
+    text-decoration: underline;
+  }
+
+  /* A printed page cannot be clicked, so external destinations are spelled out. */
+  [data-print-url]::after {
+    content: ' (' attr(data-print-url) ')';
+    font-size: 0.75em;
+  }
+}

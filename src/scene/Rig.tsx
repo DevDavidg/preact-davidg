@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { damp3 } from 'maath/easing'
+import type { Quality } from './capability'
 import {
   cameraFovFor,
   cameraHoldFor,
@@ -9,22 +10,25 @@ import {
   CAMERA_PATH,
   TARGET_PATH,
 } from './layout'
-import { cameraBuildFor, sceneState, type Tier } from './sceneState'
+import { sceneState } from './sceneState'
 
-interface RigProps {
-  tier: Tier
-}
-
-/** Matches the Canvas default; SCANNING breath oscillates around this. */
+/** Matches the Canvas default; the standby breath oscillates around this. */
 const BASE_FOV = 42
 
 /**
- * Drives the camera along the dolly spline from scroll progress, with damped
- * pointer parallax and a touch of roll. Damping — not the raw scroll value — is
- * what keeps fast flicks from feeling like a teleport.
+ * The camera.
+ *
+ * Damping — not the raw scroll value — is what keeps a fast flick from reading as a
+ * teleport. Roll is capped at roughly one degree: any more and a horizon that is
+ * not level starts to feel like a tilted monitor rather than a camera move.
+ *
+ * Pointer parallax is cinema-only and damped, so the shot never jitters with the
+ * mouse; on the quieter quality the camera stays on the spline and nothing else.
  */
-export const Rig = ({ tier }: RigProps) => {
+export const Rig = ({ quality }: { quality: Quality }) => {
   const camera = useThree((state) => state.camera)
+  const cinema = quality === 'cinema'
+
   const vectors = useMemo(
     () => ({
       position: new THREE.Vector3(),
@@ -36,38 +40,35 @@ export const Rig = ({ tier }: RigProps) => {
   const roll = useRef(0)
 
   useFrame((state, delta) => {
-    const scrollBuild = cameraBuildFor(tier)
-    // Only cinema gets the dwell curve. Lite and still retain their proven,
-    // predictable framing instead of paying for pacing they cannot fully show.
-    const build =
-      tier === 'cinema' ? cameraProgressFor(scrollBuild) : scrollBuild
-    const hold = tier === 'cinema' ? cameraHoldFor(scrollBuild) : 0
-    const parallax = tier === 'cinema' ? 1 : 0
+    const scrollBuild = sceneState.build
+    // Only cinema gets the dwell curve; the lighter quality keeps predictable
+    // framing rather than paying for pacing it cannot fully show.
+    const build = cinema ? cameraProgressFor(scrollBuild) : scrollBuild
+    const hold = cinema ? cameraHoldFor(scrollBuild) : 0
+    const parallax = cinema ? 1 : 0
     const pointerX = sceneState.pointerX * parallax
     const pointerY = sceneState.pointerY * parallax
-    const scanning =
-      tier === 'cinema'
-        ? 1 - THREE.MathUtils.smoothstep(scrollBuild, 0.02, 0.18)
-        : 0
+    const standby = cinema
+      ? 1 - THREE.MathUtils.smoothstep(scrollBuild, 0.02, 0.16)
+      : 0
     const time = state.clock.elapsedTime
-    const breath = Math.sin(time * 0.35) * scanning
+    const breath = Math.sin(time * 0.35) * standby
 
     CAMERA_PATH.getPointAt(build, vectors.position)
-    vectors.position.x += pointerX * 0.95
-    vectors.position.y -= pointerY * 0.5
+    vectors.position.x += pointerX * 0.85
+    vectors.position.y -= pointerY * 0.45
     // Fast scrolling pulls the camera back a little, which reads as weight.
     vectors.position.z += Math.min(0.7, Math.abs(sceneState.velocity) * 0.007)
-    // Idle scan breath: restrained so world-copy glyphs do not swim.
     vectors.position.y += breath * 0.03
-    vectors.position.z += Math.cos(time * 0.28) * 0.05 * scanning
+    vectors.position.z += Math.cos(time * 0.28) * 0.05 * standby
 
     TARGET_PATH.getPointAt(build, vectors.target)
-    vectors.target.x += pointerX * 0.4
-    vectors.target.y -= pointerY * 0.22
+    vectors.target.x += pointerX * 0.36
+    vectors.target.y -= pointerY * 0.2
     vectors.target.y += breath * 0.012
 
-    // A fraction more damping around each beat makes fast wheel flicks feel
-    // weighted without freezing the scroll-driven reconstruction behind it.
+    // Extra damping around each dwell beat: fast wheel flicks feel weighted
+    // without freezing the reconstruction happening behind them.
     damp3(
       camera.position,
       vectors.position,
@@ -82,15 +83,12 @@ export const Rig = ({ tier }: RigProps) => {
     )
     camera.lookAt(vectors.smoothTarget)
 
-    roll.current = THREE.MathUtils.damp(roll.current, -pointerX * 0.035, 3, delta)
+    roll.current = THREE.MathUtils.damp(roll.current, -pointerX * 0.017, 3, delta)
     camera.rotateZ(roll.current)
 
     if (camera instanceof THREE.PerspectiveCamera) {
       const targetFov =
-        (tier === 'cinema'
-          ? cameraFovFor(scrollBuild, BASE_FOV)
-          : BASE_FOV) +
-        breath * 0.55
+        (cinema ? cameraFovFor(scrollBuild, BASE_FOV) : BASE_FOV) + breath * 0.5
       camera.fov = THREE.MathUtils.damp(camera.fov, targetFov, 2.2, delta)
       camera.updateProjectionMatrix()
     }

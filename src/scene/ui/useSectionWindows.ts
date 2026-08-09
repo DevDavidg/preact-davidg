@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { SECTION_IDS } from '../../sections'
+import { SECTION_IDS } from '../../lib/routes'
 import { useSceneStore } from '../sceneState'
 import {
   measureSectionWindows,
@@ -15,7 +15,7 @@ import {
  * forced reflows per resize.
  */
 export const useSectionWindows = (): SectionWindows => {
-  const tier = useSceneStore((state) => state.tier)
+  const experience = useSceneStore((state) => state.experience)
   const [windows, setWindows] = useState<SectionWindows>(() =>
     measureSectionWindows(SECTION_IDS),
   )
@@ -27,7 +27,7 @@ export const useSectionWindows = (): SectionWindows => {
     }
     remeasure()
     return onSectionLayoutChange(remeasure)
-  }, [tier])
+  }, [experience])
 
   return windows
 }

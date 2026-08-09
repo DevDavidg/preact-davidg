@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { FOG_DENSITY, PORTAL_POSITION } from './layout'
 import { sceneColors } from './sceneColors'
-import { buildFor, livePowerFor, type Tier } from './sceneState'
+import { livePowerFor, sceneState } from './sceneState'
 
 /**
  * A soft radial falloff, generated rather than shipped as an asset. A flat
@@ -37,7 +37,7 @@ const createGlowTexture = () => {
  * would cost uniforms and render nothing. The fog does the depth work for the
  * lattice and the portal, both of which are fog-aware basic materials.
  */
-export const Atmosphere = ({ tier }: { tier: Tier }) => {
+export const Atmosphere = () => {
   const portal = useRef<THREE.Mesh>(null)
   const fog = useRef<THREE.FogExp2>(null)
 
@@ -66,11 +66,11 @@ export const Atmosphere = ({ tier }: { tier: Tier }) => {
   }, [glow, portalMaterial, portalGeometry])
 
   useFrame((state) => {
-    const power = livePowerFor(buildFor(tier))
+    const power = livePowerFor(sceneState.build)
     if (fog.current) {
       fog.current.color.copy(sceneColors.base)
-      // LIVE opens the end of the room a touch; the change stays restrained so
-      // it reads as power coming on, not as the entire scene losing its depth.
+      // Ignition opens the end of the room a touch; the change stays restrained
+      // so it reads as power coming on, not as the scene losing its depth.
       fog.current.density = FOG_DENSITY * (1 - power * 0.16)
     }
     portalMaterial.color.copy(sceneColors.accent)
@@ -80,8 +80,8 @@ export const Atmosphere = ({ tier }: { tier: Tier }) => {
       power * 0.13 +
       Math.sin(state.clock.elapsedTime * 0.8) * 0.028 * power
     portal.current.scale.setScalar(breathe)
-    // The glow stays effectively off through BEAUTY, then accelerates once the
-    // actual LIVE phase starts. A radial plane keeps this one extra draw cheap.
+    // Effectively off until the final chapter, then accelerating. A radial plane
+    // keeps this one extra draw cheap.
     portalMaterial.opacity = power * (0.18 + power * 0.62)
   })
 

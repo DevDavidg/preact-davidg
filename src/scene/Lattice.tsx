@@ -3,13 +3,12 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { ReconstructMaterial } from './ReconstructMaterial'
 import { toShards } from './shardGeometry'
+import type { Quality } from './capability'
 import {
-  buildFor,
   depthBiasFor,
   liveFor,
   sceneState,
   speedFor,
-  type Tier,
 } from './sceneState'
 import { settleAt, STAGGER_CAP } from './ui/fragmentSettle'
 
@@ -64,8 +63,8 @@ const buildFragments = (count: number): Fragment[] => {
   })
 }
 
-export const Lattice = ({ tier }: { tier: Tier }) => {
-  const count = tier === 'cinema' ? 154 : 63
+export const Lattice = ({ quality }: { quality: Quality }) => {
+  const count = quality === 'cinema' ? 154 : 63
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const fragments = useMemo(() => buildFragments(count), [count])
   const scratch = useMemo(
@@ -104,16 +103,16 @@ export const Lattice = ({ tier }: { tier: Tier }) => {
     const mesh = meshRef.current
     if (!mesh) return
 
-    const build = buildFor(tier)
+    const build = sceneState.build
     const live = liveFor(build)
     const time = state.clock.elapsedTime
     const speed = speedFor()
     const { dummy, position } = scratch
-    // Cinema SCANNING: the room idles before the first scroll — drift, lean
-    // toward the pointer, and a touch more presence so wireframe reads as space.
+    // Standby: the room idles before the first scroll — drift, lean toward the
+    // pointer, and a touch more presence so wireframe reads as space.
     const scanning =
-      tier === 'cinema'
-        ? 1 - THREE.MathUtils.smoothstep(build, 0.02, 0.18)
+      quality === 'cinema'
+        ? 1 - THREE.MathUtils.smoothstep(build, 0.02, 0.16)
         : 0
     // Leave the project lane visually quiet while panels are assembling. This
     // affects only backdrop drift/opacity; it never pauses the reconstruction.

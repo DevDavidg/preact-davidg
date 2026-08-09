@@ -1,155 +1,142 @@
 import { create } from 'zustand'
+import type { ExperienceState, Quality } from './capability'
 
-export const PHASES = ['SCANNING', 'ASSEMBLING', 'BEAUTY', 'LIVE'] as const
+/** The reactor's four chapters, in scroll order. */
+export const PHASES = ['STANDBY', 'CHARGE', 'TRANSMIT', 'IGNITION'] as const
 
 export type Phase = (typeof PHASES)[number]
 
-/** Shared visual boundaries: HUD, material staging and the portal agree on them. */
+/**
+ * Shared boundaries on the 0 → 1 charge axis. The HUD, the materials and the
+ * portal all read these, so the readout can never claim CHARGE while the room is
+ * already igniting.
+ */
 export const PHASE_BOUNDARIES = {
-  scanningEnd: 0.18,
-  assemblingEnd: 0.48,
-  beautyEnd: 0.78,
-  livePrecharge: 0.72,
+  standbyEnd: 0.16,
+  chargeEnd: 0.46,
+  transmitEnd: 0.78,
+  ignitionPrecharge: 0.72,
 } as const
 
-const clamp01 = (value: number) => Math.min(1, Math.max(0, value))
+export const clamp01 = (value: number) => Math.min(1, Math.max(0, value))
 
 /**
- * Quality tier. `still` renders a single frame in the BEAUTY state, `lite`
- * drops shard count and post-processing, `cinema` is the full experience.
- */
-export type Tier = 'still' | 'lite' | 'cinema'
-
-interface Capabilities {
-  deviceMemory?: number
-  hardwareConcurrency?: number
-}
-
-/** Sync resolve — store boots with the real tier so lite/still never flash cinema spacers. */
-export const detectTier = (): Tier => {
-  if (typeof window === 'undefined') return 'lite'
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    return 'still'
-  }
-
-  const nav = navigator as Navigator & Capabilities
-  const cores = nav.hardwareConcurrency ?? 8
-  const memory = nav.deviceMemory ?? 8
-  const coarse = window.matchMedia('(pointer: coarse)').matches
-  const narrow = window.innerWidth < 900
-
-  if (coarse || narrow || cores <= 4 || memory <= 4) return 'lite'
-  return 'cinema'
-}
-
-/**
- * Values that change every frame (scroll progress, pointer) live here rather
- * than in React state: `useFrame` reads them directly, so a scroll never costs
- * a render. Only discrete state goes through the store below.
+ * Values that change every frame live outside React. `useFrame` reads them
+ * directly, so scrolling costs zero renders; only discrete state below goes
+ * through the store.
  */
 export const sceneState = {
   /** Document scroll progress, 0 → 1. Drives the whole reconstruction. */
   build: 0,
-  /** Scroll velocity in px/frame, smoothed. Feeds camera lag and shard jitter. */
+  /** Smoothed scroll velocity. Feeds camera weight and shard jitter. */
   velocity: 0,
-  /** Pointer in normalized device coords, -1 → 1 on both axes. */
+  /** Pointer in normalised device coordinates, -1 → 1. */
   pointerX: 0,
   pointerY: 0,
-  /** Index of the artifact under the pointer, or -1. */
+  /** Index of the featured module currently under focus, or -1. */
   focus: -1,
 }
 
-export const phaseFor = (build: number): Phase => {
-  if (build < PHASE_BOUNDARIES.scanningEnd) return 'SCANNING'
-  if (build < PHASE_BOUNDARIES.assemblingEnd) return 'ASSEMBLING'
-  if (build < PHASE_BOUNDARIES.beautyEnd) return 'BEAUTY'
-  return 'LIVE'
+export const resetSceneMotion = () => {
+  sceneState.build = 0
+  sceneState.velocity = 0
+  sceneState.pointerX = 0
+  sceneState.pointerY = 0
+  sceneState.focus = -1
 }
 
-/** Precharge sent to materials as the room approaches LIVE, 0 → 1. */
+export const phaseFor = (build: number): Phase => {
+  if (build < PHASE_BOUNDARIES.standbyEnd) return 'STANDBY'
+  if (build < PHASE_BOUNDARIES.chargeEnd) return 'CHARGE'
+  if (build < PHASE_BOUNDARIES.transmitEnd) return 'TRANSMIT'
+  return 'IGNITION'
+}
+
+/** Precharge handed to materials as the room approaches ignition, 0 → 1. */
 export const liveFor = (build: number) =>
   clamp01(
-    (build - PHASE_BOUNDARIES.livePrecharge) /
-      (1 - PHASE_BOUNDARIES.livePrecharge),
+    (build - PHASE_BOUNDARIES.ignitionPrecharge) /
+      (1 - PHASE_BOUNDARIES.ignitionPrecharge),
   )
 
 /**
- * The actual power-on curve. It deliberately waits for LIVE rather than making
- * the portal, bloom and Contact pulse compete with BEAUTY's controlled light.
+ * The power-on curve. It deliberately waits for the final chapter rather than
+ * letting the portal, the bloom and the contact pulse compete with the
+ * controlled light of the transmission chapter.
  */
 export const livePowerFor = (build: number) => {
   const live = clamp01(
-    (build - PHASE_BOUNDARIES.beautyEnd) /
-      (1 - PHASE_BOUNDARIES.beautyEnd),
+    (build - PHASE_BOUNDARIES.transmitEnd) /
+      (1 - PHASE_BOUNDARIES.transmitEnd),
   )
   return live * live * (3 - 2 * live)
 }
 
-/** Scroll speed normalized for shard jitter (matches ReconstructMaterial). */
+/** Scroll speed normalised for shard jitter (matches ReconstructMaterial). */
 export const speedFor = () =>
   Math.min(1.5, Math.abs(sceneState.velocity) * 0.012)
 
 /**
- * Depth wave along the dolly: nearer Z locks first. Matches the shader's
+ * Depth wave along the dolly: nearer Z locks first. Mirrors the shader's
  * `(8 - worldZ) / 30 * span` term so CPU and GPU stay in phase.
  */
 export const depthBiasFor = (worldZ: number, span = 0.1) => {
-  const depth = Math.min(1, Math.max(0, (8 - worldZ) / 30))
+  const depth = clamp01((8 - worldZ) / 30)
   return depth * span
 }
 
-/** Reduced-motion visitors get one frozen frame at the top of the BEAUTY phase,
- *  where the objects are fully assembled and lit. */
-const STILL_BUILD = PHASE_BOUNDARIES.beautyEnd
-/** ...composed from near the start of the dolly, so the artifacts are in frame. */
-const STILL_CAMERA = 0.12
-
-export const buildFor = (tier: Tier) =>
-  tier === 'still' ? STILL_BUILD : sceneState.build
-
 /**
- * Camera progress is separate from material progress so the frozen frame can
- * show finished objects from the opening vantage point rather than an empty
- * corridor halfway down the room.
+ * How much post-processing and resolution the governor currently allows.
+ * `full` is the authored look; `reduced` drops the post chain; `minimal` also
+ * pins device pixel ratio to 1.
  */
-export const cameraBuildFor = (tier: Tier) =>
-  tier === 'still' ? STILL_CAMERA : sceneState.build
-
-/**
- * Cinema About voxels: `pending` = loading / not yet legible; `live` = mesh can
- * carry the face; `dead` = load/cull failed — DOM portrait stays.
- */
-export type AboutVoxels = 'pending' | 'live' | 'dead'
+export type Fidelity = 'full' | 'reduced' | 'minimal'
 
 interface SceneStore {
+  /** Resolved capability decision. `checking` until the client has looked. */
+  experience: ExperienceState
+  /** True once the renderer has actually presented a frame. */
+  sceneReady: boolean
+  fidelity: Fidelity
   phase: Phase
-  tier: Tier
   booted: boolean
-  /** True once the scene's typography has taken the DOM headings over. */
-  worldCopy: boolean
-  aboutVoxels: AboutVoxels
   activeSection: string
+  setExperience: (experience: ExperienceState) => void
+  setSceneReady: (ready: boolean) => void
+  setFidelity: (fidelity: Fidelity) => void
   setPhase: (phase: Phase) => void
-  setTier: (tier: Tier) => void
   setBooted: (booted: boolean) => void
-  setWorldCopy: (worldCopy: boolean) => void
-  setAboutVoxels: (aboutVoxels: AboutVoxels) => void
   setActiveSection: (id: string) => void
 }
 
+/**
+ * The store boots in `checking` with the scene absent. That is also the state the
+ * prerendered HTML is generated in, so the static output is always the complete
+ * document and hydration never has to undo a 3D-only layout.
+ */
 export const useSceneStore = create<SceneStore>((set) => ({
-  phase: 'SCANNING',
-  tier: detectTier(),
+  experience: 'checking',
+  sceneReady: false,
+  fidelity: 'full',
+  phase: 'STANDBY',
   booted: false,
-  worldCopy: false,
-  aboutVoxels: 'pending',
   activeSection: 'hero',
+  setExperience: (experience) =>
+    set((s) => (s.experience === experience ? s : { experience })),
+  setSceneReady: (sceneReady) =>
+    set((s) => (s.sceneReady === sceneReady ? s : { sceneReady })),
+  setFidelity: (fidelity) =>
+    set((s) => (s.fidelity === fidelity ? s : { fidelity })),
   setPhase: (phase) => set((s) => (s.phase === phase ? s : { phase })),
-  setTier: (tier) => set({ tier }),
-  setBooted: (booted) => set({ booted }),
-  setWorldCopy: (worldCopy) => set({ worldCopy }),
-  setAboutVoxels: (aboutVoxels) =>
-    set((s) => (s.aboutVoxels === aboutVoxels ? s : { aboutVoxels })),
+  setBooted: (booted) => set((s) => (s.booted === booted ? s : { booted })),
   setActiveSection: (activeSection) =>
     set((s) => (s.activeSection === activeSection ? s : { activeSection })),
 }))
+
+/** True when a WebGL canvas should exist for this experience state. */
+export const rendersCanvas = (experience: ExperienceState): boolean =>
+  experience === 'lite' || experience === 'cinema'
+
+/** The quality to hand to the scene; `checking`/`failed` never reach it. */
+export const qualityOf = (experience: ExperienceState): Quality =>
+  experience === 'cinema' ? 'cinema' : 'lite'

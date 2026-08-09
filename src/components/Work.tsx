@@ -1,72 +1,85 @@
-import { useCopy } from '../i18n/copy'
-import { useSceneStore } from '../scene/sceneState'
+import { useCopy } from '../lib/locale'
+import { CompactCard, FeaturedCard } from './ui/CaseCard'
+import { Reveal } from './ui/Reveal'
+import { Section } from './ui/Section'
 
 /**
- * Work is a scroll spacer + accessible project list. The visual gallery lives
- * only in the 3D room (shards + world-copy). No visible dossier cards — the
- * a11y list stays clipped until keyboard focus, then surfaces below the nav.
+ * Featured cases, then the lab, then the archive.
+ *
+ * The three tiers exist so a visitor can tell delivered thinking from an
+ * experiment without reading the fine print — a portfolio that presents a
+ * throwaway concept with the same weight as a real system is making the reader do
+ * the sorting.
  */
 export const Work = () => {
-  const { copy } = useCopy()
-  const tier = useSceneStore((state) => state.tier)
+  const { copy, locale } = useCopy()
 
-  if (tier !== 'cinema') {
-    return (
-      <section
-        id="work"
-        className="section section--scrim work"
-        aria-labelledby="work-label"
-      >
-        <h2 id="work-label" className="eyebrow">
-          {copy.work.label}
-        </h2>
-        <ol className="work__fallback">
-          {copy.work.items.map((item, index) => (
-            <li key={item.title} className="work__fallback-item">
-              <span className="work__fallback-index" aria-hidden="true">
-                {String(index + 1).padStart(2, '0')}
-              </span>
-              <div>
-                <a
-                  href={item.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="work__fallback-title"
-                  aria-label={`${item.title}: ${item.link}`}
-                >
-                  {item.title} ↗
-                </a>
-                <p className="body-sm">{item.copy}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
-    )
+  const featuredLabels = {
+    openCase: copy.work.openCase,
+    openDemo: copy.work.openDemo,
+    outcome: copy.caseStudy.outcome,
+  }
+  const compactLabels = {
+    openCase: copy.work.openCase,
+    openDemo: copy.work.openDemo,
   }
 
   return (
-    <section id="work" className="section work" aria-labelledby="work-label">
-      <h2 id="work-label" className="sr-only">
-        {copy.work.label}
-      </h2>
-      <ul className="work__a11y">
-        {copy.work.items.map((item, index) => (
-          <li key={item.title}>
-            <a
-              href={item.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-artifact={index}
-              aria-label={`${item.title}: ${item.link}`}
-            >
-              {item.title}
-            </a>
-            <p>{item.copy}</p>
-          </li>
+    <Section
+      id="work"
+      label={copy.work.label}
+      heading={copy.work.heading}
+      intro={copy.work.intro}
+      scrim
+    >
+      <ul className="mt-14 flex flex-col gap-16">
+        {copy.featured.map((study, index) => (
+          <FeaturedCard
+            key={study.slug}
+            study={study}
+            index={index}
+            locale={locale}
+            labels={featuredLabels}
+          />
         ))}
       </ul>
-      <div className="work__field" aria-hidden="true" />
-    </section>
+
+      <div className="mt-24">
+        <Reveal className="flex flex-col gap-3">
+          <h3 className="text-eyebrow shard shard-fine">{copy.work.labLabel}</h3>
+          <p className="text-body shard max-w-xl text-sm">{copy.work.labIntro}</p>
+        </Reveal>
+
+        <ul className="mt-8 flex flex-col">
+          {copy.lab.map((study) => (
+            <CompactCard
+              key={study.slug}
+              study={study}
+              locale={locale}
+              labels={compactLabels}
+            />
+          ))}
+        </ul>
+      </div>
+
+      <div className="mt-16">
+        <Reveal>
+          <h3 className="text-eyebrow shard shard-fine">
+            {copy.work.archiveLabel}
+          </h3>
+        </Reveal>
+
+        <ul className="mt-6 flex flex-col">
+          {copy.archive.map((study) => (
+            <CompactCard
+              key={study.slug}
+              study={study}
+              locale={locale}
+              labels={compactLabels}
+            />
+          ))}
+        </ul>
+      </div>
+    </Section>
   )
 }

@@ -1,8 +1,9 @@
 import { useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import type { Quality } from './capability'
 import { sceneColors } from './sceneColors'
-import { buildFor, liveFor, type Tier } from './sceneState'
+import { liveFor, sceneState } from './sceneState'
 
 const vertexShader = /* glsl */ `
 varying vec3 vWorld;
@@ -92,7 +93,7 @@ void main() {
 `
 
 /** Perspective floor: the blueprint the room is reconstructed on top of. */
-export const GridFloor = ({ tier }: { tier: Tier }) => {
+export const GridFloor = ({ quality }: { quality: Quality }) => {
   const material = useMemo(
     () =>
       new THREE.ShaderMaterial({
@@ -123,11 +124,11 @@ export const GridFloor = ({ tier }: { tier: Tier }) => {
   }, [material, geometry])
 
   useFrame((state) => {
-    const build = buildFor(tier)
+    const build = sceneState.build
     material.uniforms.uBuild.value = build
     material.uniforms.uLive.value = liveFor(build)
     material.uniforms.uTime.value = state.clock.elapsedTime
-    material.uniforms.uCinema.value = tier === 'cinema' ? 1 : 0
+    material.uniforms.uCinema.value = quality === 'cinema' ? 1 : 0
     material.uniforms.uInk.value.copy(sceneColors.ink)
     material.uniforms.uAccent.value.copy(sceneColors.accent)
   })

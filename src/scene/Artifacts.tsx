@@ -1,97 +1,79 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { ReconstructMaterial } from './ReconstructMaterial'
-import { toShards } from './shardGeometry'
+import type { Quality } from './capability'
 import {
   ARTIFACT_PANEL,
   ARTIFACTS,
   artifactGroupWindows,
-  cinemaPanelSegments,
+  panelSegments,
   type ArtifactPlacement,
   type ArtifactWindow,
 } from './layout'
-import {
-  buildFor,
-  liveFor,
-  sceneState,
-  type Tier,
-} from './sceneState'
-import { clamp01 } from './ui/fragmentSettle'
+import { ReconstructMaterial } from './ReconstructMaterial'
+import { clamp01, liveFor, sceneState } from './sceneState'
+import { toShards } from './shardGeometry'
 import type { SectionWindows } from './ui/sectionRanges'
 
 /**
- * The projects, as objects in the room. Each one is a panel shattered into free
- * triangles that fly in and land carrying the real project shot — so what the
- * reconstruction reveals is the work itself, not a stock solid.
+ * The featured projects, as objects in the room.
  *
- * No DOM dossier: Work is a scroll spacer; identity lives in world-copy glyphs.
+ * Each one is a panel shattered into free triangles that fly in carrying the real
+ * project shot, so what the reconstruction reveals is the work itself.
+ *
+ * These modules are decorative. The dossier cards in the document are what a
+ * visitor reads and clicks; hovering a card is what tells a module to light up.
+ * That split is deliberate — the previous version put the gallery *only* in the
+ * canvas, which meant a visitor with a mouse could see the projects and open none
+ * of them.
  */
 
-/** Dense enough to read as photo-debris in flight; still one draw call per panel. */
-const SEGMENTS: Record<Tier, [number, number]> = {
-  cinema: [12, 8],
-  lite: [5, 3],
-  still: [4, 3],
-}
-
-/**
- * `uAssembleAt` value at which every shard (stagger ≤ 0.42, settle span 0.36) is
- * locked — matches BEAUTY / STILL_BUILD in `ReconstructMaterial`.
- */
+/** Charge value at which every shard of a panel is locked home. */
 const ASSEMBLED_AT = 0.78
 
-/**
- * Show the textured mesh once shotMix makes the plate readable.
- * ReconstructMaterial: shotMix = smoothstep(0.52, 0.9, vAssembled) with
- * assembleAt = progress * ASSEMBLED_AT (0.78) → progress ≈ 0.68 before
- * low-stagger shards carry a visible photo.
- */
+/** Assembly progress at which the shot is readable enough to back with a plate. */
 const PLATE_ON = 0.68
 const PLATE_OFF = 0.42
 
-/** Hold assembled after the camera pass, then dissolve so Process/Services stay clear. */
+/** Hold assembled after the camera pass, then dissolve so later chapters stay clear. */
 const RETIRE_HOLD = 0.04
 const RETIRE_SPAN = 0.08
-/** Fade the gallery as Services enters — after every Work pass has had room. */
 const LANE_CLEAR_LEAD = 0.02
 const LANE_CLEAR_SPAN = 0.05
 
-const useCinemaPanelSegments = (tier: Tier) => {
-  const [segments, setSegments] = useState<[number, number]>(() =>
-    cinemaPanelSegments(),
-  )
+const useResponsiveSegments = (quality: Quality) => {
+  const [segments, setSegments] = useState<[number, number]>(() => panelSegments())
 
   useEffect(() => {
-    if (tier !== 'cinema') return
-
     let frame = 0
-    const syncSegments = () => {
+    const sync = () => {
       frame = 0
-      const next = cinemaPanelSegments()
+      const next = panelSegments()
       setSegments((current) =>
         current[0] === next[0] && current[1] === next[1] ? current : next,
       )
     }
     const handleResize = () => {
       if (frame) return
-      frame = requestAnimationFrame(syncSegments)
+      frame = requestAnimationFrame(sync)
     }
 
-    syncSegments()
+    sync()
     window.addEventListener('resize', handleResize)
     return () => {
       if (frame) cancelAnimationFrame(frame)
       window.removeEventListener('resize', handleResize)
     }
-  }, [tier])
+  }, [quality])
 
   return segments
 }
 
-const panelGeometry = (tier: Tier, cinemaSegments: [number, number]) => {
-  const [columns, rows] =
-    tier === 'cinema' ? cinemaSegments : SEGMENTS[tier]
+const panelGeometry = (
+  quality: Quality,
+  segments: [number, number],
+): THREE.BufferGeometry => {
+  const [columns, rows] = quality === 'cinema' ? segments : [5, 3]
   const source = new THREE.PlaneGeometry(
     ARTIFACT_PANEL.width,
     ARTIFACT_PANEL.height,
@@ -108,14 +90,10 @@ interface ArtifactProps {
   placement: ArtifactPlacement
   geometry: THREE.BufferGeometry
   texture: THREE.Texture | null
-  /** Slice of the whole page's scroll this panel assembles over. */
   window: ArtifactWindow
-  /**
-   * Build value where the Work lane must clear (Services enter). Using Work
-   * DOM exit was too early for rear panels whose `pass` is still ahead.
-   */
+  /** Charge value at which the gallery lane has to clear for the next chapter. */
   laneClear: number
-  tier: Tier
+  quality: Quality
 }
 
 const Artifact = ({
@@ -125,15 +103,13 @@ const Artifact = ({
   texture,
   window: assembly,
   laneClear,
-  tier,
+  quality,
 }: ArtifactProps) => {
   const plateRef = useRef<THREE.Mesh>(null)
   const rimRef = useRef<THREE.Mesh>(null)
   const focus = useRef(0)
-  const liveRef = useRef(false)
+  const plateLive = useRef(false)
 
-  // Wide scatter + seed stagger: same debris language as the lattice, resolving
-  // as a wave of photo shards rather than a flat snap.
   const material = useMemo(
     () =>
       new ReconstructMaterial({
@@ -145,27 +121,21 @@ const Artifact = ({
   )
   useEffect(() => () => material.dispose(), [material])
 
-  // Bind map before paint; plate visibility waits on assemble progress below.
   useEffect(() => {
     material.uniforms.uMap.value = texture ?? material.uniforms.uMap.value
     material.uniforms.uHasMap.value = texture ? 1 : 0
   }, [material, texture])
 
   useFrame((state, delta) => {
-    const build = buildFor(tier)
+    const build = sceneState.build
     const targetFocus = sceneState.focus === index ? 1 : 0
     focus.current = THREE.MathUtils.damp(focus.current, targetFocus, 6, delta)
 
-    // Still freezes the room at STILL_BUILD (0.78). Deep panels pass later than
-    // that, so force a locked plate — reduced-motion must never show mid-flight.
-    const progress =
-      tier === 'still'
-        ? 1
-        : clamp01((build - assembly.enter) / assembly.span)
+    const progress = clamp01((build - assembly.enter) / assembly.span)
 
-    // Dissolve after this panel's camera pass. Lane-clear (Services enter) must
-    // not start before that pass — DOM scroll and dolly depth disagree for rear
-    // artifacts, and a global fade was killing them at progress ≈ 0.
+    // Dissolve after this module's camera pass. The lane clear must never start
+    // before that pass: document scroll and dolly depth disagree for deeper
+    // modules, and a single global fade used to kill them at progress ≈ 0.
     const passRetire = clamp01(
       (build - (assembly.pass + RETIRE_HOLD)) / RETIRE_SPAN,
     )
@@ -173,13 +143,11 @@ const Artifact = ({
       laneClear > 0
         ? clamp01(
             (build -
-              (Math.max(laneClear, assembly.pass + RETIRE_HOLD) -
-                LANE_CLEAR_LEAD)) /
+              (Math.max(laneClear, assembly.pass + RETIRE_HOLD) - LANE_CLEAR_LEAD)) /
               LANE_CLEAR_SPAN,
           )
         : 0
-    const retire = tier === 'still' ? 0 : Math.max(passRetire, laneRetire)
-    const presence = 1 - retire
+    const presence = 1 - Math.max(passRetire, laneRetire)
 
     material.sync({
       build,
@@ -187,58 +155,43 @@ const Artifact = ({
       focus: focus.current,
       time: state.clock.elapsedTime,
       velocity: sceneState.velocity,
-      // 0 → fully scattered wire; ASSEMBLED_AT → every shard locked home.
       assembleAt: progress * ASSEMBLED_AT,
     })
 
-    // Assemble enter/leave fade: Work stays clear before the window.
-    const enterFade =
-      tier === 'cinema'
-        ? THREE.MathUtils.smoothstep(progress, 0.04, 0.32)
-        : 1
+    const enterFade = THREE.MathUtils.smoothstep(progress, 0.04, 0.32)
 
-    // Cinema: shards stay visible through the assemble window (flying photo
-    // debris → plate). `plateLive` only gates the dark backing/rim — hiding the
-    // whole mesh until PLATE_ON left Work empty with no DOM dossier.
-    let plateLive = false
-    if (tier === 'cinema') {
-      plateLive =
-        Boolean(texture) &&
-        (liveRef.current
-          ? presence > 0.35 && progress >= PLATE_OFF
-          : progress >= PLATE_ON && presence > 0.5)
-      liveRef.current = plateLive
-    }
+    // Hysteresis on the backing plate, so scrolling back and forth across the
+    // threshold does not flicker the dark backing behind the shot.
+    const wantsPlate = Boolean(texture) &&
+      (plateLive.current
+        ? presence > 0.35 && progress >= PLATE_OFF
+        : progress >= PLATE_ON && presence > 0.5)
+    plateLive.current = wantsPlate
 
-    // Once the window opens, keep debris readable — enterFade alone stayed 0
-    // for the first ~4% and blanked the gallery with no DOM dossier.
     material.uniforms.uOpacity.value =
-      tier === 'cinema'
-        ? (progress > 0 ? Math.max(enterFade, 0.45) : 0) * presence
-        : presence
+      (progress > 0 ? Math.max(enterFade, 0.45) : 0) * presence
 
-    // Plate/rim once shards are mostly home — early enough to read while in view.
     const plateFade =
       THREE.MathUtils.smoothstep(progress, 0.62, 0.9) *
-      (tier === 'cinema' ? (plateLive ? enterFade : 0) : presence)
+      (wantsPlate ? enterFade : 0)
+
     const plate = plateRef.current
     if (plate) {
       plate.visible = plateFade > 0.02
-      const plateMat = plate.material as THREE.MeshBasicMaterial
-      plateMat.opacity = plateFade * 0.94
-      // Only occlude once the silhouette is solid — a fading plate writing Z
-      // punches holes through lattice and world-copy behind the panel.
-      plateMat.depthWrite = plateFade > 0.85
+      const plateMaterial = plate.material as THREE.MeshBasicMaterial
+      plateMaterial.opacity = plateFade * 0.94
+      // Only occlude once the silhouette is solid: a fading plate writing depth
+      // punches holes through everything behind the panel.
+      plateMaterial.depthWrite = plateFade > 0.85
     }
+
     const rim = rimRef.current
     if (rim) {
       rim.visible = plateFade > 0.02
-      const rimMat = rim.material as THREE.MeshBasicMaterial
-      rimMat.opacity = plateFade * 0.4
+      const rimMaterial = rim.material as THREE.MeshBasicMaterial
+      // The rim is the focus signal: brighter when the matching card is hovered.
+      rimMaterial.opacity = plateFade * (0.28 + focus.current * 0.5)
     }
-
-    // Focus accent stays in the material. Do not scale the group — world-copy
-    // numeral/title are baked from static placements and would desync.
   })
 
   return (
@@ -247,13 +200,12 @@ const Artifact = ({
       rotation={[placement.pitch, placement.yaw, 0]}
       scale={placement.scale}
     >
-      {/* Dark plate + thin rim: silhouette only after the shards have landed. */}
       <mesh ref={plateRef} position={[0, 0, -0.05]} renderOrder={0} visible={false}>
         <planeGeometry
           args={[ARTIFACT_PANEL.width * 1.08, ARTIFACT_PANEL.height * 1.08]}
         />
         <meshBasicMaterial
-          color="#070605"
+          color="#050608"
           transparent
           opacity={0}
           depthWrite={false}
@@ -264,7 +216,7 @@ const Artifact = ({
           args={[ARTIFACT_PANEL.width * 1.12, ARTIFACT_PANEL.height * 1.12]}
         />
         <meshBasicMaterial
-          color="#c4a37a"
+          color="#ffb454"
           transparent
           opacity={0}
           depthWrite={false}
@@ -273,37 +225,48 @@ const Artifact = ({
       <mesh
         geometry={geometry}
         material={material}
-        // Ahead of the lattice so a settled panel is never painted under a wall shard.
-        renderOrder={1}
+        // Ahead of the lattice so a settled panel is never painted under a shard.
+        renderOrder={quality === 'cinema' ? 2 : 1}
       />
     </group>
   )
 }
 
 /**
- * Loads the project shots imperatively. `useLoader` would suspend the whole
- * canvas subtree on a 500 kB JPEG; here the room keeps rendering and each panel
- * picks up its texture whenever it lands.
+ * Loads the project shots one step ahead of the camera.
+ *
+ * Loading all of them on mount cost roughly a megabyte before the visitor had
+ * scrolled past the hero. Now only the active module and the next one are
+ * requested, and textures are released when they fall behind.
  */
-const useShotTextures = (shots: string[], enabled: boolean) => {
-  const [textures, setTextures] = useState<(THREE.Texture | null)[]>([])
-  // Content key — not array identity — so a locale swap with same length still
-  // reloads, and a stable URL list does not thrash every render.
+const useShotTextures = (shots: string[], windows: ArtifactWindow[]) => {
+  const [textures, setTextures] = useState<(THREE.Texture | null)[]>(() =>
+    shots.map(() => null),
+  )
+  const [wanted, setWanted] = useState(1)
   const shotsKey = shots.join('\0')
 
-  useEffect(() => {
-    if (!enabled) {
-      setTextures([])
-      return
+  // How many modules are worth having decoded right now.
+  useFrame(() => {
+    const build = sceneState.build
+    let next = 1
+    for (let index = 0; index < windows.length; index++) {
+      const window = windows[index]
+      if (!window) continue
+      // Start fetching a module's shot a little before its shards arrive.
+      if (build >= window.enter - window.span * 0.6) next = index + 2
     }
+    const capped = Math.min(next, shots.length)
+    if (capped !== wanted) setWanted(capped)
+  })
 
+  useEffect(() => {
     const urls = shotsKey.length > 0 ? shotsKey.split('\0') : []
     const loader = new THREE.TextureLoader()
     const loaded: (THREE.Texture | null)[] = urls.map(() => null)
     let cancelled = false
-    setTextures(urls.map(() => null))
 
-    urls.forEach((url, index) => {
+    urls.slice(0, wanted).forEach((url, index) => {
       loader.load(
         url,
         (texture) => {
@@ -317,6 +280,8 @@ const useShotTextures = (shots: string[], enabled: boolean) => {
           setTextures([...loaded])
         },
         undefined,
+        // A failed shot leaves the panel as shaded shards; the document still
+        // shows the real image, so this must not become a visible error.
         () => undefined,
       )
     })
@@ -324,95 +289,34 @@ const useShotTextures = (shots: string[], enabled: boolean) => {
     return () => {
       cancelled = true
       loaded.forEach((texture) => texture?.dispose())
-      setTextures([])
     }
-  }, [shotsKey, enabled])
+  }, [shotsKey, wanted])
 
   return textures
 }
 
 interface ArtifactsProps {
-  tier: Tier
+  quality: Quality
   /** Project shot URLs, index-matched to `ARTIFACTS`. */
   shots: string[]
   windows: SectionWindows
 }
 
-export const Artifacts = ({ tier, shots, windows }: ArtifactsProps) => {
-  const cinemaSegments = useCinemaPanelSegments(tier)
+export const Artifacts = ({ quality, shots, windows }: ArtifactsProps) => {
+  const segments = useResponsiveSegments(quality)
   const geometry = useMemo(
-    () => panelGeometry(tier, cinemaSegments),
-    [tier, cinemaSegments],
+    () => panelGeometry(quality, segments),
+    [quality, segments],
   )
   useEffect(() => () => geometry.dispose(), [geometry])
 
-  const textures = useShotTextures(shots, tier === 'cinema')
-  // Prefer Services enter so rear Work panels finish their pass first.
-  const laneClear = windows.services?.enter ?? windows.work?.exit ?? 0
-
-  // Each panel assembles while it is coming into view: scattered far ahead,
-  // locked before the camera draws alongside so the project reads while
-  // looked at. Rescaled into Work's own DOM bounds — see `artifactGroupWindows`.
   const panelWindows = useMemo(
     () => artifactGroupWindows(windows.work),
     [windows.work],
   )
-
-  // Work has no dossier hover targets — focus follows the nearest live panel on
-  // the dolly so ReconstructMaterial / bay columns still get a rim accent.
-  // Keyboard focus on `.work__a11y` wins so SR/tab users still light the rim.
-  useFrame(() => {
-    if (tier === 'still') {
-      sceneState.focus = -1
-      return
-    }
-
-    const active = document.activeElement
-    if (active instanceof HTMLElement) {
-      const link = active.closest('a[data-artifact]')
-      if (link instanceof HTMLElement && link.closest('.work__a11y')) {
-        const index = Number(link.dataset.artifact)
-        if (Number.isFinite(index)) {
-          sceneState.focus = index
-          return
-        }
-      }
-    }
-
-    const build = buildFor(tier)
-    const work = windows.work
-    // Bound by Work exit + the same retire window the panel scorer uses —
-    // Services.enter can land mid-spacer; cutting at LANE_CLEAR alone drops
-    // rim accent while the last shards are still dissolving.
-    if (
-      !work ||
-      build < work.enter ||
-      build > work.exit + RETIRE_HOLD + RETIRE_SPAN
-    ) {
-      sceneState.focus = -1
-      return
-    }
-
-    // Score by closeness to each panel's pass on the scroll, not raw camera Z —
-    // a just-passed panel often stays nearer in Z while it dissolves and would
-    // steal the rim from the one the visitor is approaching.
-    let best = -1
-    let bestScore = Infinity
-    for (let index = 0; index < ARTIFACTS.length; index++) {
-      const panel = panelWindows[index]
-      if (!panel || build < panel.enter) continue
-      if (build > panel.pass + RETIRE_HOLD + RETIRE_SPAN) continue
-      const score =
-        build <= panel.pass
-          ? panel.pass - build
-          : (build - panel.pass) * 2.5
-      if (score < bestScore) {
-        bestScore = score
-        best = index
-      }
-    }
-    sceneState.focus = best
-  })
+  const textures = useShotTextures(shots, panelWindows)
+  // Prefer the next section's entry so a deep module finishes its pass first.
+  const laneClear = windows.experience?.enter ?? windows.work?.exit ?? 0
 
   return (
     <>
@@ -425,7 +329,7 @@ export const Artifacts = ({ tier, shots, windows }: ArtifactsProps) => {
           texture={textures[index] ?? null}
           window={panelWindows[index]}
           laneClear={laneClear}
-          tier={tier}
+          quality={quality}
         />
       ))}
     </>

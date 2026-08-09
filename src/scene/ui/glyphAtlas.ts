@@ -28,14 +28,14 @@ const ROLE_WEIGHT: Record<FontRole, number> = {
 }
 
 const ROLE_TOKEN: Record<FontRole, string> = {
-  display: '--display',
-  body: '--body',
-  mono: '--mono',
+  display: '--font-display',
+  body: '--font-body',
+  mono: '--font-mono',
 }
 
 const FALLBACK_FAMILY: Record<FontRole, string> = {
-  display: "'Outfit', system-ui, sans-serif",
-  body: "'Newsreader', Times, serif",
+  display: "'Bricolage Grotesque', system-ui, sans-serif",
+  body: "'Newsreader', Georgia, serif",
   mono: "'IBM Plex Mono', ui-monospace, monospace",
 }
 

@@ -1,31 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import type { Quality } from './capability'
 import {
   ABOUT_PANEL,
   ABOUT_PORTRAIT,
   ABOUT_PORTRAIT_URL,
-  cinemaPortraitVoxelGrid,
+  portraitVoxelGrid,
 } from './layout'
 import { PortraitVoxelMaterial } from './PortraitVoxelMaterial'
 import {
   buildPortraitVoxels,
   type PortraitVoxelField,
 } from './portraitVoxels'
-import {
-  buildFor,
-  liveFor,
-  sceneState,
-  useSceneStore,
-  type Tier,
-} from './sceneState'
-import { clamp01 } from './ui/fragmentSettle'
+import { clamp01, liveFor, sceneState } from './sceneState'
 import type { SectionWindows } from './ui/sectionRanges'
 
 /**
- * About headshot as coloured voxel shards. Cinema only — `#about` is a scroll
- * spacer; this mesh is the only portrait when live. Assembly starts before the
- * section centres so the face is readable by About mid-scroll.
+ * The headshot as coloured voxel shards, cinema only.
+ *
+ * The document keeps its own `<img>` and simply fades it once this mesh is
+ * legible, so a failed decode, a lower quality or a lost context all leave a real
+ * photograph on screen rather than an empty column.
  */
 
 /** Vertical focus in the source (0 top → 1 bottom). */
@@ -34,13 +30,9 @@ const FACE_FOCUS_Y = 0.22
 /** Extrusion — three layers read as a head, not a flat stamp. */
 const LAYERS = 3
 
-/** Build units past assemble end before voxels dissolve for Contact. */
+/** Charge units past assembly before the voxels dissolve for the last chapter. */
 const RETIRE_HOLD = 0.05
 const RETIRE_SPAN = 0.12
-
-/** DOM face fallback hand-off — hysteresis avoids flicker on scroll-back. */
-const PLATE_ON = 0.62
-const PLATE_OFF = 0.4
 
 /**
  * Carve an early assemble window: begin while Process is still leaving so
@@ -96,25 +88,32 @@ const fieldGeometry = (field: PortraitVoxelField) => {
   return geometry
 }
 
-const usePortraitVoxels = (enabled: boolean) => {
+/**
+ * The portrait is only decoded once the reader is approaching About. Voxelising it
+ * on mount cost a 140 kB fetch plus a synchronous pixel pass long before the
+ * section was anywhere near the viewport.
+ */
+const usePortraitVoxels = (windows: SectionWindows) => {
   const [field, setField] = useState<PortraitVoxelField | null>(null)
-  const setAboutVoxels = useSceneStore((state) => state.setAboutVoxels)
+  const [near, setNear] = useState(false)
+
+  useFrame(() => {
+    if (near) return
+    const about = windows.about
+    if (!about) return
+    if (sceneState.build >= Math.max(about.enter - 0.12, 0)) setNear(true)
+  })
 
   useEffect(() => {
-    if (!enabled) {
-      setField(null)
-      setAboutVoxels('pending')
-      return
-    }
+    if (!near) return
 
     let cancelled = false
-    setAboutVoxels('pending')
     const image = new Image()
     image.decoding = 'async'
 
     const handleLoad = () => {
       if (cancelled) return
-      const [cols, rows] = cinemaPortraitVoxelGrid()
+      const [cols, rows] = portraitVoxelGrid()
       const next = buildPortraitVoxels(image, {
         width: ABOUT_PANEL.width,
         height: ABOUT_PANEL.height,
@@ -124,47 +123,37 @@ const usePortraitVoxels = (enabled: boolean) => {
         focusY: FACE_FOCUS_Y,
         bgLuma: 0.56,
       })
-      if (next.count > 0) {
-        // Stay `pending` until useFrame sees a legible mesh — field-ready alone
-        // must not void the DOM face into an empty About lane.
-        setField(next)
-        return
-      }
-      setField(null)
-      setAboutVoxels('dead')
+      setField(next.count > 0 ? next : null)
     }
 
     image.addEventListener('load', handleLoad)
-    image.addEventListener('error', () => {
-      if (cancelled) return
-      setField(null)
-      setAboutVoxels('dead')
-    })
+    // A failed decode is not an error state: the document's own photograph is
+    // already on screen and simply stays there.
+    image.addEventListener('error', () => setField(null))
     image.src = ABOUT_PORTRAIT_URL
 
     return () => {
       cancelled = true
       image.removeEventListener('load', handleLoad)
       setField(null)
-      setAboutVoxels('pending')
     }
-  }, [enabled, setAboutVoxels])
+  }, [near])
 
   return field
 }
 
 interface AboutPortraitProps {
-  tier: Tier
+  quality: Quality
   windows: SectionWindows
 }
 
-export const AboutPortrait = ({ tier, windows }: AboutPortraitProps) => {
-  if (tier !== 'cinema') return null
+export const AboutPortrait = ({ quality, windows }: AboutPortraitProps) => {
+  if (quality !== 'cinema') return null
   return <CinemaAboutPortrait windows={windows} />
 }
 
 const CinemaAboutPortrait = ({ windows }: { windows: SectionWindows }) => {
-  const field = usePortraitVoxels(true)
+  const field = usePortraitVoxels(windows)
   const opacityRef = useRef(0)
 
   const material = useMemo(() => new PortraitVoxelMaterial(), [])
@@ -189,7 +178,7 @@ const CinemaAboutPortrait = ({ windows }: { windows: SectionWindows }) => {
   useFrame((state, delta) => {
     if (!field || !geometry) return
 
-    const build = buildFor('cinema')
+    const build = sceneState.build
     const progress = clamp01((build - assembly.enter) / assembly.span)
     const assembleEnd = assembly.enter + assembly.span
     const retire = clamp01((build - (assembleEnd + RETIRE_HOLD)) / RETIRE_SPAN)
@@ -215,22 +204,6 @@ const CinemaAboutPortrait = ({ windows }: { windows: SectionWindows }) => {
       exit: assembleEnd + RETIRE_HOLD,
       exitSpan: RETIRE_SPAN,
     })
-
-    // Geometry + opacity are set before the face fallback leaves. Restore the
-    // DOM face only on scroll-back (progress unwind). Retiring toward Contact
-    // keeps `live` so the JPG never flashes over dissolving voxels.
-    const { aboutVoxels, setAboutVoxels } = useSceneStore.getState()
-    const shouldHandOff =
-      opacityRef.current >= PLATE_ON &&
-      progress >= PLATE_ON &&
-      presence > 0.5
-    const shouldRestore =
-      progress < PLATE_OFF && opacityRef.current < PLATE_OFF
-    if (aboutVoxels === 'pending' && shouldHandOff) {
-      setAboutVoxels('live')
-    } else if (aboutVoxels === 'live' && shouldRestore) {
-      setAboutVoxels('pending')
-    }
   })
 
   const { position, pitch, yaw, scale } = ABOUT_PORTRAIT
