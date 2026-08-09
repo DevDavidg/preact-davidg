@@ -1,22 +1,22 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import type { CaseStudy } from '../content'
-import { AboutPortrait } from './AboutPortrait'
-import { Artifacts } from './Artifacts'
+import type { CaseStudy, Copy } from '../content'
+import { SECTION_IDS } from '../lib/routes'
 import { Atmosphere } from './Atmosphere'
 import type { Quality } from './capability'
 import { GridFloor } from './GridFloor'
 import { Lattice } from './Lattice'
-import { artifactGroupWindows, PORTAL_POSITION } from './layout'
+import { PORTAL_POSITION } from './layout'
 import { ReactorCore } from './ReactorCore'
 import { Rig } from './Rig'
+import { FinaleGate } from './FinaleGate'
+import { Structures } from './Structures'
 import { refreshSceneColors, sceneColors } from './sceneColors'
 import { livePowerFor, sceneState, useSceneStore } from './sceneState'
 import './silenceClockWarning'
-import { SignalConduits } from './SignalConduits'
-import { Structures } from './Structures'
-import { ReactorType } from './ui/ReactorType'
+import { WorldConsoles } from './consoles/WorldConsoles'
+import type { SceneMode } from './ui/ReactorType'
 import { useSectionWindows } from './ui/useSectionWindows'
 
 /**
@@ -202,9 +202,10 @@ const IgnitionFlare = () => {
   useFrame(() => {
     const power = livePowerFor(sceneState.build)
     material.color.copy(sceneColors.accent)
-    material.opacity = power * power * 0.55
+    // Soft end glow — structure/gate carry the finale, not a screen-filling blob.
+    material.opacity = power * power * 0.28
     const sprite = mesh.current
-    if (sprite) sprite.scale.setScalar(14 + power * 9)
+    if (sprite) sprite.scale.setScalar(8 + power * 5)
   })
 
   return (
@@ -219,36 +220,33 @@ const IgnitionFlare = () => {
 
 interface ReactorSceneProps {
   quality: Quality
+  copy: Copy
   featured: CaseStudy[]
   onFailure: () => void
+  mode?: SceneMode
+  study?: CaseStudy
+  sectionIds?: readonly string[]
 }
 
 /**
- * The persistent reactor room.
- *
- * Mounted once for the whole page and never unmounted between chapters — that
- * continuity is the point of the signature. Copy and geometry are measured above
- * the canvas and passed down as props, because React context does not cross the
- * renderer boundary and one shared measurement beats two.
+ * The persistent reactor room — the primary interface of the site.
+ * Chapter windows come from the scroll rail above; world type carries the copy.
  */
 export const ReactorScene = ({
   quality,
+  copy,
   featured,
   onFailure,
+  mode = 'home',
+  study,
+  sectionIds = SECTION_IDS,
 }: ReactorSceneProps) => {
   const fidelity = useSceneStore((state) => state.fidelity)
-  const windows = useSectionWindows()
-  const shots = useMemo(() => featured.map((study) => study.image.src), [featured])
-  const conduitWindows = useMemo(
-    () => artifactGroupWindows(windows.work),
-    [windows.work],
-  )
+  const windows = useSectionWindows(sectionIds)
 
   const cinema = quality === 'cinema'
 
   return (
-    // The wrapper carries the fixed positioning: R3F sets `position: relative` and
-    // `height: 100%` inline on its own container, which would beat a class.
     <div className="stage" aria-hidden="true">
       <Canvas
         dpr={DPR[fidelity]}
@@ -260,7 +258,6 @@ export const ReactorScene = ({
           powerPreference: cinema ? 'high-performance' : 'default',
           stencil: false,
         }}
-        // Nothing renders here if WebGL is unavailable; the document is the fallback.
         fallback={null}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping
@@ -278,13 +275,16 @@ export const ReactorScene = ({
         <Lattice quality={quality} />
         <Structures quality={quality} />
         <ReactorCore quality={quality} />
-        <SignalConduits quality={quality} windows={conduitWindows} />
-        <Artifacts quality={quality} shots={shots} windows={windows} />
-        <AboutPortrait quality={quality} windows={windows} />
-        <ReactorType featured={featured} quality={quality} windows={windows} />
+        <WorldConsoles
+          copy={copy}
+          featured={featured}
+          quality={quality}
+          windows={windows}
+          mode={mode}
+          study={study}
+        />
+        <FinaleGate />
 
-        {/* The flare is the one moment the accent is allowed to bloom, so it is
-            worth keeping even when the governor has stripped everything else. */}
         {fidelity === 'minimal' ? null : <IgnitionFlare />}
       </Canvas>
     </div>

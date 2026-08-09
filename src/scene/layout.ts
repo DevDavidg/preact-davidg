@@ -100,14 +100,14 @@ export const ABOUT_PORTRAIT_URL = '/about/david-portrait.jpg'
 export const PORTAL_POSITION: [number, number, number] = [0, 1.8, -24]
 
 /** Fog density — tint comes from `sceneColors.base` in Atmosphere. */
-export const FOG_DENSITY = 0.052
+export const FOG_DENSITY = 0.04
 
 /**
  * Charge value at which the dolly reaches a given depth. Objects planted in the
  * room time their assembly against the camera rather than against a section's
  * scroll range, so nothing lands after the camera has already driven past it.
  */
-export const buildAtDepth = (() => {
+const buildAtDepth = (() => {
   const SAMPLES = 96
   const point = new THREE.Vector3()
   const depths: number[] = []
@@ -215,7 +215,7 @@ const VIEW_START_Z = 5.5
 /** Fully locked while the camera is still this far in front. */
 const VIEW_LOCK_Z = 1.6
 
-export const artifactAssembleWindow = (
+const artifactAssembleWindow = (
   z: number,
 ): { enter: number; span: number; pass: number; lock: number } => {
   const pass = buildAtDepth(z)
@@ -280,7 +280,7 @@ export const artifactLabelWindow = (
 }
 
 /** True when the viewport is tight enough to want the lighter instance budgets. */
-export const compactViewport = () =>
+const compactViewport = () =>
   typeof window !== 'undefined' &&
   (window.innerWidth < 1200 || window.innerHeight < 720)
 

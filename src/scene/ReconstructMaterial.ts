@@ -53,25 +53,23 @@ void main() {
   vec4 worldCenter = modelMatrix * instance * vec4(aCenter, 1.0);
   float depth = clamp((8.0 - worldCenter.z) / 30.0, 0.0, 1.0);
 
-  // Seed + depth wave + optional bay bias. Hard-capped at 0.42 so every shard
-  // is settled by build 0.78 — the BEAUTY → LIVE boundary / STILL_BUILD.
-  float stagger = min(aSeed * 0.30 + depth * uDepthSpan + uBuildBias, 0.42);
+  // Seed + depth wave + optional bay bias — soft hermite settle.
+  float stagger = min(aSeed * 0.22 + depth * uDepthSpan + uBuildBias, 0.36);
   float assembleBuild = uAssembleAt < 0.0 ? uBuild : uAssembleAt;
-  float assembled = clamp((assembleBuild - stagger) / 0.36, 0.0, 1.0);
+  float assembled = clamp((assembleBuild - stagger) / 0.42, 0.0, 1.0);
   assembled = assembled * assembled * (3.0 - 2.0 * assembled);
-  // Lattice: motion is CPU-driven; keep shards optically "in" so global
-  // solid/lit stages carry the wire→solid→lit read without a second settle.
+  // Lattice: CPU places the mesh; shader stages wire→solid without a second settle.
   assembled = mix(assembled, 1.0, uCpuPlaced);
 
   float loose = 1.0 - assembled;
-  float speed = clamp(abs(uVelocity) * 0.012, 0.0, 1.5);
+  float speed = clamp(abs(uVelocity) * 0.008, 0.0, 1.0);
 
-  mat3 spin = rotateAxis(aAxis, loose * (3.2 + aSeed * 5.4) * (1.0 + speed * 0.55) * uDrift);
+  mat3 spin = rotateAxis(aAxis, loose * (1.6 + aSeed * 2.4) * (1.0 + speed * 0.35) * uDrift);
   vec3 local = mix(position - aCenter, spin * (position - aCenter), uDrift);
 
   vec3 outward = normalize(aCenter + vec3(0.0, 0.0015, 0.0));
-  float breathe = sin(uTime * 0.6 + aSeed * 6.2831) * uJitter * loose * (1.0 + speed * 0.65);
-  vec3 drift = (outward * (loose * uSpread * (0.55 + aSeed)) + aAxis * breathe) * uDrift;
+  float breathe = sin(uTime * 0.45 + aSeed * 6.2831) * uJitter * loose * (1.0 + speed * 0.4);
+  vec3 drift = (outward * (loose * uSpread * (0.4 + aSeed * 0.55)) + aAxis * breathe) * uDrift;
 
   vec4 worldPos = modelMatrix * instance * vec4(aCenter + drift + local, 1.0);
 
@@ -99,6 +97,8 @@ uniform vec3 uInk;
 uniform sampler2D uMap;
 /** 1 when the shards carry a project shot rather than a shaded surface. */
 uniform float uHasMap;
+/** 1 when the mesh is a console plate that has to back world type opaquely. */
+uniform float uSolidFill;
 
 varying vec3 vBary;
 varying vec3 vNormalW;
@@ -145,6 +145,9 @@ void main() {
   float spec = pow(max(dot(reflect(-keyLight, normal), view), 0.0), 42.0);
 
   vec3 face = uInk * (0.05 + key * 0.17 + fill * 0.1);
+  // A console surface needs to sit a little above pure black or the plate reads
+  // as a hole cut in the corridor rather than as a panel the type is mounted on.
+  face += uInk * uSolidFill * 0.035;
   face += uInk * spec * lit * 0.35;
   face = mix(face, uAccent * 0.4, liveAccent * fresnel * 0.55);
 
@@ -187,6 +190,9 @@ void main() {
   float alpha = solid * (0.40 + key * 0.32) + edgeGlow + fresnel * lit * 0.22;
   // Textured panels need presence while flying and hold against the lattice when home.
   alpha += shotMix * mix(0.55, 0.92, vAssembled);
+  // Loose shards stay translucent so debris still reads as debris; a settled
+  // console plate goes fully opaque, which is what gives its copy real contrast.
+  alpha = max(alpha, uSolidFill * smoothstep(0.2, 0.9, vAssembled));
   alpha *= 1.0 - depthFocus * 0.18;
   alpha *= uOpacity * mix(mix(0.35, 0.82, uHasMap), 1.0, vAssembled);
 
@@ -243,6 +249,11 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
       depthSpan?: number
       /** Project shot painted onto the shards once they solidify. */
       map?: THREE.Texture
+      /**
+       * Console plates: settled shards become opaque and occlude, so mounted
+       * type reads against a surface instead of against the corridor behind it.
+       */
+      solid?: boolean
     } = {},
   ) {
     const cpuPlaced = options.drift === false
@@ -272,6 +283,7 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
         uInk: { value: sceneColors.ink.clone() },
         uMap: { value: options.map ?? blankMap },
         uHasMap: { value: options.map ? 1 : 0 },
+        uSolidFill: { value: options.solid ? 1 : 0 },
       },
     })
   }
@@ -293,6 +305,10 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
     // the threshold both ways so scrolling back clears writers mid-flight.
     const stage = state.assembleAt ?? state.build
     const mapped = this.uniforms.uHasMap.value > 0.5
-    this.depthWrite = stage > (mapped ? 0.72 : 0.55)
+    const solid = this.uniforms.uSolidFill.value > 0.5
+    // Console plates occlude a little earlier than shaded backdrop: their whole
+    // job is to be behind type, and a plate that is opaque but not yet writing
+    // depth lets the corridor show through the copy for a few frames.
+    this.depthWrite = stage > (mapped ? 0.72 : solid ? 0.45 : 0.55)
   }
 }

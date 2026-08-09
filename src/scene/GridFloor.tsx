@@ -66,14 +66,13 @@ void main() {
     smoothstep(0.14, 0.22, uBuild) *
     (1.0 - smoothstep(0.43, 0.52, uBuild));
 
-  float structure = minor * 0.26 + major * 0.7;
-  // Deliberately restrained: overlay copy sits directly on top of this floor and
-  // a brighter grid costs more in legibility than it adds in atmosphere.
-  float alpha = structure * fade * (0.1 + wire * 0.22);
-  alpha += beam * fade * (0.12 + structure * 0.3) * scrollW;
-  alpha += idleBeam * fade * (0.08 + structure * 0.2) * idleW;
-  alpha *= 1.0 + scanning * pulse * 0.08;
-  alpha *= 1.0 - workQuiet * 0.58;
+  float structure = minor * 0.34 + major * 0.85;
+  // Stronger blueprint floor — copy sits on elevated consoles, not on the grid.
+  float alpha = structure * fade * (0.16 + wire * 0.32);
+  alpha += beam * fade * (0.18 + structure * 0.38) * scrollW;
+  alpha += idleBeam * fade * (0.12 + structure * 0.28) * idleW;
+  alpha *= 1.0 + scanning * pulse * 0.1;
+  alpha *= 1.0 - workQuiet * 0.28;
 
   vec3 color = mix(
     uInk,

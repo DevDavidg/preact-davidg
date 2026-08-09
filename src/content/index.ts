@@ -4,16 +4,6 @@ import { LOCALES, type CaseStudy, type Copy, type Locale } from './types'
 
 export { LOCALES }
 export type { CaseStudy, Copy, Locale }
-export type {
-  Audience,
-  Decision,
-  LabelledValue,
-  Media,
-  ProcessPhase,
-  ProjectKind,
-  Role,
-  ServiceOffer,
-} from './types'
 
 export const DEFAULT_LOCALE: Locale = 'es'
 
@@ -24,10 +14,6 @@ export const isLocale = (value: unknown): value is Locale =>
 
 export const otherLocale = (locale: Locale): Locale =>
   locale === 'es' ? 'en' : 'es'
-
-/** Featured work only: the 3D gallery has one module per entry. */
-export const featuredCases = (locale: Locale): CaseStudy[] =>
-  COPY[locale].featured
 
 /** Every case that has its own prerendered page, in reading order. */
 export const allCases = (locale: Locale): CaseStudy[] => {

@@ -16,27 +16,6 @@ export interface SectionWindow {
   exit: number
 }
 
-const DEFAULT_SECTION_ASSEMBLE = { enter: 0.55, span: 0.12 } as const
-
-/**
- * Assemble window carved from a section's enter → centre span. Shared by world
- * copy and section-timed panels (About portrait) so scroll length stays the
- * source of truth rather than hard-coded build percentages.
- */
-export const sectionAssembleWindow = (
-  section: SectionWindow | undefined,
-  from = 0,
-  to = 1,
-  fallback: { enter: number; span: number } = DEFAULT_SECTION_ASSEMBLE,
-): { enter: number; span: number } => {
-  if (!section) return { enter: fallback.enter, span: fallback.span }
-  const length = Math.max(section.centre - section.enter, 0.03)
-  return {
-    enter: section.enter + length * from,
-    span: Math.max(length * (to - from), 0.02),
-  }
-}
-
 export type SectionWindows = Record<string, SectionWindow>
 
 /** Fraction of a viewport before the section top that counts as "entering". */

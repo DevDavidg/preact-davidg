@@ -22,10 +22,12 @@ export const NOT_FOUND_PATH = '/404'
 
 export const LOCALE_GATE_PATH = '/'
 
-/** Anchors inside the single-page home. */
+/** Anchors inside the single-page home (scroll-rail chapters). */
 export const SECTION_IDS = [
   'hero',
   'work',
+  'lab',
+  'archive',
   'experience',
   'services',
   'process',
@@ -34,9 +36,6 @@ export const SECTION_IDS = [
 ] as const
 
 export type SectionId = (typeof SECTION_IDS)[number]
-
-export const sectionPath = (locale: Locale, id: SectionId) =>
-  `${homePath(locale)}#${id}`
 
 /**
  * The full prerender manifest. `react-router.config.ts` and the sitemap both

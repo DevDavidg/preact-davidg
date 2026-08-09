@@ -1,17 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useLocation, type MetaFunction } from 'react-router'
-import { About } from '../../src/components/About'
-import { Contact } from '../../src/components/Contact'
-import { Experience } from '../../src/components/Experience'
-import { Hero } from '../../src/components/Hero'
-import { Hud } from '../../src/components/Hud'
-import { Preflight } from '../../src/components/Preflight'
-import { Process } from '../../src/components/Process'
-import { SceneBoundary } from '../../src/components/SceneBoundary'
-import { Services } from '../../src/components/Services'
 import { JsonLd } from '../../src/components/JsonLd'
-import { SiteShell } from '../../src/components/SiteShell'
-import { Work } from '../../src/components/Work'
+import { Preflight } from '../../src/components/Preflight'
+import { SceneBoundary } from '../../src/components/SceneBoundary'
+import { ScrollRail } from '../../src/components/ScrollRail'
+import { StageTreatment } from '../../src/components/StageTreatment'
+import { homeRailChapters } from '../../src/lib/sceneRoutes'
 import { COPY, isLocale } from '../../src/content'
 import { useExperience } from '../../src/hooks/useExperience'
 import { usePerformanceGovernor } from '../../src/hooks/usePerformanceGovernor'
@@ -20,13 +14,13 @@ import { useSectionTracking } from '../../src/hooks/useSectionTracking'
 import { trackEvent } from '../../src/lib/analytics'
 import { useCopy } from '../../src/lib/locale'
 import { homePath, SECTION_IDS } from '../../src/lib/routes'
+import { homeSchema, pageMeta } from '../../src/lib/seo'
 import {
   useAnchorScroll,
   useReactorScroll,
   useScrollRefresh,
 } from '../../src/motion/scroll'
 import { qualityOf, rendersCanvas } from '../../src/scene/sceneState'
-import { homeSchema, pageMeta } from '../../src/lib/seo'
 import NotFound from './not-found'
 
 export const meta: MetaFunction = ({ params }) => {
@@ -41,11 +35,8 @@ export const meta: MetaFunction = ({ params }) => {
 }
 
 /**
- * The single-page narrative, and the only route that mounts the reactor.
- *
- * The order of operations here is the whole progressive-enhancement contract:
- * the sections render first and unconditionally, then `useExperience` decides
- * whether a canvas is warranted, and only then is the scene chunk requested.
+ * Full-3D home: invisible scroll rail + reactor consoles.
+ * No DOM chrome — interactions are raycast targets in the scene.
  */
 const Home = () => {
   const { pathname } = useLocation()
@@ -57,7 +48,6 @@ const Home = () => {
   usePerformanceGovernor(experience)
   useAnchorScroll()
   useSectionTracking(SECTION_IDS)
-  // Section offsets move when the language changes the copy length.
   useScrollRefresh(copy.locale)
 
   useEffect(() => {
@@ -65,31 +55,43 @@ const Home = () => {
     trackEvent('experience_resolved', experience)
   }, [experience])
 
-  // An unknown first segment is a real 404, not the default locale's home: two
-  // URLs rendering the same page would be duplicate content.
+  const chapters = useMemo(
+    () =>
+      homeRailChapters({
+        hero: copy.hero.headline,
+        work: copy.work.heading,
+        lab: copy.work.labLabel,
+        archive: copy.work.archiveLabel,
+        experience: copy.experience.heading,
+        services: copy.services.heading,
+        process: copy.process.heading,
+        about: copy.about.heading,
+        contact: copy.contact.title,
+      }),
+    [copy],
+  )
+
   if (!isLocale(pathname.replace(/^\/+/, '').split('/')[0])) return <NotFound />
+
+  const canvas = rendersCanvas(experience)
 
   return (
     <>
-      {rendersCanvas(experience) ? (
+      {canvas ? (
         <SceneBoundary
           quality={qualityOf(experience)}
+          copy={copy}
           featured={copy.featured}
+          mode="home"
         />
       ) : null}
 
-      {rendersCanvas(experience) ? <Hud /> : null}
+      {canvas ? <StageTreatment /> : null}
 
-      <SiteShell>
+      <main id="main" tabIndex={-1} className="world-main focus-visible:outline-none">
         <JsonLd schemas={homeSchema(copy.locale)} />
-        <Hero />
-        <Work />
-        <Experience />
-        <Services />
-        <Process />
-        <About />
-        <Contact />
-      </SiteShell>
+        <ScrollRail chapters={chapters} moduleCount={copy.featured.length} />
+      </main>
 
       <Preflight />
     </>

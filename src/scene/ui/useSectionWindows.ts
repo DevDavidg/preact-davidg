@@ -9,25 +9,25 @@ import {
 } from './sectionRanges'
 
 /**
- * Where each section sits on the build axis, kept in sync with layout. Measured
- * once above the canvas and handed down as props: both the world typography and
- * the artifact panels need the same numbers, and measuring twice would mean two
- * forced reflows per resize.
+ * Where each chapter sits on the build axis. The scroll rail owns the DOM nodes;
+ * the canvas only reads their measured windows.
  */
-export const useSectionWindows = (): SectionWindows => {
+export const useSectionWindows = (
+  ids: readonly string[] = SECTION_IDS,
+): SectionWindows => {
   const experience = useSceneStore((state) => state.experience)
   const [windows, setWindows] = useState<SectionWindows>(() =>
-    measureSectionWindows(SECTION_IDS),
+    measureSectionWindows(ids),
   )
 
   useEffect(() => {
     const remeasure = () => {
-      const next = measureSectionWindows(SECTION_IDS)
+      const next = measureSectionWindows(ids)
       setWindows((current) => (sameWindows(current, next) ? current : next))
     }
     remeasure()
     return onSectionLayoutChange(remeasure)
-  }, [experience])
+  }, [experience, ids])
 
   return windows
 }

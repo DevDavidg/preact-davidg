@@ -36,10 +36,14 @@ const beam = (z: number): Structure => ({
  * an empty floor, since every artifact sits near the start of the dolly.
  */
 const BAYS = [
+  { z: 6.4, left: 3.4, right: 3.2, tie: true },
+  { z: 2.2, left: 3.8, right: 3.6, tie: false },
+  { z: -2.0, left: 4.0, right: 3.8, tie: true },
   { z: -5.6, left: 4.6, right: 4.2, tie: false },
   { z: -9.2, left: 4.2, right: 5.0, tie: true },
   { z: -12.8, left: 5.0, right: 4.4, tie: false },
   { z: -16.4, left: 4.4, right: 4.9, tie: true },
+  { z: -20.0, left: 4.8, right: 4.6, tie: true },
 ]
 
 interface BayBuild {
@@ -131,9 +135,9 @@ export const Structures = ({ quality }: { quality: Quality }) => {
       BAY_BUILDS.map(
         () =>
           new ReconstructMaterial({
-            spread: 0.2,
-            jitter: 0.05,
-            opacity: 0.45,
+            spread: 0.35,
+            jitter: 0.08,
+            opacity: 0.55,
             depthSpan: 0.1,
           }),
       ),
@@ -151,7 +155,7 @@ export const Structures = ({ quality }: { quality: Quality }) => {
     <>
       {/* The far bays are the first thing to go when fill rate is scarce: they
           frame the corridor rather than carry any content. */}
-      {BAY_BUILDS.slice(0, quality === 'cinema' ? BAY_BUILDS.length : 2).map(
+      {BAY_BUILDS.slice(0, quality === 'cinema' ? BAY_BUILDS.length : 4).map(
         (bay, index) => (
           <Bay
             key={bay.z}

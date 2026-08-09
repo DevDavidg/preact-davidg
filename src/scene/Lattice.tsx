@@ -4,189 +4,229 @@ import * as THREE from 'three'
 import { ReconstructMaterial } from './ReconstructMaterial'
 import { toShards } from './shardGeometry'
 import type { Quality } from './capability'
-import {
-  depthBiasFor,
-  liveFor,
-  sceneState,
-  speedFor,
-} from './sceneState'
-import { settleAt, STAGGER_CAP } from './ui/fragmentSettle'
-
-interface Fragment {
-  chaos: THREE.Vector3
-  home: THREE.Vector3
-  tumble: THREE.Euler
-  settled: THREE.Euler
-  seed: number
-  size: number
-}
+import { liveFor, sceneState } from './sceneState'
 
 /**
- * Raw material for the room: fragments start scattered and tumbling, then snap
- * onto an ordered lattice as the build progresses. Same wire→solid→lit signature
- * as the artifacts, one scale down, so the whole space participates.
+ * Corridor architecture — posts, rails, braces, and overhead ties outside the
+ * reading cone. Assembles as a wave down the dolly so the room never feels empty.
  */
-const buildFragments = (count: number): Fragment[] => {
-  const columns = 8
-  const rows = Math.ceil(count / columns)
-  /** Fragments keep out of the middle lane, where panels and copy sit. */
-  const CLEARANCE = 3.7
 
-  return Array.from({ length: count }, (_, index) => {
-    const column = index % columns
-    const row = Math.floor(index / columns)
-    const lane = column - (columns - 1) / 2
-    const side = lane < 0 ? -1 : 1
+type PartKind = 'post' | 'rail' | 'brace' | 'tie' | 'plinth'
 
-    return {
-      // Chaos starts deep and already biased to the walls: flying through the
-      // centre lane would paint over the artifact panels as they assemble.
-      chaos: new THREE.Vector3(
-        side * (2.2 + Math.random() * 5.5),
-        Math.random() * 8 - 1.2,
-        -13 - Math.random() * 17,
-      ),
-      home: new THREE.Vector3(
-        side * (CLEARANCE + Math.abs(lane) * 1.9),
-        0.15 + (row % 3) * 1.55,
-        7.5 - (row / rows) * 24,
-      ),
-      tumble: new THREE.Euler(
-        Math.random() * Math.PI * 2,
-        Math.random() * Math.PI * 2,
-        Math.random() * Math.PI * 2,
-      ),
-      settled: new THREE.Euler(0, lane * 0.12, 0),
-      seed: Math.random(),
-      size: 0.55 + Math.random() * 0.7,
+interface Part {
+  kind: PartKind
+  position: THREE.Vector3
+  rotation: THREE.Euler
+  scale: THREE.Vector3
+  seed: number
+}
+
+const SIDE = 3.85
+const Z_START = 9.2
+const Z_END = -22
+const BAYS = 11
+
+const buildParts = (rich: boolean): Part[] => {
+  const parts: Part[] = []
+  const bayCount = rich ? BAYS : 7
+
+  for (let bay = 0; bay < bayCount; bay++) {
+    const t = bay / Math.max(bayCount - 1, 1)
+    const z = THREE.MathUtils.lerp(Z_START, Z_END, t)
+    const seed = t * 0.55
+    const height = 2.6 + (bay % 3) * 0.45
+    const nextZ =
+      bay < bayCount - 1
+        ? THREE.MathUtils.lerp(Z_START, Z_END, (bay + 1) / Math.max(bayCount - 1, 1))
+        : z - 2.8
+    const span = Math.abs(z - nextZ)
+
+    for (const side of [-1, 1] as const) {
+      const x = side * SIDE
+      // Vertical post
+      parts.push({
+        kind: 'post',
+        position: new THREE.Vector3(x, height / 2, z),
+        rotation: new THREE.Euler(0, side > 0 ? -0.04 : 0.04, 0),
+        scale: new THREE.Vector3(1, height, 1),
+        seed: seed + (side > 0 ? 0.02 : 0),
+      })
+      // Plinth foot
+      parts.push({
+        kind: 'plinth',
+        position: new THREE.Vector3(x, 0.08, z),
+        rotation: new THREE.Euler(0, 0, 0),
+        scale: new THREE.Vector3(1.6, 1, 1.6),
+        seed: seed + 0.03,
+      })
+      // Mid rail toward next bay
+      if (bay < bayCount - 1) {
+        parts.push({
+          kind: 'rail',
+          position: new THREE.Vector3(x, 1.15, (z + nextZ) / 2),
+          rotation: new THREE.Euler(0, 0, 0),
+          scale: new THREE.Vector3(1, 1, span * 0.92),
+          seed: seed + 0.05,
+        })
+        parts.push({
+          kind: 'rail',
+          position: new THREE.Vector3(x, height - 0.25, (z + nextZ) / 2),
+          rotation: new THREE.Euler(0, 0, 0),
+          scale: new THREE.Vector3(0.85, 1, span * 0.92),
+          seed: seed + 0.07,
+        })
+      }
+      // Diagonal brace
+      if (rich && bay % 2 === 0 && bay < bayCount - 1) {
+        parts.push({
+          kind: 'brace',
+          position: new THREE.Vector3(x, height * 0.45, (z + nextZ) / 2),
+          rotation: new THREE.Euler(side > 0 ? 0.55 : -0.55, 0, 0),
+          scale: new THREE.Vector3(0.7, 1, span * 1.05),
+          seed: seed + 0.09,
+        })
+      }
     }
-  })
+
+    // Overhead cross tie every other bay
+    if (bay % 2 === 1) {
+      parts.push({
+        kind: 'tie',
+        position: new THREE.Vector3(0, height + 0.15, z),
+        rotation: new THREE.Euler(0, 0, 0),
+        scale: new THREE.Vector3(SIDE * 2.05, 1, 1),
+        seed: seed + 0.11,
+      })
+    }
+  }
+
+  return parts
+}
+
+const GEO_SPECS: Record<PartKind, () => THREE.BufferGeometry> = {
+  post: () => toShards(new THREE.BoxGeometry(0.14, 1, 0.14, 1, 5, 1)),
+  rail: () => toShards(new THREE.BoxGeometry(0.07, 0.07, 1, 1, 1, 4)),
+  brace: () => toShards(new THREE.BoxGeometry(0.05, 0.05, 1, 1, 1, 3)),
+  tie: () => toShards(new THREE.BoxGeometry(1, 0.1, 0.12, 6, 1, 1)),
+  plinth: () => toShards(new THREE.BoxGeometry(0.28, 0.1, 0.28, 1, 1, 1)),
 }
 
 export const Lattice = ({ quality }: { quality: Quality }) => {
-  const count = quality === 'cinema' ? 154 : 63
-  const meshRef = useRef<THREE.InstancedMesh>(null)
-  const fragments = useMemo(() => buildFragments(count), [count])
-  const scratch = useMemo(
-    () => ({ dummy: new THREE.Object3D(), position: new THREE.Vector3() }),
-    [],
-  )
+  const rich = quality === 'cinema'
+  const parts = useMemo(() => buildParts(rich), [rich])
+  const scratch = useMemo(() => ({ dummy: new THREE.Object3D() }), [])
 
-  // CPU flies each instance chaos→home; the material stages wire→solid→lit
-  // without a second drift pass (would fight the lattice paths).
-  const geometry = useMemo(() => {
-    const source = new THREE.OctahedronGeometry(0.1, 0)
-    const shards = toShards(source)
-    source.dispose()
-    return shards
+  const geos = useMemo(() => {
+    const map = {} as Record<PartKind, THREE.BufferGeometry>
+    ;(Object.keys(GEO_SPECS) as PartKind[]).forEach((kind) => {
+      map[kind] = GEO_SPECS[kind]()
+    })
+    return map
   }, [])
+
   const material = useMemo(
     () =>
       new ReconstructMaterial({
-        spread: 0,
-        jitter: 0,
-        opacity: 0.32,
+        spread: 0.35,
+        jitter: 0.08,
+        opacity: 0.48,
         drift: false,
-        depthSpan: 0.1,
+        depthSpan: 0.08,
       }),
     [],
   )
 
-  useEffect(() => {
-    return () => {
-      geometry.dispose()
-      material.dispose()
+  const groups = useMemo(() => {
+    const byKind: Record<PartKind, Part[]> = {
+      post: [],
+      rail: [],
+      brace: [],
+      tie: [],
+      plinth: [],
     }
-  }, [geometry, material])
+    for (const part of parts) byKind[part.kind].push(part)
+    return byKind
+  }, [parts])
+
+  const refs = useRef<Partial<Record<PartKind, THREE.InstancedMesh>>>({})
+
+  useEffect(
+    () => () => {
+      Object.values(geos).forEach((g) => g.dispose())
+      material.dispose()
+    },
+    [geos, material],
+  )
 
   useFrame((state) => {
-    const mesh = meshRef.current
-    if (!mesh) return
-
     const build = sceneState.build
     const live = liveFor(build)
     const time = state.clock.elapsedTime
-    const speed = speedFor()
-    const { dummy, position } = scratch
-    // Standby: the room idles before the first scroll — drift, lean toward the
-    // pointer, and a touch more presence so wireframe reads as space.
-    const scanning =
-      quality === 'cinema'
-        ? 1 - THREE.MathUtils.smoothstep(build, 0.02, 0.16)
-        : 0
-    // Leave the project lane visually quiet while panels are assembling. This
-    // affects only backdrop drift/opacity; it never pauses the reconstruction.
-    // Hold through most of Work — ending at ~0.52 let the swarm re-cover shots.
-    const workQuiet = THREE.MathUtils.smoothstep(build, 0.14, 0.22) *
-      (1 - THREE.MathUtils.smoothstep(build, 0.48, 0.58))
-    const backgroundMotion = 1 - workQuiet * 0.72
-    const motionTime = time * backgroundMotion
+    const { dummy } = scratch
 
-    for (let index = 0; index < fragments.length; index++) {
-      const fragment = fragments[index]
-      // Matches ReconstructMaterial: seed + depth wave, settled by BEAUTY.
-      const stagger = Math.min(
-        fragment.seed * 0.3 + depthBiasFor(fragment.home.z),
-        STAGGER_CAP,
-      )
-      const settled = settleAt(build, stagger)
-      const loose = 1 - settled
-      const idle = loose * (1 + scanning * 0.55)
+    ;(Object.keys(groups) as PartKind[]).forEach((kind) => {
+      const mesh = refs.current[kind]
+      const list = groups[kind]
+      if (!mesh || list.length === 0) return
 
-      position.lerpVectors(fragment.chaos, fragment.home, settled)
-      position.y +=
-        Math.sin(time * 0.4 + fragment.seed * 8) *
-        0.18 *
-        idle *
-        (1 + speed * 0.55) *
-        backgroundMotion
-      if (scanning > 0.001) {
-        position.x +=
-          sceneState.pointerX * scanning * (0.08 + fragment.seed * 0.08)
-        position.y +=
-          Math.sin(time * 0.62 + fragment.seed * 11) * 0.07 * scanning
-        position.z +=
-          Math.sin(time * 0.28 + fragment.seed * 6) * 0.06 * scanning
+      for (let i = 0; i < list.length; i++) {
+        const entry = list[i]
+        const stagger = Math.min(entry.seed, 0.5)
+        const assembled = THREE.MathUtils.smoothstep(
+          build,
+          stagger,
+          stagger + 0.32,
+        )
+        const loose = 1 - assembled
+        const endHold = 1 - THREE.MathUtils.smoothstep(build, 0.92, 1) * 0.12
+
+        dummy.position.copy(entry.position)
+        dummy.position.y +=
+          Math.sin(time * 0.3 + entry.seed * 8) * 0.03 * loose
+        dummy.rotation.copy(entry.rotation)
+        dummy.rotation.z += loose * entry.seed * 0.12
+        dummy.scale.set(
+          entry.scale.x * (0.55 + assembled * 0.45) * endHold,
+          entry.scale.y * (0.45 + assembled * 0.55) * endHold,
+          entry.scale.z * (0.55 + assembled * 0.45) * endHold,
+        )
+        dummy.updateMatrix()
+        mesh.setMatrixAt(i, dummy.matrix)
       }
-      dummy.position.copy(position)
-
-      const spin = 1 + (speed * 0.7 + scanning * 0.22) * backgroundMotion
-      dummy.rotation.set(
-        THREE.MathUtils.lerp(fragment.tumble.x, fragment.settled.x, settled) +
-          motionTime * 0.25 * idle * spin,
-        THREE.MathUtils.lerp(fragment.tumble.y, fragment.settled.y, settled) +
-          motionTime * 0.3 * idle * spin,
-        THREE.MathUtils.lerp(fragment.tumble.z, fragment.settled.z, settled),
-      )
-      dummy.scale.setScalar(
-        fragment.size * (0.45 + settled * 0.55) * (1 + scanning * 0.04),
-      )
-      dummy.updateMatrix()
-      mesh.setMatrixAt(index, dummy.matrix)
-    }
-
-    mesh.instanceMatrix.needsUpdate = true
+      mesh.instanceMatrix.needsUpdate = true
+      mesh.count = list.length
+    })
 
     material.sync({
       build,
       live,
-      focus: 0,
+      focus: 0.08 + live * 0.2,
       time,
       velocity: sceneState.velocity,
     })
-    // Backdrop only — never occlude corridor copy. Dim harder in SCANNING so
-    // the hero voxel name keeps silhouette against the wire noise.
     material.depthWrite = false
-    material.uniforms.uOpacity.value =
-      (0.08 + (1 - build) * 0.08 + live * 0.08 + scanning * 0.015) *
-      (1 - workQuiet * 0.92)
+    // Readable structure through the whole journey — never near-invisible.
+    material.uniforms.uOpacity.value = 0.26 + live * 0.14
+    material.uniforms.uSpread.value = 0.12
+    material.uniforms.uJitter.value = 0.04
   })
 
   return (
-    <instancedMesh
-      ref={meshRef}
-      args={[geometry, material, count]}
-      frustumCulled={false}
-    />
+    <group>
+      {(Object.keys(groups) as PartKind[]).map((kind) => {
+        const count = groups[kind].length
+        if (count === 0) return null
+        return (
+          <instancedMesh
+            key={kind}
+            ref={(node) => {
+              if (node) refs.current[kind] = node
+            }}
+            args={[geos[kind], material, count]}
+            frustumCulled={false}
+          />
+        )
+      })}
+    </group>
   )
 }

@@ -12,24 +12,21 @@ export type Locale = (typeof LOCALES)[number]
  * How much evidence stands behind a piece of work. The label is rendered next to
  * every project so a concept piece is never mistaken for delivered client work.
  */
-export type ProjectKind = 'product' | 'concept' | 'experiment' | 'archive'
+type ProjectKind = 'product' | 'concept' | 'experiment' | 'archive'
 
-/** Which of the two audiences a call to action serves. */
-export type Audience = 'client' | 'recruiter'
-
-export interface Media {
+interface Media {
   src: string
   alt: string
   width: number
   height: number
 }
 
-export interface LabelledValue {
+interface LabelledValue {
   key: string
   value: string
 }
 
-export interface Decision {
+interface Decision {
   title: string
   body: string
 }
@@ -63,7 +60,7 @@ export interface CaseStudy {
   plate: string
 }
 
-export interface ServiceOffer {
+interface ServiceOffer {
   title: string
   /** The buyer problem, not the technology. */
   problem: string
@@ -71,7 +68,7 @@ export interface ServiceOffer {
   timeline: string
 }
 
-export interface ProcessPhase {
+interface ProcessPhase {
   num: string
   /** Reactor subsystem name shown in the HUD. */
   phase: string
@@ -80,7 +77,7 @@ export interface ProcessPhase {
   copy: string
 }
 
-export interface Role {
+interface Role {
   company: string
   role: string
   context: string

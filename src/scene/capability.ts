@@ -35,12 +35,12 @@ interface CapabilityNavigator extends Navigator {
   connection?: NetworkInformation
 }
 
-export const prefersReducedMotion = (): boolean =>
+const prefersReducedMotion = (): boolean =>
   typeof window !== 'undefined' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 /** Data saver, or a connection slow enough that a 3D payload is hostile. */
-export const prefersLessData = (): boolean => {
+const prefersLessData = (): boolean => {
   if (typeof navigator === 'undefined') return false
   const connection = (navigator as CapabilityNavigator).connection
   if (!connection) return false
@@ -59,7 +59,7 @@ export const prefersLessData = (): boolean => {
  * The context is explicitly released afterwards, because browsers cap the number
  * of live contexts and the scene needs to claim one moments later.
  */
-export const supportsWebGL2 = (): boolean => {
+const supportsWebGL2 = (): boolean => {
   if (typeof document === 'undefined') return false
   try {
     const canvas = document.createElement('canvas')
@@ -85,7 +85,9 @@ const LITE_MIN_WIDTH = 768
  */
 export const detectQuality = (): ExperienceState => {
   if (typeof window === 'undefined') return 'checking'
-  if (prefersReducedMotion() || prefersLessData()) return 'static'
+  // Metered / no WebGL: no scene payload. Reduced motion still gets lite (demand
+  // frames) so the portfolio remains a 3D scroll narrative without a continuous loop.
+  if (prefersLessData()) return 'static'
   if (!supportsWebGL2()) return 'static'
 
   const nav = navigator as CapabilityNavigator
@@ -94,7 +96,9 @@ export const detectQuality = (): ExperienceState => {
   const memory = nav.deviceMemory ?? 8
   const coarsePointer = window.matchMedia('(pointer: coarse)').matches
   const width = window.innerWidth
+  const reduced = prefersReducedMotion()
 
+  if (reduced) return 'lite'
   if (width < LITE_MIN_WIDTH) return 'lite'
   if (coarsePointer || width < CINEMA_MIN_WIDTH) return 'lite'
   if (cores <= 4 || memory <= 4) return 'lite'

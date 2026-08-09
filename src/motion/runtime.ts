@@ -39,7 +39,6 @@ export const startMotionRuntime = ({
 
   setScroller({
     toElement: (element) => lenis.scrollTo(element, { offset: -1 }),
-    toTop: () => lenis.scrollTo(0, { immediate: true }),
   })
 
   const handleScroll = () => {

@@ -13,16 +13,16 @@ import {
  * else stays a thin atlas plate so signage stays cheap and legible.
  */
 
-export type GlyphForm = 'flat' | 'voxel'
+type GlyphForm = 'flat' | 'voxel'
 
 /**
  * `stack` — identical cubes along Z (hero silhouette).
  * `relief` — one elongated brick per ink cell; depth follows alpha so strokes
  * read as architectural members, not a Lego pile (Work numerals).
  */
-export type VoxelProfile = 'stack' | 'relief'
+type VoxelProfile = 'stack' | 'relief'
 
-export interface VoxelSpec {
+interface VoxelSpec {
   /** Target cell size in em — smaller = denser. */
   cellEm: number
   /** Max extrusion steps (stack layers, or relief depth units). */
@@ -67,7 +67,12 @@ export interface TextBlock {
   slice?: [number, number]
   /** Scatter radius of the start position, in world units. */
   chaos?: number
-  /** How far behind the plane fragments start, in world units. */
+  /**
+   * How far behind the plane fragments start, in world units. Negative values
+   * scatter them in front instead, which is what type mounted on an opaque
+   * console plate needs — the plate writes depth, so anything arriving from
+   * behind it is simply never seen.
+   */
   depth?: number
   /** `voxel` = opaque cubes from ink; default `flat` = atlas plate. */
   form?: GlyphForm
@@ -77,6 +82,11 @@ export interface TextBlock {
   accent?: number
   /** Opacity multiplier. */
   weight?: number
+  /**
+   * Budget priority. When the fragment budget runs out, lower-priority blocks
+   * are dropped whole — never mid-word. Default 1.
+   */
+  priority?: number
 }
 
 export interface GlyphInstances {
@@ -105,7 +115,7 @@ const hash = (n: number) => {
   return x - Math.floor(x)
 }
 
-interface Line {
+export interface Line {
   chars: string[]
   width: number
 }
@@ -124,24 +134,34 @@ const measure = (
   tracking: number,
 ) => chars.reduce((total, char) => total + advanceOf(atlas, role, char, tracking), 0)
 
-/** Greedy word wrap in em space; explicit `\n` always breaks. */
-const wrapLines = (block: TextBlock, atlas: GlyphAtlas): Line[] => {
-  const tracking = block.tracking ?? 0
-  const limit = block.wrap ?? Infinity
+/**
+ * Greedy word wrap in em space; explicit `\n` always breaks.
+ *
+ * Exported because console layout has to know how tall a row will be *before* it
+ * can place the next one, and the only honest answer comes from the same
+ * measurement the renderer will use.
+ */
+export const wrapText = (
+  atlas: GlyphAtlas,
+  role: FontRole,
+  text: string,
+  tracking: number,
+  limit = Infinity,
+): Line[] => {
   const lines: Line[] = []
 
-  for (const paragraph of block.text.split('\n')) {
+  for (const paragraph of text.split('\n')) {
     let chars: string[] = []
     let width = 0
 
     for (const word of paragraph.split(' ')) {
       const candidate = chars.length ? [' ', ...word] : Array.from(word)
-      const candidateWidth = measure(atlas, block.role, candidate, tracking)
+      const candidateWidth = measure(atlas, role, candidate, tracking)
 
       if (chars.length && width + candidateWidth > limit) {
         lines.push({ chars, width })
         chars = Array.from(word)
-        width = measure(atlas, block.role, chars, tracking)
+        width = measure(atlas, role, chars, tracking)
         continue
       }
 
@@ -154,6 +174,9 @@ const wrapLines = (block: TextBlock, atlas: GlyphAtlas): Line[] => {
 
   return lines
 }
+
+const wrapLines = (block: TextBlock, atlas: GlyphAtlas): Line[] =>
+  wrapText(atlas, block.role, block.text, block.tracking ?? 0, block.wrap ?? Infinity)
 
 interface Cursor {
   index: number
@@ -406,25 +429,46 @@ const pushVoxelGlyph = (
   return true
 }
 
+/** Worst-case fragment count for a single block. */
+const countBlockFragments = (block: TextBlock, atlas: GlyphAtlas) =>
+  countFragments([block], atlas)
+
 /**
  * Lays every block out into one shared instance buffer. `budget` caps the total
- * fragment count so a lower tier can drop density without touching the blocks.
+ * fragment count. When the budget is tight, lowest-priority blocks are dropped
+ * whole so a word is never cut in half.
  */
 export const layoutBlocks = (
   blocks: TextBlock[],
   atlas: GlyphAtlas,
   budget = Infinity,
 ): GlyphInstances => {
-  // Prefer the tier budget as capacity so sparse voxel fill cannot truncate
-  // early from a pessimistic full-rectangle estimate. Unbounded layouts still
-  // size from the estimate.
-  const estimate = countFragments(blocks, atlas)
+  const ordered = [...blocks].sort(
+    (a, b) => (b.priority ?? 1) - (a.priority ?? 1),
+  )
+
+  let selected = ordered
+  if (Number.isFinite(budget)) {
+    selected = []
+    let used = 0
+    for (const block of ordered) {
+      const cost = countBlockFragments(block, atlas)
+      if (used + cost > budget && selected.length > 0) continue
+      selected.push(block)
+      used += cost
+    }
+    // Preserve authored order among the survivors so stacking stays coherent.
+    const allowed = new Set(selected.map((block) => block.id))
+    selected = blocks.filter((block) => allowed.has(block.id))
+  }
+
+  const estimate = countFragments(selected, atlas)
   const capacity = Number.isFinite(budget)
     ? Math.max(1, Math.min(budget, Math.max(estimate, 1)))
     : Math.max(estimate, 1)
   const out: GlyphInstances = {
     count: 0,
-    complete: true,
+    complete: selected.length === blocks.length,
     chaos: new Float32Array(capacity * 3),
     home: new Float32Array(capacity * 3),
     quaternion: new Float32Array(capacity * 4),
@@ -446,12 +490,14 @@ export const layoutBlocks = (
     },
   }
 
-  for (const block of blocks) {
+  for (const block of selected) {
     const tracking = block.tracking ?? 0
     const leading = block.leading ?? 1.15
     const lines = wrapLines(block, atlas)
+    const blockStart = cursor.index
+    let fits = true
 
-    for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+    for (let lineIndex = 0; lineIndex < lines.length && fits; lineIndex++) {
       const line = lines[lineIndex]
       const baseline = -lineIndex * leading * block.em
       let pen = block.align === 'centre' ? (-line.width / 2) * block.em : 0
@@ -485,9 +531,11 @@ export const layoutBlocks = (
                   quadTop,
                 )
           if (!ok) {
-            out.count = cursor.index
+            // Roll back this block entirely — never leave a half word.
+            cursor.index = blockStart
+            fits = false
             out.complete = false
-            return out
+            break
           }
         }
 

@@ -28,13 +28,10 @@ export const runTicks = (time: number, delta: number) => {
   for (const handler of handlers) handler(time, delta)
 }
 
-export const hasTicks = () => handlers.size > 0
-
 /* Scroll control ---------------------------------------------------------- */
 
 export interface Scroller {
   toElement: (element: HTMLElement) => void
-  toTop: () => void
 }
 
 let scroller: Scroller | null = null
@@ -63,14 +60,6 @@ export const scrollToSection = (id: string) => {
     return
   }
   target.scrollIntoView({ behavior: nativeBehavior(), block: 'start' })
-}
-
-export const scrollToTop = () => {
-  if (scroller) {
-    scroller.toTop()
-    return
-  }
-  window.scrollTo({ top: 0, behavior: 'auto' })
 }
 
 /* Layout invalidation ----------------------------------------------------- */

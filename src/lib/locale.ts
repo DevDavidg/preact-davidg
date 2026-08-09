@@ -32,7 +32,7 @@ export const useCopy = (): CopyBundle => {
  * A stored preference is still useful, but only to pick a destination on the
  * language gate — never to change what an already-addressed page renders.
  */
-export const LOCALE_STORAGE_KEY = 'dg-locale'
+const LOCALE_STORAGE_KEY = 'dg-locale'
 
 export const readPreferredLocale = (): Locale | null => {
   if (typeof window === 'undefined') return null

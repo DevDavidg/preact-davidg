@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { ExperienceState, Quality } from './capability'
 
 /** The reactor's four chapters, in scroll order. */
-export const PHASES = ['STANDBY', 'CHARGE', 'TRANSMIT', 'IGNITION'] as const
+const PHASES = ['STANDBY', 'CHARGE', 'TRANSMIT', 'IGNITION'] as const
 
 export type Phase = (typeof PHASES)[number]
 

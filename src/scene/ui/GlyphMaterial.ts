@@ -60,24 +60,23 @@ void main() {
   arrive = arrive * arrive * (3.0 - 2.0 * arrive);
 
   float exitSpan = max(aWindow.w, 0.0001);
-  float leaving = clamp((uBuild - aWindow.z - aSeed * exitSpan * 0.5) / exitSpan, 0.0, 1.0);
+  float leaving = clamp((uBuild - aWindow.z - aSeed * exitSpan * 0.4) / exitSpan, 0.0, 1.0);
   leaving = leaving * leaving * (3.0 - 2.0 * leaving);
 
+  // Soft settle in; leave fades in place — no explode cloud.
   float settled = arrive * (1.0 - leaving);
-  // Snap transform home before alpha fully locks — residual spin reads as
-  // double-exposed type once the letter is mostly on its plate.
-  float lock = smoothstep(0.72, 0.96, settled);
-  float loose = 1.0 - lock;
-  float speed = clamp(abs(uVelocity) * 0.012, 0.0, 1.5) * loose;
+  float lock = smoothstep(0.45, 0.92, arrive);
+  float loose = (1.0 - lock) * (1.0 - leaving);
+  float speed = clamp(abs(uVelocity) * 0.006, 0.0, 0.8) * loose;
 
   vec3 local = position * aSize;
-  vec4 spin = quatFromAxisAngle(aAxis, loose * (2.2 + aSeed * 4.6) * (1.0 + speed * 0.4));
+  vec4 spin = quatFromAxisAngle(aAxis, loose * (0.9 + aSeed * 1.6) * (1.0 + speed * 0.25));
   vec4 orient = quatMul(aQuat, spin);
   vec3 rotated = applyQuat(local, orient);
   vec3 rotatedN = applyQuat(normal, orient);
 
   vec3 centre = mix(aChaos, aHome, lock);
-  centre += aAxis * sin(uTime * 0.75 + aSeed * 6.2831) * 0.14 * loose * (1.0 + speed * 0.5);
+  centre += aAxis * sin(uTime * 0.4 + aSeed * 6.2831) * 0.035 * loose;
 
   vec4 world = modelMatrix * vec4(centre + rotated, 1.0);
   vec4 viewPos = viewMatrix * world;
@@ -87,7 +86,7 @@ void main() {
   vViewDir = normalize(cameraPosition - world.xyz);
   vSettled = settled;
   vAccent = aStyle.x;
-  vWeight = aStyle.y * (1.0 - leaving * 0.85);
+  vWeight = aStyle.y * (1.0 - smoothstep(0.0, 0.7, leaving));
   vVoxel = step(0.5, aStyle.z);
   // Local ±Z faces of the unit box — the readable plate for flat glyphs.
   vGlyphFace = step(0.5, abs(normal.z));

@@ -82,7 +82,10 @@ export const Atmosphere = () => {
     portal.current.scale.setScalar(breathe)
     // Effectively off until the final chapter, then accelerating. A radial plane
     // keeps this one extra draw cheap.
-    portalMaterial.opacity = power * (0.18 + power * 0.62)
+    // Visible earlier so the corridor end never reads as a black void.
+    const approach = THREE.MathUtils.smoothstep(sceneState.build, 0.62, 0.92)
+    portalMaterial.opacity =
+      Math.max(power, approach * 0.55) * (0.28 + power * 0.55)
   })
 
   return (

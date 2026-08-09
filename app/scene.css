@@ -16,8 +16,8 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-index-scene);
-  /* The scene is decorative; the document above it owns every interaction. */
-  pointer-events: none;
+  /* Raycast targets live in the canvas; Lenis still receives wheel/touch on window. */
+  pointer-events: auto;
   /* Matches the WebGL clear colour so a dropped frame never flashes. */
   background-color: var(--color-reactor);
 }
@@ -75,6 +75,24 @@
 .overlay {
   position: relative;
   z-index: var(--z-index-overlay);
+}
+
+/* Full-3D routes: invisible scroll length only — clicks pass through to the canvas. */
+.world-main {
+  position: relative;
+  z-index: var(--z-index-overlay);
+  min-height: 100vh;
+  pointer-events: none;
+}
+
+.scroll-rail {
+  position: relative;
+  width: 100%;
+  pointer-events: none;
+}
+
+.scroll-rail-chapter {
+  width: 100%;
 }
 
 /* Directional scrim so copy sitting straight on the scene keeps its contrast. */

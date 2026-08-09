@@ -72,9 +72,9 @@ describe('capability gate', () => {
     expect(detectQuality()).toBe('cinema')
   })
 
-  it('never starts a scene for a visitor who asked for reduced motion', () => {
+  it('still mounts a demand-driven scene for reduced motion', () => {
     given({ reducedMotion: true })
-    expect(detectQuality()).toBe('static')
+    expect(detectQuality()).toBe('lite')
   })
 
   it('never starts a scene on a metered connection', () => {

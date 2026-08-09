@@ -4,12 +4,7 @@ import { LOCALES, type Locale } from '../content'
 import { useCopy } from '../lib/locale'
 import { rememberLocale } from '../lib/locale'
 import { trackEvent } from '../lib/analytics'
-import {
-  homePath,
-  SECTION_IDS,
-  translatePath,
-  type SectionId,
-} from '../lib/routes'
+import { homePath, translatePath, type SectionId } from '../lib/routes'
 import { useSceneStore } from '../scene/sceneState'
 import { SoundToggle } from './SoundToggle'
 import { Action } from './ui/Action'
@@ -232,5 +227,3 @@ export const SkipLink = () => {
     </a>
   )
 }
-
-export { SECTION_IDS }
