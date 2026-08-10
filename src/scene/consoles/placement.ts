@@ -11,20 +11,36 @@ import { consoleDistanceFor, lateralFit } from '../viewportFit'
 
 const WORLD_UP = new THREE.Vector3(0, 1, 0)
 
+/** A console's reading beat, before it has been placed in space. */
+interface TimedConsole {
+  spec: ConsoleSpec
+  enter: number
+  span: number
+  exit: number
+  exitSpan: number
+}
+
 /**
- * Place a console facing the camera nearly square-on so type stays legible.
- * Side offset is mild — extreme yaw was clipping titles off the plate.
+ * A console's reading beat only — no position yet.
+ *
+ * Splitting this out from placement is what keeps "when is this card visible"
+ * and "where does it face the camera" from drifting apart. They used to be
+ * computed from the same `centre` in one pass, but `serializeTimings` below
+ * then rewrote enter/exit into an evenly-sliced, exclusive sequence *without*
+ * touching position — so a card ended up facing the camera at the build value
+ * from its original section window while actually being shown at a different,
+ * resequenced one. On a corridor whose camera path weaves left and right,
+ * that gap between "aimed here" and "shown there" read as a card parked
+ * off-centre. `buildPlacedConsoles` now sequences every card's timing first
+ * and only then asks this file where to put it.
  */
-export const placeConsole = (
+const timeConsole = (
   spec: ConsoleSpec,
   window: SectionWindow | undefined,
-  quality: Quality,
-  fit: number,
-): BuiltConsole | null => {
+): TimedConsole | null => {
   const timing = spec.timing
   if (!timing && !window) return null
 
-  const centre = timing?.centre ?? window!.centre
   const enter = timing?.enter ?? window!.enter
   const span =
     timing?.span ??
@@ -33,6 +49,22 @@ export const placeConsole = (
     timing?.exit ?? Math.max(window!.exit - 0.02, window!.centre + span + 0.04)
   const exitSpan = timing?.exitSpan ?? 0.04
 
+  return { spec, enter, span, exit, exitSpan }
+}
+
+/**
+ * Place a console facing the camera nearly square-on so type stays legible.
+ * Side offset is mild — extreme yaw was clipping titles off the plate.
+ *
+ * `centre` is the build value the card is actually held at once sequenced —
+ * see `timeConsole` above for why this can no longer be derived internally.
+ */
+const frameConsole = (
+  spec: ConsoleSpec,
+  centre: number,
+  quality: Quality,
+  fit: number,
+): { position: THREE.Vector3; quaternion: THREE.Quaternion } => {
   const cameraBuild = quality === 'cinema' ? cameraProgressFor(centre) : centre
   const eye = CAMERA_PATH.getPointAt(THREE.MathUtils.clamp(cameraBuild, 0, 1))
   const target = TARGET_PATH.getPointAt(THREE.MathUtils.clamp(cameraBuild, 0, 1))
@@ -70,22 +102,14 @@ export const placeConsole = (
   const orientation = new THREE.Matrix4().lookAt(eye, lookAt, WORLD_UP)
   const quaternion = new THREE.Quaternion().setFromRotationMatrix(orientation)
 
-  return {
-    spec,
-    position,
-    quaternion,
-    enter,
-    span,
-    exit,
-    exitSpan,
-  }
+  return { position, quaternion }
 }
 
 /**
  * Force exclusive reading beats: console N is mostly gone before N+1 locks.
  * Prevents the debris-cloud pileup seen in the scroll audit.
  */
-export const serializeTimings = (built: BuiltConsole[]): BuiltConsole[] => {
+const serializeTimings = (built: TimedConsole[]): TimedConsole[] => {
   if (built.length <= 1) return built
 
   const ordered = [...built].sort((a, b) => a.enter - b.enter || a.spec.z - b.spec.z)
@@ -122,7 +146,7 @@ export const serializeTimings = (built: BuiltConsole[]): BuiltConsole[] => {
   return sequenced
 }
 
-export const assertNoOverlap = (built: BuiltConsole[]) => {
+const assertNoOverlap = (built: TimedConsole[]) => {
   if (!import.meta.env.DEV) return
   const ordered = [...built].sort((a, b) => a.enter - b.enter)
   for (let i = 0; i < ordered.length - 1; i++) {
@@ -142,17 +166,26 @@ export const buildPlacedConsoles = (
   specs: ConsoleSpec[],
   input: ConsoleBuildInput,
 ): BuiltConsole[] => {
-  const built: BuiltConsole[] = []
+  const timed: TimedConsole[] = []
   for (const spec of specs) {
-    const placed = placeConsole(
-      spec,
-      input.windows[spec.section],
+    const beat = timeConsole(spec, input.windows[spec.section])
+    if (beat) timed.push(beat)
+  }
+
+  const sequenced = serializeTimings(timed)
+  assertNoOverlap(sequenced)
+
+  return sequenced.map((entry) => {
+    // Centre of the *held* portion, not the whole enter→exit span — the same
+    // point serializeTimings itself treats as "locked and readable," so the
+    // card faces the camera exactly where it will actually be read from.
+    const centre = (entry.enter + entry.span + entry.exit) / 2
+    const { position, quaternion } = frameConsole(
+      entry.spec,
+      centre,
       input.quality,
       input.fit,
     )
-    if (placed) built.push(placed)
-  }
-  const serialized = serializeTimings(built)
-  assertNoOverlap(serialized)
-  return serialized
+    return { ...entry, position, quaternion }
+  })
 }
