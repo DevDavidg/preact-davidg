@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { Quality } from './capability'
 import { FOG_DENSITY, PORTAL_POSITION } from './layout'
+import { idleAmount, objectPhase, pulse, pulseAt, sectionPhase } from './pulse'
 import { sceneColors } from './sceneColors'
 import { livePowerFor, sceneState } from './sceneState'
 
@@ -220,12 +221,13 @@ export const Atmosphere = ({ quality }: { quality: Quality }) => {
       // so it reads as power coming on, not as the scene losing its depth.
       fog.current.density = FOG_DENSITY * (1 - power * 0.16)
     }
+    // The portal is the far end of the same room, so it breathes on the room's
+    // clock. It used to run its own 0.8 Hz sine, which put the destination
+    // visibly out of step with the reactor the visitor had just left.
+    const portalPulse = pulseAt(sectionPhase(3))
     portalMaterial.color.copy(sceneColors.accent)
     if (portal.current) {
-      const breathe =
-        1 +
-        power * 0.13 +
-        Math.sin(time * 0.8) * 0.028 * power
+      const breathe = 1 + power * 0.13 + (portalPulse - 0.5) * 0.056 * power
       portal.current.scale.setScalar(breathe)
       // Effectively off until the final chapter, then accelerating. A radial plane
       // keeps this one extra draw cheap.
@@ -251,21 +253,28 @@ export const Atmosphere = ({ quality }: { quality: Quality }) => {
     shardMaterials.accent.color.copy(sceneColors.accent)
     shardMaterials.wireSignal.color.copy(sceneColors.signal)
     shardMaterials.wireAccent.color.copy(sceneColors.accent)
-    shardMaterials.signal.opacity = 0.18 * volumePresence
-    shardMaterials.accent.opacity = 0.22 * volumePresence
-    shardMaterials.wireSignal.opacity = 0.28 * volumePresence
-    shardMaterials.wireAccent.opacity = 0.32 * volumePresence
+    // Volume markers glow on the master envelope; only their amplitude differs.
+    const markerPulse = pulseAt(sectionPhase(2))
+    const markerGain = 1 + (markerPulse - 0.5) * 0.5 * pulse.idle
+    shardMaterials.signal.opacity = 0.18 * volumePresence * markerGain
+    shardMaterials.accent.opacity = 0.22 * volumePresence * markerGain
+    shardMaterials.wireSignal.opacity = 0.28 * volumePresence * markerGain
+    shardMaterials.wireAccent.opacity = 0.32 * volumePresence * markerGain
 
     const shardRoot = shards.current
     if (shardRoot) {
+      // Slow tumble is ornament, so it eases off while the visitor is moving —
+      // otherwise it competes with the corridor for the eye during a scroll.
+      const drift = idleAmount(0.35 + 0.65 * volumePresence)
       shardRoot.children.forEach((child, index) => {
         const spec = shardSpecs[index]
         if (!spec) return
-        child.rotation.x = time * spec.spin.x + spec.phase
-        child.rotation.y = time * spec.spin.y
-        child.rotation.z = time * spec.spin.z * 0.6
+        child.rotation.x = time * spec.spin.x * drift + spec.phase
+        child.rotation.y = time * spec.spin.y * drift
+        child.rotation.z = time * spec.spin.z * 0.6 * drift
         child.position.y =
-          spec.position.y + Math.sin(time * 0.55 + spec.phase) * 0.08
+          spec.position.y +
+          (pulseAt(objectPhase(index)) - 0.5) * 0.16 * pulse.idle
       })
     }
   })

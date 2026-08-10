@@ -146,6 +146,22 @@
 }
 
 /*
+ * Arrival is an enhancement, so it cannot be the thing that decides whether copy
+ * is legible. `data-shown` is flipped by an IntersectionObserver; with scripting
+ * off nothing ever flips it and every `.shard` stays at `opacity: 0`, which left
+ * the prerendered document — the one crawlers and no-JS visitors read — visually
+ * blank. Here the fragments simply start home.
+ */
+@media (scripting: none) {
+  .shard {
+    opacity: 1;
+    translate: none;
+    rotate: none;
+    transition: none;
+  }
+}
+
+/*
  * Six vectors on rotation so siblings converge from different directions and at
  * different moments, rather than marching in as one row.
  *

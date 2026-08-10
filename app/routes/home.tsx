@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { useLocation, type MetaFunction } from 'react-router'
+import { HomeDocument } from '../../src/components/HomeDocument'
 import { JsonLd } from '../../src/components/JsonLd'
 import { Preflight } from '../../src/components/Preflight'
 import { SceneBoundary } from '../../src/components/SceneBoundary'
@@ -75,18 +76,36 @@ const Home = () => {
 
   const canvas = rendersCanvas(experience)
 
+  /*
+   * No reactor, no blank page.
+   *
+   * `rendersCanvas` is false for `checking` (the prerendered state), `static`
+   * (no WebGL, data saver) and `failed` (context lost, or the governor giving
+   * up mid-session). Previously every one of those rendered only the invisible
+   * scroll rail, so the page was a 16,000px column of nothing — and the
+   * prerendered HTML that search engines read carried no copy at all.
+   */
+  if (!canvas) {
+    return (
+      <>
+        <HomeDocument>
+          <JsonLd schemas={homeSchema(copy.locale)} />
+        </HomeDocument>
+        <Preflight />
+      </>
+    )
+  }
+
   return (
     <>
-      {canvas ? (
-        <SceneBoundary
-          quality={qualityOf(experience)}
-          copy={copy}
-          featured={copy.featured}
-          mode="home"
-        />
-      ) : null}
+      <SceneBoundary
+        quality={qualityOf(experience)}
+        copy={copy}
+        featured={copy.featured}
+        mode="home"
+      />
 
-      {canvas ? <StageTreatment /> : null}
+      <StageTreatment />
 
       <main id="main" tabIndex={-1} className="world-main focus-visible:outline-none">
         <JsonLd schemas={homeSchema(copy.locale)} />

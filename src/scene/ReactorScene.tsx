@@ -13,6 +13,7 @@ import { Rig } from "./Rig";
 import { FinaleGate } from "./FinaleGate";
 import { HeroStage } from "./HeroStage";
 import { Structures } from "./Structures";
+import { advancePulse, setPulseDepth } from "./pulse";
 import { refreshSceneColors, sceneColors } from "./sceneColors";
 import { livePowerFor, sceneState, useSceneStore } from "./sceneState";
 import "./silenceClockWarning";
@@ -52,6 +53,36 @@ const ReadySignal = () => {
     },
     [setSceneReady],
   );
+
+  return null;
+};
+
+/**
+ * Advances the master clock.
+ *
+ * A negative `useFrame` priority is the point: R3F sorts subscribers ascending,
+ * so this lands ahead of every object that reads `pulse`, and only a *positive*
+ * priority switches off automatic rendering — so the room still draws itself.
+ *
+ * Reduced motion flattens the envelope here rather than at each call site. The
+ * capability gate still hands those visitors a scene (`lite`), but it holds a
+ * steady half-light instead of breathing.
+ */
+const PulseDriver = () => {
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const apply = () => setPulseDepth(query.matches ? 0 : 1);
+    apply();
+    query.addEventListener("change", apply);
+    return () => {
+      query.removeEventListener("change", apply);
+      setPulseDepth(1);
+    };
+  }, []);
+
+  useFrame((state, delta) => {
+    advancePulse(state.clock.elapsedTime, delta);
+  }, -1);
 
   return null;
 };
@@ -272,6 +303,7 @@ export const ReactorScene = ({
           gl.toneMappingExposure = 1.05;
         }}
       >
+        <PulseDriver />
         <ClearColour />
         <ContextGuard onFailure={onFailure} />
         <ReadySignal />

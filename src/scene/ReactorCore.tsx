@@ -11,9 +11,10 @@ import * as THREE from 'three'
 import { damp3 } from 'maath/easing'
 import type { Quality } from './capability'
 import { REACTOR_CORE } from './layout'
+import { idleAmount, pulseAt, sectionPhase } from './pulse'
 import { ReconstructMaterial } from './ReconstructMaterial'
 import { sceneColors } from './sceneColors'
-import { livePowerFor, sceneState, clamp01 } from './sceneState'
+import { livePowerFor, sceneState } from './sceneState'
 import { toShards } from './shardGeometry'
 import { punchScale, softAssemble } from './ui/assembleDrama'
 
@@ -189,11 +190,14 @@ export const ReactorCore = ({ quality }: ReactorCoreProps) => {
       innerMaterial.color
         .copy(sceneColors.signal)
         .lerp(sceneColors.accent, power)
-      const pulse =
-        0.5 + 0.5 * Math.sin(time * (1.8 + settle * 2) + build * 10)
+      // The heart runs on the room's tempo, not its own. It used to beat at
+      // `1.8 + settle * 2` Hz with a `build * 10` term, so it sped up and slid in
+      // phase as the visitor scrolled — two clocks in one room.
+      const beat = pulseAt(sectionPhase(0))
+      const breath = idleAmount(settle)
       innerMaterial.opacity =
-        settle * (0.08 + pulse * 0.06 + power * 0.18 + finale * 0.18) * opacity
-      heart.scale.setScalar(0.7 + pulse * 0.06 + power * 0.1)
+        settle * (0.08 + beat * 0.06 * breath + power * 0.18 + finale * 0.18) * opacity
+      heart.scale.setScalar(0.7 + beat * 0.06 * breath + power * 0.1)
       heart.rotation.y = -spin.current * 0.7
     }
   })

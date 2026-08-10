@@ -17,8 +17,15 @@ export const computeViewportFit = (aspect: number, heightPx: number) => {
 /** Console plate multiplier — framed inside the viewport, not edge-to-edge. */
 export const consoleSizeFit = (fit: number) => 0.44 + fit * 0.26
 
-/** Hero shell multiplier. */
-export const heroSizeFit = (fit: number) => 0.48 + fit * 0.26
+/**
+ * Hero shell multiplier.
+ *
+ * The opening shot is the one object that has to land before the visitor has
+ * read a word, so it is scaled to command the frame rather than to sit politely
+ * inside it. The floor stays generous on short viewports — a phone shrinks the
+ * instrument but never loses it.
+ */
+export const heroSizeFit = (fit: number) => 0.62 + fit * 0.36
 
 /** Metres ahead of the eye — plates assemble at reading distance, not in the lens. */
 export const consoleDistanceFor = (fit: number) => 8.6 + (1 - fit) * 3.2

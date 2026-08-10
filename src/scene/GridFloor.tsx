@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { Quality } from './capability'
+import { pulse } from './pulse'
 import { sceneColors } from './sceneColors'
 import { liveFor, sceneState } from './sceneState'
 
@@ -20,6 +21,8 @@ uniform float uBuild;
 uniform float uLive;
 uniform float uTime;
 uniform float uCinema;
+/** Master envelope, supplied by the shared clock — never a local sine. */
+uniform float uPulse;
 uniform vec3 uInk;
 uniform vec3 uAccent;
 
@@ -59,7 +62,7 @@ void main() {
   float idleBeam = exp(-pow((vWorld.z - idleBeamZ) * 0.48, 2.0));
   float scrollW = 1.0 - scanning * 0.9;
   float idleW = scanning;
-  float pulse = 0.5 + 0.5 * sin(uTime * 1.15);
+  float pulse = uPulse;
   // The Work gallery owns the ASSEMBLING frame. Keep a trace of the navigation
   // beam, but take the floor out of the same contrast band as the project shots.
   float workQuiet =
@@ -110,6 +113,7 @@ export const GridFloor = ({ quality }: { quality: Quality }) => {
           uLive: { value: 0 },
           uTime: { value: 0 },
           uCinema: { value: 0 },
+          uPulse: { value: 0 },
           uInk: { value: sceneColors.ink.clone() },
           uAccent: { value: sceneColors.accent.clone() },
         },
@@ -132,6 +136,8 @@ export const GridFloor = ({ quality }: { quality: Quality }) => {
     material.uniforms.uLive.value = liveFor(build)
     material.uniforms.uTime.value = state.clock.elapsedTime
     material.uniforms.uCinema.value = quality === 'cinema' ? 1 : 0
+    // Gated by idle so the standby sweep steps back the moment scroll takes over.
+    material.uniforms.uPulse.value = 0.5 + (pulse.master - 0.5) * pulse.idle
     material.uniforms.uInk.value.copy(sceneColors.ink)
     material.uniforms.uAccent.value.copy(sceneColors.accent)
   })
