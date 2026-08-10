@@ -7,7 +7,7 @@ import {
 } from '../layout'
 import type { SectionWindow } from '../ui/sectionRanges'
 import type { BuiltConsole, ConsoleBuildInput, ConsoleSpec } from './types'
-import { consoleDistanceFor } from '../viewportFit'
+import { consoleDistanceFor, lateralFit } from '../viewportFit'
 
 const WORLD_UP = new THREE.Vector3(0, 1, 0)
 
@@ -44,7 +44,10 @@ export const placeConsole = (
   // Reading distance ahead of the eye — never park a plate in the near clip.
   const distance = consoleDistanceFor(fit)
   const sideSign = spec.side === 0 ? 0 : spec.side
-  const lateral = (spec.lateral ?? 0.55 * sideSign) * fit * 0.85
+  // The side lane only opens on a viewport wide enough to read as a corridor —
+  // on a phone every card collapses back to dead-centre instead of sitting
+  // half off-axis with nowhere for the other lane to go.
+  const lateral = (spec.lateral ?? 0.55 * sideSign) * lateralFit(fit) * 0.85
   const rise = (spec.rise ?? 0.05) * fit
 
   const position = eye

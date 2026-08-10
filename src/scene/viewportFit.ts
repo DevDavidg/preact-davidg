@@ -32,3 +32,18 @@ export const consoleDistanceFor = (fit: number) => 8.6 + (1 - fit) * 3.2
 
 /** FOV bump so short screens see the full plate. */
 export const fovCompensation = (fit: number) => (1 - fit) * 12
+
+/**
+ * How much of a console's side-lane offset survives at this viewport.
+ *
+ * The alternating left/right placement is a widescreen device: it reads as a
+ * corridor with room either side of the lens. A phone has no "either side" —
+ * `fit` bottoms out at its floor for every portrait width from a small phone
+ * up through an iPad in portrait, and at that floor the old code still kept
+ * ~48% of the desktop offset, which put every card visibly off-balance on a
+ * screen too narrow to justify it. This collapses to dead-centre at the fit
+ * floor and only starts opening the lane once the viewport is genuinely wide
+ * enough to read as a corridor (roughly a small-laptop width and up).
+ */
+export const lateralFit = (fit: number) =>
+  THREE.MathUtils.smoothstep(fit, 0.48, 0.75)

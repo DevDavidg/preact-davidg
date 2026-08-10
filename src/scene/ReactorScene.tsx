@@ -22,13 +22,22 @@ import type { SceneMode } from "./ui/ReactorType";
 import { useSectionWindows } from "./ui/useSectionWindows";
 
 /**
- * Device pixel ratio per fidelity step. Capped at 1.5 rather than 2: the extra
- * quarter of resolution is not visible on this material palette and costs more
- * fill rate than every other saving combined.
+ * Device pixel ratio per fidelity step.
+ *
+ * WebGL's own antialiasing only smooths edges relative to the framebuffer's
+ * own resolution — capping `full` at 1.5 meant a 3x-retina phone rendered at
+ * exactly half its native pixel density, then had the browser compositor
+ * upscale that soft, under-resolved buffer back out to the full screen. MSAA
+ * cannot fix an edge that was already blurred by that upscale; every hairline
+ * and facet edge in the scene read as fuzzy rather than anti-aliased. `full`
+ * now reaches far enough to actually resolve a retina phone's edges. If a
+ * given device cannot sustain that, `usePerformanceGovernor` demotes it to
+ * `reduced` or `minimal` from measured frame time — the cap here only sets
+ * the ceiling for devices that can afford it, not a floor for those that can't.
  */
 const DPR: Record<"full" | "reduced" | "minimal", [number, number]> = {
-  full: [1, 1.5],
-  reduced: [1, 1.25],
+  full: [1, 2],
+  reduced: [1, 1.5],
   minimal: [1, 1],
 };
 
