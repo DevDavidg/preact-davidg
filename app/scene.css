@@ -125,7 +125,7 @@
  */
 .shard {
   --shard-x: 0px;
-  --shard-y: 1.375rem;
+  --shard-y: 0.875rem;
   --shard-r: 0deg;
   --shard-delay: 0ms;
 
@@ -134,7 +134,7 @@
   rotate: var(--shard-r);
   transition:
     opacity var(--duration-reveal) var(--ease-signal),
-    translate var(--duration-reveal) var(--ease-signal),
+    translate calc(var(--duration-reveal) + 40ms) var(--ease-signal),
     rotate var(--duration-reveal) var(--ease-signal);
   transition-delay: var(--shard-delay);
 }
@@ -172,54 +172,54 @@
  * which reads the same and cannot overflow.
  */
 .shard:nth-child(6n + 1) {
-  --shard-y: 0.875rem;
+  --shard-y: 0.625rem;
   --shard-delay: 0ms;
 }
 .shard:nth-child(6n + 2) {
-  --shard-y: 1.5rem;
-  --shard-delay: 70ms;
+  --shard-y: 0.95rem;
+  --shard-delay: 90ms;
 }
 .shard:nth-child(6n + 3) {
-  --shard-y: -1.25rem;
-  --shard-delay: 150ms;
+  --shard-y: -0.75rem;
+  --shard-delay: 180ms;
 }
 .shard:nth-child(6n + 4) {
-  --shard-y: -0.75rem;
-  --shard-delay: 40ms;
+  --shard-y: -0.5rem;
+  --shard-delay: 55ms;
 }
 .shard:nth-child(6n + 5) {
-  --shard-y: 1.75rem;
-  --shard-delay: 200ms;
+  --shard-y: 1.05rem;
+  --shard-delay: 240ms;
 }
 .shard:nth-child(6n) {
-  --shard-y: -1.625rem;
-  --shard-delay: 110ms;
+  --shard-y: -0.9rem;
+  --shard-delay: 140ms;
 }
 
 @media (min-width: 64rem) {
   .shard:nth-child(6n + 1) {
-    --shard-x: -1rem;
-    --shard-r: -1deg;
+    --shard-x: -0.55rem;
+    --shard-r: -0.45deg;
   }
   .shard:nth-child(6n + 2) {
-    --shard-x: 0.875rem;
-    --shard-r: 0.8deg;
+    --shard-x: 0.5rem;
+    --shard-r: 0.4deg;
   }
   .shard:nth-child(6n + 3) {
-    --shard-x: -0.75rem;
-    --shard-r: 1deg;
+    --shard-x: -0.4rem;
+    --shard-r: 0.5deg;
   }
   .shard:nth-child(6n + 4) {
-    --shard-x: 1rem;
-    --shard-r: -0.7deg;
+    --shard-x: 0.55rem;
+    --shard-r: -0.35deg;
   }
   .shard:nth-child(6n + 5) {
-    --shard-x: -0.875rem;
-    --shard-r: 1.2deg;
+    --shard-x: -0.45rem;
+    --shard-r: 0.55deg;
   }
   .shard:nth-child(6n) {
-    --shard-x: 0.75rem;
-    --shard-r: -1.2deg;
+    --shard-x: 0.4rem;
+    --shard-r: -0.5deg;
   }
 }
 
@@ -229,28 +229,28 @@
  * and staggered by sibling position so the markup carries no timing values at all.
  */
 [data-revealed='true'] [data-word] {
-  animation: word-rise 1.1s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation: word-rise 1.35s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
 [data-revealed='true'] > span:nth-of-type(2) [data-word] {
-  animation-delay: 70ms;
+  animation-delay: 90ms;
 }
 [data-revealed='true'] > span:nth-of-type(3) [data-word] {
-  animation-delay: 140ms;
+  animation-delay: 170ms;
 }
 [data-revealed='true'] > span:nth-of-type(4) [data-word] {
-  animation-delay: 210ms;
+  animation-delay: 250ms;
 }
 [data-revealed='true'] > span:nth-of-type(5) [data-word] {
-  animation-delay: 280ms;
+  animation-delay: 330ms;
 }
 [data-revealed='true'] > span:nth-of-type(n + 6) [data-word] {
-  animation-delay: 350ms;
+  animation-delay: 400ms;
 }
 
 @keyframes word-rise {
   from {
-    transform: translateY(115%);
+    transform: translateY(100%);
   }
 }
 
@@ -268,7 +268,7 @@
 /* Instrumentation is small and dense, so it travels a shorter distance. */
 .shard.shard-fine {
   --shard-x: 0px;
-  --shard-y: 0.625rem;
+  --shard-y: 0.4rem;
   --shard-r: 0deg;
 }
 

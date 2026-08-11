@@ -54,7 +54,7 @@ export const cvConsoleSpecs = (copy: Copy, locale: Locale): ConsoleSpec[] => [
       { kind: 'title', text: trimTitle(copy.experience.heading, 36) },
       ...copy.experience.roles.map((role) => ({
         kind: 'data' as const,
-        text: `${role.current ? '●' : '○'} ${role.company} — ${role.role}`,
+        text: `${role.current ? '●' : '○'} ${role.company} — ${role.role} · ${role.period}`,
       })),
     ],
   },

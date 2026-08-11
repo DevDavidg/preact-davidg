@@ -33,7 +33,7 @@ export const SITE_NAME = 'David Guillen'
 
 export const PERSON = {
   name: 'David Guillen',
-  jobTitle: 'Senior Frontend & Mobile Engineer',
+  jobTitle: 'Full Stack Senior',
   email: 'dev.davidg@gmail.com',
   /** City only: precise location is not portfolio content. */
   locality: 'Buenos Aires',

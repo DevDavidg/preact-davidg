@@ -30,10 +30,11 @@ export const startMotionRuntime = ({
   const { setPhase } = useSceneStore.getState()
 
   const lenis = new Lenis({
-    lerp: 0.085,
+    // Slightly heavier damping: scroll feels deliberate without lagging input.
+    lerp: 0.065,
     smoothWheel: true,
-    wheelMultiplier: 1,
-    touchMultiplier: 1.6,
+    wheelMultiplier: 0.92,
+    touchMultiplier: 1.45,
     autoResize: true,
   })
 

@@ -80,6 +80,8 @@ interface ProcessPhase {
 interface Role {
   company: string
   role: string
+  /** Fixed date range from the CV — never a rolling "+N years". */
+  period: string
   context: string
   /** Present tense engagements render under "current". */
   current: boolean

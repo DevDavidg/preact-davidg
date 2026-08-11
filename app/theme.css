@@ -39,14 +39,14 @@
   --font-body: "Newsreader", "Iowan Old Style", Georgia, serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
 
-  /* Motion. One easing family; durations are the tokens from the plan. */
-  --ease-signal: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-signal-io: cubic-bezier(0.65, 0, 0.35, 1);
-  --duration-input: 140ms;
-  --duration-hover: 220ms;
-  --duration-state: 320ms;
-  --duration-reveal: 560ms;
-  --duration-chapter: 1000ms;
+  /* Motion. Soft expo-out family; longer reveals, no bounce. */
+  --ease-signal: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-signal-io: cubic-bezier(0.45, 0, 0.2, 1);
+  --duration-input: 160ms;
+  --duration-hover: 280ms;
+  --duration-state: 380ms;
+  --duration-reveal: 820ms;
+  --duration-chapter: 1200ms;
 
   /* Chrome geometry shared by fixed elements and scroll offsets. */
   --spacing-nav: 4.75rem;

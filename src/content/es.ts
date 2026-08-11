@@ -16,10 +16,10 @@ export const es: Copy = {
   htmlLang: 'es',
 
   meta: {
-    title: 'David Guillen — Senior Frontend & Mobile Engineer',
+    title: 'David Guillen — Full Stack Senior',
     description:
-      'Senior Frontend & Mobile Engineer. Construyo interfaces de producto, apps y sistemas de diseño con React, React Native y Next.js — y este portfolio corre sobre una escena WebGL propia.',
-    ogAlt: 'David Guillen — Senior Frontend & Mobile Engineer',
+      'Full Stack Senior en Nonconformist. Construyo interfaces de producto, apps y sistemas de diseño con React, React Native y Next.js — y este portfolio corre sobre una escena WebGL propia.',
+    ogAlt: 'David Guillen — Full Stack Senior',
   },
 
   nav: {
@@ -55,13 +55,13 @@ export const es: Copy = {
   },
 
   hero: {
-    eyebrow: 'DAVID GUILLEN — SENIOR FRONTEND & MOBILE',
+    eyebrow: 'DAVID GUILLEN — FULL STACK SENIOR',
     title: 'David Guillen',
     headline: 'Interfaces que aguantan producción.',
-    lead: 'Senior Frontend & Mobile Engineer. Trabajo el producto completo: arquitectura de front, apps en React Native, sistemas de diseño y el 3D en tiempo real que estás viendo ahora mismo.',
+    lead: 'Full Stack Senior en Nonconformist. Trabajo el producto completo: arquitectura de front, apps en React Native, sistemas de diseño y el 3D en tiempo real que estás viendo ahora mismo.',
     ctaClient: 'TENGO UN PROYECTO',
     ctaRecruiter: 'VER EXPERIENCIA',
-    factExperience: 'FREELANCE DESDE 2018 · EQUIPOS DE PRODUCTO, BANCA Y SALUD',
+    factExperience: 'NONCONFORMIST DESDE 2024 · BANCA, SALUD, TELCO Y PRODUCTO',
     factStack: 'REACT · REACT NATIVE · NEXT · ANGULAR · NODE',
     factAvailability: 'BUENOS AIRES (GMT−3) · REMOTO',
     cue: 'SCROLL PARA ENTRAR',
@@ -69,16 +69,16 @@ export const es: Copy = {
 
   work: {
     label: '01 — PROYECTOS',
-    heading: 'Tres piezas que muestran cómo trabajo',
+    heading: 'Tres sitios en producción que construí',
     intro:
-      'Cada una responde a un problema distinto: sistemas de diseño, flujo de compra y render en tiempo real. Todas tienen demo pública y podés abrirlas ahora.',
+      'Trabajo entregado a cliente, con URL pública. Cada uno responde a un dominio distinto: seguros, mercado de capitales y la web de la agencia.',
     featuredLabel: 'Casos destacados',
     labLabel: 'Lab',
     labIntro:
-      'Experimentos y conceptos donde pruebo una técnica puntual. Los muestro como lo que son: piezas propias, sin cliente detrás.',
+      'Experimentos, conceptos académicos y piezas propias. Los muestro como lo que son: sin cliente detrás, o con datos de ejemplo.',
     archiveLabel: 'Archivo',
     openCase: 'Leer el caso',
-    openDemo: 'Abrir demo',
+    openDemo: 'Abrir sitio',
     caseOf: 'Caso de estudio',
   },
 
@@ -86,46 +86,67 @@ export const es: Copy = {
     label: '02 — EXPERIENCIA',
     heading: 'Dónde trabajé y qué me tocó sostener',
     intro:
-      'Equipos de producto, banca, salud y agencia. Sin métricas de negocio que no pueda mostrar: lo verificable es el rol y el contexto.',
+      'Consultora, producto y freelance. Fechas fijas del CV; sin métricas de negocio que no pueda mostrar. Lo verificable es el rol y el contexto.',
     currentLabel: 'Actualmente',
     previousLabel: 'Antes',
     cvCta: 'VER CV COMPLETO',
     roles: [
       {
-        company: 'Grupo Mariva',
-        role: 'Líder Técnico',
-        context:
-          'Finanzas. Decisiones de arquitectura de front, revisión de código y acompañamiento del equipo.',
-        current: true,
-      },
-      {
-        company: 'Bayer',
-        role: 'Desarrollo sobre Salesforce',
-        context: 'Salud. Interfaces y automatizaciones dentro de la plataforma.',
-        current: true,
-      },
-      {
         company: 'Nonconformist',
-        role: 'Frontend Engineer',
-        context: 'Agencia de producto digital. Web y plataformas de cliente.',
+        role: 'Fullstack Senior',
+        period: 'Oct 2024 — Actualidad',
+        context:
+          'Consultora IT. Andina ART (web principal), A3Mercados (sitio en desarrollo), design system de Banco Mariva (React MFE), módulo de flujos Santander (Angular/BPMN), mantenimiento Salesforce en Bayer y MVP mobile DGALUM (React Native/Expo).',
         current: true,
       },
       {
-        company: 'Santander España',
-        role: 'Frontend Angular',
-        context: 'Banca. Desarrollo sobre aplicaciones internas de gran escala.',
+        company: 'Motoya',
+        role: 'Desarrollador Full Stack',
+        period: 'Ago 2025 — Ene 2026',
+        context: 'Producto propio en paralelo a Nonconformist: front y backend de punta a punta.',
+        current: false,
+      },
+      {
+        company: 'EMD — Empleos Marketing Digital',
+        role: 'Desarrollador Front End',
+        period: 'Ene 2024 — Jul 2024',
+        context: 'Interfaces de producto para el vertical de empleos y marketing digital.',
         current: false,
       },
       {
         company: 'GlobalLogic — cuenta Claro',
-        role: 'Frontend Engineer',
-        context: 'Telecomunicaciones. Producto de cara al cliente final.',
+        role: 'Desarrollador React',
+        period: 'Jul 2022 — Nov 2024',
+        context:
+          'Módulos internos de facturación Claro AR/UY/PY. React, TypeScript y Styled Components.',
         current: false,
       },
       {
-        company: 'Skyblue · VinciU · Orion2Pay',
-        role: 'Desarrollo web y mobile',
-        context: 'Primeros equipos: producto, pagos y apps.',
+        company: 'Skyblue Analytics',
+        role: 'Programador Vue / Quasar',
+        period: 'Abr 2023 — Sep 2023',
+        context: 'Interfaces de analytics sobre Vue y Quasar.',
+        current: false,
+      },
+      {
+        company: 'Gohaus',
+        role: 'Diseñador UX/UI',
+        period: 'Abr 2023 — May 2023',
+        context: 'Diseño de experiencias de usuario para producto digital.',
+        current: false,
+      },
+      {
+        company: 'VinciU',
+        role: 'Desarrollador Angular',
+        period: 'Jun 2022 — Abr 2023',
+        context: 'Campus virtual IT: Angular, Firebase, TypeScript y Bootstrap.',
+        current: false,
+      },
+      {
+        company: 'Orion2Pay',
+        role: 'Programador Front End / Diseñador UX/UI',
+        period: 'Sep 2021 — Feb 2022',
+        context: 'Interfaces y diseño de experiencia para producto de pagos.',
         current: false,
       },
     ],
@@ -212,7 +233,7 @@ export const es: Copy = {
       'David Guillen, de frente, con cabello oscuro rizado y anteojos de marco fino',
     quote:
       '«Me interesa el punto donde la interfaz deja de ser una maqueta y tiene que aguantar usuarios reales.»',
-    copy: 'Escribo software desde 2018: empecé freelance y seguí en equipos de producto, banca y salud. Me muevo cómodo entre la arquitectura de front y el detalle visual — y cuando hace falta bajo al backend o al render en GPU para que la idea exista de verdad.',
+    copy: 'Full Stack Senior en Nonconformist. Antes pasé por GlobalLogic (Claro), VinciU, Skyblue y varios productos freelance. Me muevo cómodo entre la arquitectura de front y el detalle visual — y cuando hace falta bajo al backend o al render en GPU para que la idea exista de verdad.',
     spec: [
       { key: 'BASE', value: 'Buenos Aires, Argentina — remoto' },
       { key: 'FOCO', value: 'Frontend · Mobile · Sistemas de diseño' },
@@ -260,7 +281,7 @@ export const es: Copy = {
     contribution: 'Qué construí',
     evidence: 'Qué podés verificar',
     outcome: 'Resultado',
-    viewDemo: 'Abrir demo',
+    viewDemo: 'Abrir sitio',
     viewRepo: 'Ver código',
     nextCase: 'Siguiente caso',
     noDemo: 'Sin demo pública',
@@ -268,7 +289,7 @@ export const es: Copy = {
 
   cv: {
     label: 'CV',
-    heading: 'David Guillen — Senior Frontend & Mobile Engineer',
+    heading: 'David Guillen — Full Stack Senior',
     intro:
       'Versión imprimible de mi trayectoria. Los datos son los mismos que están en el resto del sitio.',
     print: 'Imprimir o guardar como PDF',
@@ -276,26 +297,31 @@ export const es: Copy = {
       profile: 'Perfil',
       experience: 'Experiencia',
       skills: 'Capacidades técnicas',
-      projects: 'Proyectos propios',
+      projects: 'Proyectos',
       education: 'Formación',
       languages: 'Idiomas',
     },
     education: [
       {
-        key: 'Formación técnica',
-        value: 'Desarrollo web y mobile — trayecto autodidacta y cursos aplicados',
+        key: 'Da Vinci',
+        value: 'Certificación Profesional en Gestión de Medios Digitales (2025)',
       },
       {
-        key: 'Aprendizaje continuo',
-        value: 'Arquitectura de front, accesibilidad, rendimiento y gráficos en tiempo real',
+        key: 'UNAJ',
+        value: 'Ingeniería Informática (2021 — 2023)',
+      },
+      {
+        key: 'Cursos',
+        value:
+          'SoyHenry, CoderHouse, Platzi, Udemy, SoloLearn, Google Creative Campus, Microsoft',
       },
     ],
     skills: [
       { key: 'Frontend', value: 'React, Next.js, Angular, Vue, TypeScript' },
-      { key: 'Mobile', value: 'React Native, Android, publicación en tiendas' },
-      { key: 'Backend', value: 'Node, Express, Firebase, REST' },
-      { key: 'Datos', value: 'PostgreSQL, MySQL, MongoDB' },
-      { key: 'Interfaz', value: 'Sistemas de diseño, accesibilidad WCAG, Core Web Vitals' },
+      { key: 'Mobile', value: 'React Native, Expo, publicación en tiendas' },
+      { key: 'Backend', value: 'Node, Express, Firebase, Strapi, REST' },
+      { key: 'Datos', value: 'PostgreSQL, MySQL, MongoDB, Salesforce/SOQL' },
+      { key: 'Interfaz', value: 'Sistemas de diseño, MFE, accesibilidad, Core Web Vitals' },
       { key: 'Gráficos', value: 'Three.js, React Three Fiber, GLSL, GSAP' },
     ],
   },
@@ -307,117 +333,159 @@ export const es: Copy = {
   },
 
   localeGate: {
-    title: 'David Guillen — Senior Frontend & Mobile Engineer',
+    title: 'David Guillen — Full Stack Senior',
     lead: 'Elegí un idioma para entrar.',
     choose: { es: 'Entrar en español', en: 'Enter in English' },
   },
 
   featured: [
     {
-      slug: 'chroma-dev',
-      title: 'Chroma Dev',
-      kind: 'concept',
-      kindLabel: 'Proyecto propio · demo pública',
-      tags: ['DESIGN SYSTEM', 'REACT', 'THEMING'],
+      slug: 'andina-art',
+      title: 'Andina ART',
+      kind: 'product',
+      kindLabel: 'Cliente · sitio en producción',
+      tags: ['NEXT.JS', 'SEGUROS', 'REACT'],
       summary:
-        'Un editor donde un JSON de tokens define color y tipografía, y la interfaz se re-skinnea sin recargar ni volver a deployar.',
+        'Sitio principal de Andina ART: riesgos del trabajo y seguros, con información institucional y captación de consulta.',
       outcome:
-        'El tema queda definido como datos: se edita el JSON y la interfaz se re-skinnea en el momento, sin recompilar. Eso es lo que vuelve viable un mismo build con la marca de varios clientes.',
+        'La web pública quedó en producción bajo andinaart.com.ar, con stack React/Next y API Express detrás del front.',
       problem:
-        'Cuando un producto SaaS se vende con la marca de cada cliente, el camino fácil es duplicar el proyecto o mantener una rama por cuenta. Ese atajo multiplica el trabajo de cada cambio y hace que dos clientes nunca tengan la misma versión.',
-      role: 'Diseño y desarrollo completo, en solitario.',
-      scope: 'Proyecto propio, sin cliente detrás. Alcance acotado a demostrar el mecanismo.',
-      stack: ['React', 'Next.js', 'TypeScript', 'shadcn/ui', 'CSS custom properties'],
+        'La aseguradora necesitaba una presencia web moderna que explique el producto y canalice contacto, sin arrastrar un CMS legacy.',
+      role: 'Encargado del desarrollo de la web principal en Nonconformist.',
+      scope: 'Cliente de Nonconformist. Front público y capa Express de soporte.',
+      stack: ['React', 'Next.js', 'Express', 'Bootstrap'],
       constraints: [
-        'El tema tiene que cambiar en caliente, sin recarga y sin recompilar.',
-        'Los tokens tienen que ser editables por alguien que no toca el código.',
-        'El contraste no puede romperse al cambiar de paleta.',
+        'Contenido regulado del rubro ART: claridad por encima de adorno.',
+        'Tiene que funcionar bien en móvil: gran parte del tráfico llega desde ahí.',
+        'El handoff a la agencia tiene que dejar el repo mantenible.',
       ],
       decisions: [
         {
-          title: 'Tokens como datos, no como clases',
-          body: 'El tema vive en un JSON que se mapea a custom properties de CSS. Los componentes leen variables, así que ninguno necesita saber qué tema está activo.',
+          title: 'Next para el sitio público',
+          body: 'SSR/SSG donde conviene, rutas claras y SEO de páginas institucionales sin montar un CMS completo al día uno.',
         },
         {
-          title: 'Un contrato tipado para el tema',
-          body: 'La forma del JSON está tipada: un token que falta o cambia de nombre se ve al compilar, no cuando un cliente abre la app con la mitad de los colores en negro.',
-        },
-        {
-          title: 'Editor y preview en la misma pantalla',
-          body: 'La edición se valida al lado del resultado. Es la diferencia entre "confío en el JSON" y "veo el JSON aplicado".',
+          title: 'Express como borde del front',
+          body: 'Formularios y endpoints de soporte viven fuera del bundle del navegador, así el front no acumula secretos ni lógica sensible.',
         },
       ],
       contribution: [
-        'Esquema de tokens de color y tipografía, y su tipado.',
-        'Puente entre el JSON y las custom properties aplicadas en runtime.',
-        'Editor con validación y aplicación inmediata del tema.',
-        'Set de componentes de muestra para ver el tema sobre UI real.',
+        'Arquitectura y desarrollo del sitio público.',
+        'Integración con Express para flujos de contacto y datos.',
+        'Maquetado responsive y handoff al equipo de la agencia.',
       ],
       evidence: [
-        'La demo es pública: editás el JSON y la interfaz cambia en el momento.',
-        'La escala tipográfica y la paleta se ven en el mismo editor.',
+        'El sitio está en producción: https://www.andinaart.com.ar/',
+        'El rol y el stack constan en el CV bajo Nonconformist.',
       ],
-      demoUrl: 'https://chroma-dev.vercel.app/',
+      demoUrl: 'https://www.andinaart.com.ar/',
       image: {
-        src: '/work/chroma-dev.jpg',
-        alt: 'Editor de Chroma Dev mostrando un archivo theme.json con tokens de color y escala tipográfica',
+        src: '/work/andina-art.jpg',
+        alt: 'Sitio de Andina ART: portada de ART Argentina y seguros de riesgos laborales',
         width: 1600,
         height: 1000,
       },
-      plate: 'MÓDULO 01 — CHROMA',
+      plate: 'MÓDULO 01 — ANDINA',
     },
     {
-      slug: 'landing-davinci',
-      title: 'Landing Da Vinci',
-      kind: 'concept',
-      kindLabel: 'Proyecto propio · demo pública',
-      tags: ['DIRECCIÓN DE ARTE', 'LANDING', 'TIPOGRAFÍA'],
+      slug: 'ag-valores',
+      title: 'AG Valores',
+      kind: 'product',
+      kindLabel: 'Cliente · sitio en producción',
+      tags: ['NEXT.JS', 'FINANZAS', 'COTIZACIONES'],
       summary:
-        'Landing editorial para una colección de arte: un titular enorme sobre una imagen a sangre, con atmósfera de sala de museo.',
+        'Sitio de AG Valores (ALyC): cotizaciones, servicios de inversión y captación de asesores para el mercado de capitales argentino.',
       outcome:
-        'La pieza sostiene una imagen que ocupa toda la pantalla sin que el texto pierda legibilidad ni jerarquía — y lo hace con composición, no tapando la foto con una capa opaca.',
+        'La web pública opera en agvalores.com.ar con navegación de productos, tablas de cotización y canales de contacto.',
       problem:
-        'Cuando la imagen es la protagonista, el texto suele terminar peleando contra ella: se le pone una sombra, un degradado negro encima, o se lo empuja a una franja lateral. El ejercicio era mantener las dos cosas enteras en la misma pantalla.',
-      role: 'Dirección de arte, diseño y desarrollo completo.',
-      scope: 'Proyecto propio, sin cliente. Una vista, trabajada a fondo.',
-      stack: ['Next.js', 'React', 'CSS'],
+        'Una ALyC necesita mostrar instrumentos, normativa y vías de apertura de cuenta con claridad regulatoria y sin fricción en móvil.',
+      role: 'Desarrollo frontend del sitio en el contexto de Nonconformist / producto cliente.',
+      scope: 'Cliente. Sitio público con datos de mercado y formularios de contacto.',
+      stack: ['Next.js', 'React', 'TypeScript'],
       constraints: [
-        'La imagen ocupa toda la pantalla y el texto tiene que seguir legible encima.',
-        'La jerarquía tiene que leerse antes que la decoración.',
-        'Nada de capas opacas sobre la obra: es lo que la landing viene a mostrar.',
+        'Copy y datos sujetos a marco CNV: nada de promesas de rendimiento inventadas en UI.',
+        'Tablas de cotización legibles en desktop y usables en móvil.',
+        'CTA de asesoría y WhatsApp siempre a un toque.',
       ],
       decisions: [
         {
-          title: 'Escala tipográfica extrema, una sola voz',
-          body: 'Un titular muy grande y todo lo demás muy contenido. El contraste de tamaño hace el trabajo que en otras landings hacen cinco colores y tres pesos.',
+          title: 'Jerarquía clara: asesorar antes que saturar',
+          body: 'El hero vende acompañamiento personalizado; las cotizaciones viven como herramienta, no como ruido del primer viewport.',
         },
         {
-          title: 'El contraste se resuelve en la composición',
-          body: 'El texto se apoya en la zona oscura de la imagen en lugar de oscurecerla. Cuesta más encuadrar y no cuesta nada en legibilidad.',
-        },
-        {
-          title: 'Los CTA rompen la penumbra, el resto no',
-          body: 'Un único bloque claro en la esquina inferior izquierda concentra la acción. Todo lo demás queda en el rango tonal de la obra.',
+          title: 'Canales de contacto redundantes',
+          body: 'Formulario, teléfono y WhatsApp conviven porque el visitante de una ALyC no siempre completa un form a la primera.',
         },
       ],
       contribution: [
-        'Composición y sistema tipográfico de la vista.',
-        'Tratamiento de imagen, encuadre y jerarquía de contenido.',
-        'Desarrollo de la landing y su comportamiento responsive.',
+        'Implementación del sitio público y sus secciones de producto.',
+        'UI de cotizaciones y CTAs de apertura de cuenta / asesor.',
+        'Ajustes responsive y de accesibilidad básica del recorrido.',
       ],
       evidence: [
-        'La demo es pública y se puede ver en cualquier tamaño de pantalla.',
-        'El titular se lee sobre la obra sin ninguna capa oscura de por medio.',
+        'El sitio está en producción: https://agvalores.com.ar/',
+        'AG Valores S.A. figura como ALyC registrada ante CNV en el propio pie del sitio.',
       ],
-      demoUrl: 'https://landing-davinci.vercel.app/',
+      demoUrl: 'https://agvalores.com.ar/',
       image: {
-        src: '/work/landing-davinci.jpg',
-        alt: 'Landing Da Vinci: el titular «Galaxia al óleo» sobre una galaxia pintada al óleo con un pincel',
+        src: '/work/ag-valores.jpg',
+        alt: 'Sitio de AG Valores: hero de asesoramiento de alto valor y navegación de cotizaciones',
         width: 1600,
         height: 1000,
       },
-      plate: 'MÓDULO 02 — DAVINCI',
+      plate: 'MÓDULO 02 — AG VALORES',
     },
+    {
+      slug: 'nonconformist',
+      title: 'Nonconformist',
+      kind: 'product',
+      kindLabel: 'Cliente · sitio en producción',
+      tags: ['AGENCIA', 'NEXT.JS', 'MARCA'],
+      summary:
+        'Sitio corporativo de Nonconformist Digital: la cara pública de la consultora donde trabajo como Fullstack Senior.',
+      outcome:
+        'La marca de la agencia quedó publicada en nonconformist.digital con la narrativa y el portfolio de la casa.',
+      problem:
+        'Una consultora IT necesita una web que transmita criterio de producto, no solo un listado de tecnologías.',
+      role: 'Desarrollo del sitio de la agencia en Nonconformist.',
+      scope: 'Trabajo interno de la consultora. Sitio marketing en producción.',
+      stack: ['Next.js', 'React', 'TypeScript'],
+      constraints: [
+        'Tiene que representar la marca frente a clientes enterprise y startups.',
+        'Performance y SEO importan: es la puerta de entrada comercial.',
+        'Mantenible por el equipo después del primer ship.',
+      ],
+      decisions: [
+        {
+          title: 'Marca primero, stack después',
+          body: 'La web vende capacidad de producto; el detalle técnico queda al servicio del mensaje, no al revés.',
+        },
+        {
+          title: 'Misma barra de calidad que los clientes',
+          body: 'Si la agencia pide Core Web Vitals a terceros, su propia web no puede ser la excepción.',
+        },
+      ],
+      contribution: [
+        'Desarrollo del sitio público de la agencia.',
+        'Integración de contenidos y recorrido de captación.',
+        'Ajustes de performance y responsive para el lanzamiento.',
+      ],
+      evidence: [
+        'El sitio está en producción: https://nonconformist.digital/',
+        'El rol Fullstack Senior en Nonconformist consta en el CV (oct 2024 — actualidad).',
+      ],
+      demoUrl: 'https://nonconformist.digital/',
+      image: {
+        src: '/work/nonconformist.jpg',
+        alt: 'Sitio de Nonconformist Digital, consultora IT',
+        width: 1600,
+        height: 1000,
+      },
+      plate: 'MÓDULO 03 — NXC',
+    },
+  ],
+
+  lab: [
     {
       slug: 'signal-reactor',
       title: 'Signal Reactor',
@@ -484,11 +552,140 @@ export const es: Copy = {
         width: 1600,
         height: 1000,
       },
-      plate: 'MÓDULO 03 — REACTOR',
+      plate: 'LAB — REACTOR',
     },
-  ],
-
-  lab: [
+    {
+      slug: 'launch-flow',
+      title: 'Launch Flow',
+      kind: 'concept',
+      kindLabel: 'Concepto académico · datos de ejemplo',
+      tags: ['LANDING', 'SAAS', 'MAQUETADO'],
+      summary:
+        'Landing BetaLaunch para el TP de Maquetado y Desarrollo Web (Da Vinci): hero, características y captación de beta con datos ficticios.',
+      outcome:
+        'Ejercicio de estructura de landing de conversión entregado como trabajo práctico — no es un producto real ni tracción verdadera.',
+      problem:
+        'Practicar el orden de una landing de producto: propuesta, prueba, objeción y acción, sin que la estética tape el mensaje.',
+      role: 'Diseño y desarrollo completo.',
+      scope:
+        'Trabajo práctico académico (Escuela Da Vinci, 1er cuatrimestre 2025). Marca y métricas de pantalla son de ejemplo.',
+      stack: ['React', 'CSS', 'Diseño responsive'],
+      constraints: [
+        'El efecto de vidrio no puede comerse el contraste del texto.',
+        'La estructura tiene que leerse igual en móvil.',
+      ],
+      decisions: [
+        {
+          title: 'Los números son claramente de muestra',
+          body: 'Las cifras del hero forman parte de una maqueta de producto inventado; no representan tracción real y así se declara en este caso.',
+        },
+      ],
+      contribution: ['Estructura, composición y desarrollo de la vista.'],
+      evidence: [
+        'La demo es pública en https://launch-flow.vercel.app/',
+        'El pie del sitio declara el TP, el profesor y el estudiante.',
+      ],
+      demoUrl: 'https://launch-flow.vercel.app/',
+      image: {
+        src: '/work/launch-flow.jpg',
+        alt: 'Landing BetaLaunch con titular sobre convertir una idea en startup y métricas de ejemplo',
+        width: 1600,
+        height: 1000,
+      },
+      plate: 'LAB — LAUNCH',
+    },
+    {
+      slug: 'chroma-dev',
+      title: 'Chroma Dev',
+      kind: 'concept',
+      kindLabel: 'Proyecto propio · demo pública',
+      tags: ['DESIGN SYSTEM', 'REACT', 'THEMING'],
+      summary:
+        'Un editor donde un JSON de tokens define color y tipografía, y la interfaz se re-skinnea sin recargar ni volver a deployar.',
+      outcome:
+        'El tema queda definido como datos: se edita el JSON y la interfaz se re-skinnea en el momento, sin recompilar.',
+      problem:
+        'Cuando un producto SaaS se vende con la marca de cada cliente, el camino fácil es duplicar el proyecto o mantener una rama por cuenta.',
+      role: 'Diseño y desarrollo completo, en solitario.',
+      scope: 'Proyecto propio, sin cliente detrás. Alcance acotado a demostrar el mecanismo.',
+      stack: ['React', 'Next.js', 'TypeScript', 'shadcn/ui', 'CSS custom properties'],
+      constraints: [
+        'El tema tiene que cambiar en caliente, sin recarga y sin recompilar.',
+        'Los tokens tienen que ser editables por alguien que no toca el código.',
+        'El contraste no puede romperse al cambiar de paleta.',
+      ],
+      decisions: [
+        {
+          title: 'Tokens como datos, no como clases',
+          body: 'El tema vive en un JSON que se mapea a custom properties de CSS. Los componentes leen variables, así que ninguno necesita saber qué tema está activo.',
+        },
+        {
+          title: 'Un contrato tipado para el tema',
+          body: 'La forma del JSON está tipada: un token que falta o cambia de nombre se ve al compilar.',
+        },
+      ],
+      contribution: [
+        'Esquema de tokens y tipado.',
+        'Puente JSON → custom properties en runtime.',
+        'Editor con preview inmediato.',
+      ],
+      evidence: [
+        'La demo es pública: editás el JSON y la interfaz cambia en el momento.',
+      ],
+      demoUrl: 'https://chroma-dev.vercel.app/',
+      image: {
+        src: '/work/chroma-dev.jpg',
+        alt: 'Editor de Chroma Dev mostrando un archivo theme.json con tokens de color y escala tipográfica',
+        width: 1600,
+        height: 1000,
+      },
+      plate: 'LAB — CHROMA',
+    },
+    {
+      slug: 'landing-davinci',
+      title: 'Landing Da Vinci',
+      kind: 'concept',
+      kindLabel: 'Proyecto propio · demo pública',
+      tags: ['DIRECCIÓN DE ARTE', 'LANDING', 'TIPOGRAFÍA'],
+      summary:
+        'Landing editorial para una colección de arte: un titular enorme sobre una imagen a sangre, con atmósfera de sala de museo.',
+      outcome:
+        'La pieza sostiene una imagen a pantalla completa sin tapar la obra con capas opacas.',
+      problem:
+        'Cuando la imagen es la protagonista, el texto suele pelear contra ella con sombras o degradados negros.',
+      role: 'Dirección de arte, diseño y desarrollo completo.',
+      scope: 'Proyecto propio, sin cliente. Una vista, trabajada a fondo.',
+      stack: ['Next.js', 'React', 'CSS'],
+      constraints: [
+        'La imagen ocupa toda la pantalla y el texto tiene que seguir legible encima.',
+        'Nada de capas opacas sobre la obra.',
+      ],
+      decisions: [
+        {
+          title: 'Escala tipográfica extrema, una sola voz',
+          body: 'Un titular muy grande y todo lo demás muy contenido.',
+        },
+        {
+          title: 'El contraste se resuelve en la composición',
+          body: 'El texto se apoya en la zona oscura de la imagen en lugar de oscurecerla.',
+        },
+      ],
+      contribution: [
+        'Composición y sistema tipográfico.',
+        'Desarrollo responsive de la landing.',
+      ],
+      evidence: [
+        'La demo es pública y se puede ver en cualquier tamaño de pantalla.',
+      ],
+      demoUrl: 'https://landing-davinci.vercel.app/',
+      image: {
+        src: '/work/landing-davinci.jpg',
+        alt: 'Landing Da Vinci: el titular «Galaxia al óleo» sobre una galaxia pintada al óleo con un pincel',
+        width: 1600,
+        height: 1000,
+      },
+      plate: 'LAB — DAVINCI',
+    },
     {
       slug: 'fueradecontexto',
       title: 'Fueradecontexto',
@@ -498,30 +695,28 @@ export const es: Copy = {
       summary:
         'Tienda online con catálogo, carrito y checkout. Hoy el deploy levanta el shell pero no llega a traer los productos: la demo se queda en los skeletons.',
       outcome:
-        'Lo que sigue siendo demostrable es el diseño de estados de carga: la página no se rompe ni se queda en blanco cuando los datos no llegan, muestra la estructura que va a ocupar el contenido.',
+        'Lo demostrable es el diseño de estados de carga: la página no se rompe cuando los datos no llegan.',
       problem:
-        'Practicar el recorrido de compra completo, incluidos los estados intermedios que casi nunca se diseñan: carga, vacío, error y agotado.',
+        'Practicar el recorrido de compra completo, incluidos carga, vacío, error y agotado.',
       role: 'Diseño de interfaz y desarrollo frontend.',
       scope:
-        'Proyecto propio, sin pagos reales. El backend de datos del deploy dejó de responder, así que la demo no representa el estado terminado.',
+        'Proyecto propio, sin pagos reales. El backend del deploy dejó de responder.',
       stack: ['React', 'TypeScript', 'CSS Modules'],
       constraints: [
         'La página tiene que seguir siendo legible cuando los datos tardan o no llegan.',
-        'La grilla tiene que funcionar de 320 px a desktop sin scroll horizontal.',
       ],
       decisions: [
         {
           title: 'Skeletons con la forma real del contenido',
-          body: 'Los placeholders reproducen la altura y la disposición de las tarjetas, así que la página no salta cuando los datos entran. Es también la razón por la que la demo caída se ve incompleta pero no rota.',
+          body: 'Los placeholders reproducen la altura de las tarjetas para que la página no salte.',
         },
       ],
       contribution: [
         'Layout de catálogo y ficha de producto.',
-        'Estados de carga, vacío y error de la tienda.',
+        'Estados de carga, vacío y error.',
       ],
       evidence: [
         'La demo es pública y muestra el shell con sus estados de carga; los productos ya no cargan.',
-        'Lo dejo así, y dicho, en lugar de mostrar una captura que prometa una tienda funcionando.',
       ],
       demoUrl: 'https://fueradecontexto.vercel.app/',
       image: {
@@ -539,22 +734,21 @@ export const es: Copy = {
       kindLabel: 'Experimento · demo pública',
       tags: ['WEBGL', 'THREE.JS', 'MATERIALES'],
       summary:
-        'Escena WebGL con esferas dentro de un volumen: un banco de pruebas de materiales, luz y densidad de objetos.',
+        'Escena WebGL con esferas dentro de un volumen: banco de pruebas de materiales, luz y densidad.',
       outcome:
-        'Fue el paso previo al render en tiempo real de este portfolio: acá probé instanciado, materiales y costo de fill-rate antes de llevarlo a producción.',
+        'Paso previo al render en tiempo real de este portfolio: instancing, materiales y fill-rate.',
       problem:
-        'Antes de apoyar un sitio entero en WebGL necesitaba entender dónde se cae el rendimiento cuando crecen los objetos y los materiales reflectantes.',
+        'Entender dónde se cae el rendimiento cuando crecen objetos y materiales reflectantes.',
       role: 'Desarrollo completo.',
       scope: 'Experimento propio. Una escena, sin interfaz alrededor.',
       stack: ['Three.js', 'JavaScript', 'WebGL'],
       constraints: [
         'Muchos objetos con material reflectante sin perder fluidez.',
-        'La escena tiene que arrancar sin assets pesados.',
       ],
       decisions: [
         {
           title: 'Geometría compartida entre instancias',
-          body: 'Una sola geometría reutilizada para todas las esferas: el costo se va al fill-rate, no al número de draw calls.',
+          body: 'Una sola geometría reutilizada: el costo se va al fill-rate, no a los draw calls.',
         },
       ],
       contribution: ['Escena, materiales y control de cámara.'],
@@ -567,43 +761,6 @@ export const es: Copy = {
         height: 1000,
       },
       plate: 'LAB — SPHERE',
-    },
-    {
-      slug: 'launch-flow',
-      title: 'Launch Flow',
-      kind: 'concept',
-      kindLabel: 'Concepto · datos de ejemplo',
-      tags: ['LANDING', 'SAAS', 'GLASSMORPHISM'],
-      summary:
-        'Landing de lanzamiento para un producto SaaS ficticio, con hero, características y captación de beta.',
-      outcome:
-        'Ejercicio de estructura de landing de conversión: qué se dice primero, qué se prueba y dónde va el formulario.',
-      problem:
-        'Practicar el orden de una landing de producto: propuesta, prueba, objeción y acción, sin que la estética tape el mensaje.',
-      role: 'Diseño y desarrollo completo.',
-      scope:
-        'Concepto propio. El producto, la marca y los números que aparecen en pantalla son de ejemplo, no resultados reales.',
-      stack: ['React', 'CSS', 'Diseño responsive'],
-      constraints: [
-        'El efecto de vidrio no puede comerse el contraste del texto.',
-        'La estructura tiene que leerse igual en móvil.',
-      ],
-      decisions: [
-        {
-          title: 'Los números son claramente de muestra',
-          body: 'Las cifras del hero forman parte de una maqueta de producto inventado; no representan tracción real y así se declara en este caso.',
-        },
-      ],
-      contribution: ['Estructura, composición y desarrollo de la vista.'],
-      evidence: ['La demo es pública. Los datos que muestra son ficticios.'],
-      demoUrl: 'https://launch-flow.vercel.app/',
-      image: {
-        src: '/work/launch-flow.jpg',
-        alt: 'Landing BetaLaunch con titular sobre convertir una idea en startup y métricas de ejemplo',
-        width: 1600,
-        height: 1000,
-      },
-      plate: 'LAB — LAUNCH',
     },
   ],
 

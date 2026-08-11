@@ -41,6 +41,9 @@ const SETTLE: Record<string, number> = {
   'landing-davinci': 9000,
   'david-g-dev': 7000,
   fueradecontexto: 4000,
+  'andina-art': 2500,
+  'ag-valores': 2500,
+  nonconformist: 2500,
 }
 
 const DEFAULT_SETTLE = 1500
@@ -197,6 +200,8 @@ const main = async () => {
       '--use-gl=angle',
       '--use-angle=swiftshader',
       '--enable-unsafe-swiftshader',
+      // Some client sites (CDN / WAF) refuse bare headless Chromium.
+      '--disable-blink-features=AutomationControlled',
     ],
   })
   const context = await browser.newContext({
@@ -205,6 +210,15 @@ const main = async () => {
     colorScheme: 'dark',
     // Screenshots are documentation, not a performance test: let everything land.
     reducedMotion: 'no-preference',
+    locale: 'es-AR',
+    userAgent:
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    extraHTTPHeaders: {
+      'Accept-Language': 'es-AR,es;q=0.9,en;q=0.8',
+    },
+  })
+  await context.addInitScript(() => {
+    Object.defineProperty(navigator, 'webdriver', { get: () => undefined })
   })
 
   for (const shot of shots()) {
@@ -238,7 +252,9 @@ const main = async () => {
     }
   }
 
-  await captureSelf(browser)
+  if (wanted('signal-reactor')) {
+    await captureSelf(browser)
+  }
   await browser.close()
 }
 

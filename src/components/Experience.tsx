@@ -7,9 +7,9 @@ import { Section } from './ui/Section'
 /**
  * The recruiter path.
  *
- * Roles and context only: no invented date ranges, no business metrics that
- * cannot be shown. What a reader can verify here is where the work happened and
- * what the responsibility was, which is more useful than an unverifiable number.
+ * Roles, fixed periods and context only: no rolling "+N years", no business
+ * metrics that cannot be shown. What a reader can verify is where the work
+ * happened, when, and what the responsibility was.
  */
 export const Experience = () => {
   const { copy, locale } = useCopy()
@@ -24,10 +24,13 @@ export const Experience = () => {
         {roles.map((role) => (
           <Reveal
             as="li"
-            key={`${role.company}-${role.role}`}
+            key={`${role.company}-${role.role}-${role.period}`}
             className="grid gap-1 border-t border-line py-6 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] sm:gap-8"
           >
-            <p className="text-display shard text-lg">{role.company}</p>
+            <div className="shard flex flex-col gap-1">
+              <p className="text-display text-lg">{role.company}</p>
+              <p className="text-meta text-ink-dim">{role.period}</p>
+            </div>
             <div className="shard flex flex-col gap-1">
               <p className="text-meta text-ignition">{role.role}</p>
               <p className="text-body text-sm">{role.context}</p>
