@@ -16,36 +16,52 @@
  *    the opening axis — and facets sweep along the corridor axis rather than
  *    scattering, so scrubbing the wheel scrubs the shell.
  */
-import { useEffect, useMemo, useRef } from 'react'
-import type { ThreeEvent } from '@react-three/fiber'
-import { useFrame, useThree } from '@react-three/fiber'
-import * as THREE from 'three'
-import type { Quality } from './capability'
-import { buildHeroShell, TRIS_PER_SHARD } from './heroShell'
-import { applyLinePeel, applyLitPeel, createPeelUniforms } from './heroPeel'
-import { CAMERA_PATH, REACTOR_CORE } from './layout'
-import { idleAmount, pulse, pulseAt, sectionPhase } from './pulse'
-import { sceneColors } from './sceneColors'
-import { clamp01, sceneState } from './sceneState'
-import { computeViewportFit, heroSizeFit } from './viewportFit'
+import { useEffect, useMemo, useRef } from "react";
+import type { ThreeEvent } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
+import * as THREE from "three";
+import type { Quality } from "./capability";
+import { buildHeroShell, TRIS_PER_SHARD } from "./heroShell";
+import { applyLinePeel, applyLitPeel, createPeelUniforms } from "./heroPeel";
+import { CAMERA_PATH, REACTOR_CORE } from "./layout";
+import { idleAmount, pulse, pulseAt, sectionPhase } from "./pulse";
+import { sceneColors } from "./sceneColors";
+import { clamp01, sceneState } from "./sceneState";
+import { computeViewportFit, heroSizeFit } from "./viewportFit";
 
-const HERO_FADE_START = 0.055
-const HERO_FADE_END = 0.18
+const HERO_FADE_START = 0.055;
+const HERO_FADE_END = 0.18;
 /** The aperture commits on the first scroll pixel — no dead zone before it moves. */
-const OPEN_START = 0.008
-const OPEN_END = 0.155
-const BASE_SEPARATION = 0.022
-const SHELL_RADIUS = 0.78
+const OPEN_START = 0.008;
+const OPEN_END = 0.155;
+const BASE_SEPARATION = 0.022;
+const SHELL_RADIUS = 0.78;
+
+/**
+ * Hover ripple.
+ *
+ * One facet reacting alone to the pointer read as a glitch, not an instrument.
+ * Hovering now peels a whole sector at once: neighbours within this radius
+ * (shell-local units) join in, weighted by distance, and the wave itself takes
+ * `HOVER_WAVE_DURATION` seconds to cross the sector — so the cluster lifts as
+ * one choreographed gesture, spreading outward from the pointer, instead of
+ * every facet in range snapping up together.
+ */
+const HOVER_SECTOR_RADIUS = SHELL_RADIUS * 1.15;
+const HOVER_WAVE_DURATION = 0.3;
+const HOVER_WAVE_EDGE = 0.16;
 
 /** Locked phases off the master clock — one tempo, four amplitudes. */
-const CORE_PHASE = sectionPhase(0)
-const RING_PHASE = sectionPhase(1)
-const CUE_PHASE = sectionPhase(2)
-const RIM_PHASE = Math.PI
+const CORE_PHASE = sectionPhase(0);
+const RING_PHASE = sectionPhase(1);
+const CUE_PHASE = sectionPhase(2);
+const RIM_PHASE = Math.PI;
 
-const _dir = new THREE.Vector3()
-const _camStart = new THREE.Vector3()
-const _structural = new THREE.Color()
+const _dir = new THREE.Vector3();
+const _camStart = new THREE.Vector3();
+const _structural = new THREE.Color();
+const _hoverPoint = new THREE.Vector3();
+const _shardPoint = new THREE.Vector3();
 
 /**
  * The axis the shell opens along: from the shell toward where the camera starts.
@@ -53,7 +69,7 @@ const _structural = new THREE.Color()
  * corridor rather than as an explosion.
  */
 const heroViewAxis = () => {
-  CAMERA_PATH.getPointAt(0, _camStart)
+  CAMERA_PATH.getPointAt(0, _camStart);
   return _dir
     .set(
       _camStart.x - REACTOR_CORE[0],
@@ -61,8 +77,8 @@ const heroViewAxis = () => {
       _camStart.z - REACTOR_CORE[2],
     )
     .normalize()
-    .clone()
-}
+    .clone();
+};
 
 /**
  * Graphite body.
@@ -73,26 +89,26 @@ const heroViewAxis = () => {
  * env bounce — which is what separates machined metal from a coloured ball.
  */
 const structuralColor = (target: THREE.Color) =>
-  target.copy(sceneColors.base).lerp(sceneColors.ink, 0.085)
+  target.copy(sceneColors.base).lerp(sceneColors.ink, 0.085);
 
 /** Soft studio gradient → PMREM. Reads as bounced light without a path tracer. */
 const createStudioEnv = (gl: THREE.WebGLRenderer) => {
-  const size = 256
-  const canvas = document.createElement('canvas')
-  canvas.width = size
-  canvas.height = size
-  const ctx = canvas.getContext('2d')
+  const size = 256;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
   if (ctx) {
     // Graphite studio, not a warm room. At metalness ~0.96 this gradient *is*
     // the surface colour, so a brown env paints a brown ball; keeping it neutral
     // lets the champagne arrive as highlight instead of as pigment.
-    const gradient = ctx.createLinearGradient(0, 0, 0, size)
-    gradient.addColorStop(0, '#28313d')
-    gradient.addColorStop(0.45, '#0a0d12')
-    gradient.addColorStop(0.74, '#15110d')
-    gradient.addColorStop(1, '#241a12')
-    ctx.fillStyle = gradient
-    ctx.fillRect(0, 0, size, size)
+    const gradient = ctx.createLinearGradient(0, 0, 0, size);
+    gradient.addColorStop(0, "#28313d");
+    gradient.addColorStop(0.45, "#0a0d12");
+    gradient.addColorStop(0.74, "#15110d");
+    gradient.addColorStop(1, "#241a12");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, size, size);
 
     // Key bloom, deliberately wide and low-amplitude. A tight hot spot lands
     // whole flat facets on pure white, which reads as a rendering fault rather
@@ -104,12 +120,12 @@ const createStudioEnv = (gl: THREE.WebGLRenderer) => {
       size * 0.72,
       size * 0.28,
       size * 0.62,
-    )
-    bloom.addColorStop(0, 'rgba(255,206,150,0.3)')
-    bloom.addColorStop(0.35, 'rgba(230,200,145,0.12)')
-    bloom.addColorStop(1, 'rgba(0,0,0,0)')
-    ctx.fillStyle = bloom
-    ctx.fillRect(0, 0, size, size)
+    );
+    bloom.addColorStop(0, "rgba(255,206,150,0.3)");
+    bloom.addColorStop(0.35, "rgba(230,200,145,0.12)");
+    bloom.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = bloom;
+    ctx.fillRect(0, 0, size, size);
 
     // A cool counter-bounce on the opposite side keeps the metal from reading
     // as a single warm wash.
@@ -120,23 +136,23 @@ const createStudioEnv = (gl: THREE.WebGLRenderer) => {
       size * 0.2,
       size * 0.62,
       size * 0.38,
-    )
-    cool.addColorStop(0, 'rgba(150,180,210,0.3)')
-    cool.addColorStop(1, 'rgba(0,0,0,0)')
-    ctx.fillStyle = cool
-    ctx.fillRect(0, 0, size, size)
+    );
+    cool.addColorStop(0, "rgba(150,180,210,0.3)");
+    cool.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = cool;
+    ctx.fillRect(0, 0, size, size);
   }
 
-  const texture = new THREE.CanvasTexture(canvas)
-  texture.mapping = THREE.EquirectangularReflectionMapping
-  texture.colorSpace = THREE.SRGBColorSpace
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.mapping = THREE.EquirectangularReflectionMapping;
+  texture.colorSpace = THREE.SRGBColorSpace;
 
-  const pmrem = new THREE.PMREMGenerator(gl)
-  const envMap = pmrem.fromEquirectangular(texture).texture
-  texture.dispose()
-  pmrem.dispose()
-  return envMap
-}
+  const pmrem = new THREE.PMREMGenerator(gl);
+  const envMap = pmrem.fromEquirectangular(texture).texture;
+  texture.dispose();
+  pmrem.dispose();
+  return envMap;
+};
 
 /**
  * Volumetric limb glow.
@@ -158,7 +174,7 @@ void main() {
   vPosW = world.xyz;
   gl_Position = projectionMatrix * viewMatrix * world;
 }
-`
+`;
 
 const glowFragmentShader = /* glsl */ `
 uniform vec3 uInner;
@@ -181,7 +197,7 @@ void main() {
   vec3 tint = mix(uOuter, uInner, glow);
   gl_FragColor = vec4(tint, glow * uIntensity);
 }
-`
+`;
 
 const createGlowMaterial = (power: number) =>
   new THREE.ShaderMaterial({
@@ -198,141 +214,151 @@ const createGlowMaterial = (power: number) =>
     depthWrite: false,
     side: THREE.BackSide,
     toneMapped: false,
-  })
+  });
 
 const createCueTexture = (label: string) => {
-  const canvas = document.createElement('canvas')
-  canvas.width = 768
-  canvas.height = 160
-  const context = canvas.getContext('2d')
+  const canvas = document.createElement("canvas");
+  canvas.width = 768;
+  canvas.height = 160;
+  const context = canvas.getContext("2d");
   if (context) {
-    context.clearRect(0, 0, canvas.width, canvas.height)
-    const fill = context.createLinearGradient(0, 0, canvas.width, canvas.height)
-    fill.addColorStop(0, 'rgba(13, 17, 23, 0.96)')
-    fill.addColorStop(1, 'rgba(21, 27, 35, 0.96)')
-    context.fillStyle = fill
-    context.fillRect(0, 0, canvas.width, canvas.height)
-    context.strokeStyle = '#ffb454'
-    context.lineWidth = 5
-    context.strokeRect(12, 12, canvas.width - 24, canvas.height - 24)
-    context.font = '700 50px "IBM Plex Mono", ui-monospace, monospace'
-    context.fillStyle = '#f3eee4'
-    context.textAlign = 'center'
-    context.textBaseline = 'middle'
-    context.fillText(label, canvas.width / 2, canvas.height / 2)
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    const fill = context.createLinearGradient(
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    );
+    fill.addColorStop(0, "rgba(13, 17, 23, 0.96)");
+    fill.addColorStop(1, "rgba(21, 27, 35, 0.96)");
+    context.fillStyle = fill;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.strokeStyle = "#ffb454";
+    context.lineWidth = 5;
+    context.strokeRect(12, 12, canvas.width - 24, canvas.height - 24);
+    context.font = '700 50px "IBM Plex Mono", ui-monospace, monospace';
+    context.fillStyle = "#f3eee4";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(label, canvas.width / 2, canvas.height / 2);
   }
-  const texture = new THREE.CanvasTexture(canvas)
-  texture.colorSpace = THREE.SRGBColorSpace
-  texture.needsUpdate = true
-  return texture
-}
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+};
 
 const createChevronGeometry = () => {
   // Tip points down — scroll enters the corridor below.
-  const shape = new THREE.Shape()
-  shape.moveTo(0, -0.16)
-  shape.lineTo(0.14, 0.02)
-  shape.lineTo(0.06, 0.02)
-  shape.lineTo(0.06, 0.16)
-  shape.lineTo(-0.06, 0.16)
-  shape.lineTo(-0.06, 0.02)
-  shape.lineTo(-0.14, 0.02)
-  shape.closePath()
+  const shape = new THREE.Shape();
+  shape.moveTo(0, -0.16);
+  shape.lineTo(0.14, 0.02);
+  shape.lineTo(0.06, 0.02);
+  shape.lineTo(0.06, 0.16);
+  shape.lineTo(-0.06, 0.16);
+  shape.lineTo(-0.06, 0.02);
+  shape.lineTo(-0.14, 0.02);
+  shape.closePath();
   const geometry = new THREE.ExtrudeGeometry(shape, {
     depth: 0.06,
     bevelEnabled: true,
     bevelThickness: 0.012,
     bevelSize: 0.01,
     bevelSegments: 2,
-  })
-  geometry.translate(0, 0, -0.03)
-  return geometry
-}
+  });
+  geometry.translate(0, 0, -0.03);
+  return geometry;
+};
 
 export const HeroStage = ({
   quality,
   cue,
 }: {
-  quality: Quality
-  cue: string
+  quality: Quality;
+  cue: string;
 }) => {
-  const root = useRef<THREE.Group>(null)
-  const shell = useRef<THREE.Group>(null)
-  const housing = useRef<THREE.Group>(null)
-  const outerRing = useRef<THREE.Mesh>(null)
-  const innerRing = useRef<THREE.Mesh>(null)
-  const core = useRef<THREE.Mesh>(null)
-  const glowNear = useRef<THREE.Mesh>(null)
-  const glowFar = useRef<THREE.Mesh>(null)
-  const cueGroup = useRef<THREE.Group>(null)
-  const hemi = useRef<THREE.HemisphereLight>(null)
-  const keyLight = useRef<THREE.DirectionalLight>(null)
-  const fillLight = useRef<THREE.DirectionalLight>(null)
-  const rimLight = useRef<THREE.PointLight>(null)
-  const coreGlow = useRef<THREE.PointLight>(null)
+  const root = useRef<THREE.Group>(null);
+  const shell = useRef<THREE.Group>(null);
+  const housing = useRef<THREE.Group>(null);
+  const outerRing = useRef<THREE.Mesh>(null);
+  const innerRing = useRef<THREE.Mesh>(null);
+  const core = useRef<THREE.Mesh>(null);
+  const glowNear = useRef<THREE.Mesh>(null);
+  const glowFar = useRef<THREE.Mesh>(null);
+  const cueGroup = useRef<THREE.Group>(null);
+  const hemi = useRef<THREE.HemisphereLight>(null);
+  const keyLight = useRef<THREE.DirectionalLight>(null);
+  const fillLight = useRef<THREE.DirectionalLight>(null);
+  const rimLight = useRef<THREE.PointLight>(null);
+  const coreGlow = useRef<THREE.PointLight>(null);
 
-  const presence = useRef(1)
-  const hovered = useRef(-1)
-  const hoverAmts = useRef<Float32Array | null>(null)
-  const fireAmts = useRef<Float32Array | null>(null)
-  const fireGoals = useRef<Float32Array | null>(null)
+  const presence = useRef(1);
+  const hovered = useRef(-1);
+  const hoverAmts = useRef<Float32Array | null>(null);
+  const fireAmts = useRef<Float32Array | null>(null);
+  const fireGoals = useRef<Float32Array | null>(null);
+  /** Smoothed centre of the current hover sector, in shell-local space. */
+  const hoverOrigin = useRef(new THREE.Vector3());
+  const hoverActive = useRef(false);
+  /** Seconds since the sector was entered — drives the ripple's outward travel. */
+  const hoverElapsed = useRef(0);
 
-  const invalidate = useThree((state) => state.invalidate)
-  const camera = useThree((state) => state.camera)
-  const gl = useThree((state) => state.gl)
-  const aspect = useThree((state) => state.viewport.aspect)
-  const heightPx = useThree((state) => state.size.height)
-  const fit = computeViewportFit(aspect, heightPx)
-  const stageScale = heroSizeFit(fit)
+  const invalidate = useThree((state) => state.invalidate);
+  const camera = useThree((state) => state.camera);
+  const gl = useThree((state) => state.gl);
+  const aspect = useThree((state) => state.viewport.aspect);
+  const heightPx = useThree((state) => state.size.height);
+  const fit = computeViewportFit(aspect, heightPx);
+  const stageScale = heroSizeFit(fit);
 
-  const cinema = quality === 'cinema'
-  const detail = cinema ? 2 : 1
+  const cinema = quality === "cinema";
+  const detail = cinema ? 2 : 1;
 
-  const viewAxis = useMemo(heroViewAxis, [])
-  const envMap = useMemo(() => createStudioEnv(gl), [gl])
+  const viewAxis = useMemo(heroViewAxis, []);
+  const envMap = useMemo(() => createStudioEnv(gl), [gl]);
   const shellGeo = useMemo(
     () => buildHeroShell(SHELL_RADIUS, detail, viewAxis),
     [detail, viewAxis],
-  )
+  );
 
   /** Per-facet hover / fire, uploaded as a 1-pixel-tall lookup. */
   const shardState = useMemo(() => {
-    const data = new Float32Array(shellGeo.count * 4)
+    const data = new Float32Array(shellGeo.count * 4);
     const texture = new THREE.DataTexture(
       data,
       shellGeo.count,
       1,
       THREE.RGBAFormat,
       THREE.FloatType,
-    )
-    texture.minFilter = THREE.NearestFilter
-    texture.magFilter = THREE.NearestFilter
-    texture.needsUpdate = true
-    return { data, texture }
-  }, [shellGeo.count])
+    );
+    texture.minFilter = THREE.NearestFilter;
+    texture.magFilter = THREE.NearestFilter;
+    texture.needsUpdate = true;
+    return { data, texture };
+  }, [shellGeo.count]);
 
   const peel = useMemo(
     () => createPeelUniforms(shardState.texture, shellGeo.count),
     [shardState.texture, shellGeo.count],
-  )
+  );
 
   useEffect(() => {
-    hoverAmts.current = new Float32Array(shellGeo.count)
-    fireAmts.current = new Float32Array(shellGeo.count)
-    fireGoals.current = new Float32Array(shellGeo.count)
-  }, [shellGeo.count])
+    hoverAmts.current = new Float32Array(shellGeo.count);
+    fireAmts.current = new Float32Array(shellGeo.count);
+    fireGoals.current = new Float32Array(shellGeo.count);
+  }, [shellGeo.count]);
 
   const geometries = useMemo(() => {
     // 3 radial segments = a triangular cross-section: a machined bevel that
     // catches the rim light, not a soft tube.
-    const outer = new THREE.TorusGeometry(1.02, 0.036, 3, cinema ? 96 : 56)
-    const inner = new THREE.TorusGeometry(0.9, 0.018, 3, cinema ? 72 : 44)
+    const outer = new THREE.TorusGeometry(1.02, 0.036, 3, cinema ? 96 : 56);
+    const inner = new THREE.TorusGeometry(0.9, 0.018, 3, cinema ? 72 : 44);
     const meridian = new THREE.TorusGeometry(
       SHELL_RADIUS * 1.01,
       0.0055,
       3,
       cinema ? 84 : 48,
-    )
+    );
     return {
       outer,
       inner,
@@ -340,13 +366,21 @@ export const HeroStage = ({
       core: new THREE.IcosahedronGeometry(0.3, cinema ? 2 : 1),
       // Two shells: a tight one that hugs the limb, a wide one that gives the
       // optic a bed of atmosphere to sit in.
-      glowNear: new THREE.SphereGeometry(1.16, cinema ? 48 : 28, cinema ? 32 : 20),
-      glowFar: new THREE.SphereGeometry(1.95, cinema ? 40 : 24, cinema ? 28 : 16),
+      glowNear: new THREE.SphereGeometry(
+        1.16,
+        cinema ? 48 : 28,
+        cinema ? 32 : 20,
+      ),
+      glowFar: new THREE.SphereGeometry(
+        1.95,
+        cinema ? 40 : 24,
+        cinema ? 28 : 16,
+      ),
       cuePlate: new THREE.BoxGeometry(1.75, 0.44, 0.1),
       cueChevron: createChevronGeometry(),
       cueLabel: new THREE.PlaneGeometry(1.58, 0.33),
-    }
-  }, [cinema])
+    };
+  }, [cinema]);
 
   const materials = useMemo(() => {
     const face = new THREE.MeshPhysicalMaterial({
@@ -365,14 +399,14 @@ export const HeroStage = ({
       transparent: true,
       opacity: 1,
       side: THREE.DoubleSide,
-    })
+    });
     const wire = new THREE.LineBasicMaterial({
       color: sceneColors.ink.clone(),
       transparent: true,
       opacity: 0.62,
       depthWrite: false,
       toneMapped: false,
-    })
+    });
     const ring = new THREE.MeshPhysicalMaterial({
       color: structuralColor(new THREE.Color()),
       metalness: 0.95,
@@ -385,15 +419,15 @@ export const HeroStage = ({
       emissiveIntensity: 0.2,
       transparent: true,
       opacity: 0,
-    })
-    const ringInner = ring.clone()
+    });
+    const ringInner = ring.clone();
     const meridian = new THREE.MeshBasicMaterial({
       color: sceneColors.signal.clone(),
       transparent: true,
       opacity: 0,
       toneMapped: false,
       depthWrite: false,
-    })
+    });
     const coreMat = new THREE.MeshBasicMaterial({
       color: sceneColors.signal.clone(),
       transparent: true,
@@ -401,12 +435,12 @@ export const HeroStage = ({
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       toneMapped: false,
-    })
+    });
     // Tight rim, then a wide atmospheric bed. Lower power = the falloff reaches
     // further past the optic, so the near shell stays a crisp lip of light and
     // the far one spreads into haze.
-    const glowNearMat = createGlowMaterial(1.7)
-    const glowFarMat = createGlowMaterial(2.1)
+    const glowNearMat = createGlowMaterial(1.7);
+    const glowFarMat = createGlowMaterial(2.1);
     const cueBody = new THREE.MeshPhysicalMaterial({
       color: structuralColor(new THREE.Color()),
       metalness: 0.78,
@@ -420,7 +454,7 @@ export const HeroStage = ({
       opacity: 0,
       emissive: sceneColors.accent.clone(),
       emissiveIntensity: 0.12,
-    })
+    });
     const cueAccent = new THREE.MeshPhysicalMaterial({
       color: sceneColors.accent.clone(),
       metalness: 0.55,
@@ -433,15 +467,15 @@ export const HeroStage = ({
       flatShading: true,
       transparent: true,
       opacity: 0,
-    })
-    const cueTexture = createCueTexture(cue)
+    });
+    const cueTexture = createCueTexture(cue);
     const cueLabel = new THREE.MeshBasicMaterial({
       map: cueTexture,
       transparent: true,
       opacity: 0,
       depthWrite: false,
       toneMapped: false,
-    })
+    });
 
     return {
       face,
@@ -456,321 +490,437 @@ export const HeroStage = ({
       cueAccent,
       cueLabel,
       cueTexture,
-    }
-  }, [cue, envMap])
+    };
+  }, [cue, envMap]);
 
   // The displacement has to be attached before the first compile, not in a frame.
   useEffect(() => {
-    applyLitPeel(materials.face, peel)
-    applyLinePeel(materials.wire, peel)
-    peel.uCorridor.value.copy(viewAxis).multiplyScalar(0.85)
-  }, [materials.face, materials.wire, peel, viewAxis])
+    applyLitPeel(materials.face, peel);
+    applyLinePeel(materials.wire, peel);
+    peel.uCorridor.value.copy(viewAxis).multiplyScalar(0.85);
+  }, [materials.face, materials.wire, peel, viewAxis]);
 
   useEffect(
     () => () => {
-      envMap.dispose()
-      shellGeo.faces.dispose()
-      shellGeo.wires.dispose()
-      shardState.texture.dispose()
-      Object.values(geometries).forEach((geometry) => geometry.dispose())
-      materials.face.dispose()
-      materials.wire.dispose()
-      materials.ring.dispose()
-      materials.ringInner.dispose()
-      materials.meridian.dispose()
-      materials.core.dispose()
-      materials.glowNear.dispose()
-      materials.glowFar.dispose()
-      materials.cueBody.dispose()
-      materials.cueAccent.dispose()
-      materials.cueLabel.dispose()
-      materials.cueTexture.dispose()
+      envMap.dispose();
+      shellGeo.faces.dispose();
+      shellGeo.wires.dispose();
+      shardState.texture.dispose();
+      Object.values(geometries).forEach((geometry) => geometry.dispose());
+      materials.face.dispose();
+      materials.wire.dispose();
+      materials.ring.dispose();
+      materials.ringInner.dispose();
+      materials.meridian.dispose();
+      materials.core.dispose();
+      materials.glowNear.dispose();
+      materials.glowFar.dispose();
+      materials.cueBody.dispose();
+      materials.cueAccent.dispose();
+      materials.cueLabel.dispose();
+      materials.cueTexture.dispose();
     },
     [envMap, shellGeo, shardState, geometries, materials],
-  )
+  );
 
   useEffect(
     () => () => {
-      document.body.style.cursor = ''
+      document.body.style.cursor = "";
     },
     [],
-  )
+  );
 
   useFrame((state, delta) => {
-    const build = sceneState.build
-    const time = state.clock.elapsedTime
-    const reveal = THREE.MathUtils.smoothstep(time, 0.08, 1.2)
+    const build = sceneState.build;
+    const time = state.clock.elapsedTime;
+    const reveal = THREE.MathUtils.smoothstep(time, 0.08, 1.2);
     const fade =
-      1 - clamp01((build - HERO_FADE_START) / (HERO_FADE_END - HERO_FADE_START))
-    const presenceTarget = reveal * fade
+      1 -
+      clamp01((build - HERO_FADE_START) / (HERO_FADE_END - HERO_FADE_START));
+    const presenceTarget = reveal * fade;
     presence.current =
       presenceTarget < 0.015
         ? 0
-        : THREE.MathUtils.damp(presence.current, presenceTarget, 3.6, delta)
+        : THREE.MathUtils.damp(presence.current, presenceTarget, 3.6, delta);
 
-    const live = presence.current
-    const rootNode = root.current
-    if (rootNode) rootNode.visible = live > 0.01
-    if (live <= 0.01) return
+    const live = presence.current;
+    const rootNode = root.current;
+    if (rootNode) rootNode.visible = live > 0.01;
+    if (live <= 0.01) return;
 
     // Straight with scroll: the aperture is the scroll value, undamped.
-    const open = clamp01((build - OPEN_START) / (OPEN_END - OPEN_START))
-    const fling = THREE.MathUtils.smoothstep(build, 0.07, 0.18) ** 0.7
+    const open = clamp01((build - OPEN_START) / (OPEN_END - OPEN_START));
+    const fling = THREE.MathUtils.smoothstep(build, 0.07, 0.18) ** 0.7;
     // Ornament yields to the scroll read the instant the visitor moves.
-    const idle = idleAmount(1 - open)
+    const idle = idleAmount(1 - open);
 
-    const master = pulse.master
-    const corePulse = pulseAt(CORE_PHASE)
-    const ringPulse = pulseAt(RING_PHASE)
-    const cuePulse = pulseAt(CUE_PHASE)
-    const rimPulse = pulseAt(RIM_PHASE)
+    const master = pulse.master;
+    const corePulse = pulseAt(CORE_PHASE);
+    const ringPulse = pulseAt(RING_PHASE);
+    const cuePulse = pulseAt(CUE_PHASE);
+    const rimPulse = pulseAt(RIM_PHASE);
 
     // ---- per-facet pointer state -------------------------------------------
-    const hovers = hoverAmts.current
-    const fires = fireAmts.current
-    const goals = fireGoals.current
-    let stateDirty = false
-    let settling = false
+    // Hovering peels a sector, not a single facet: the exact facet under the
+    // pointer anchors a ripple that spreads to its neighbours, fading with
+    // distance and travelling outward over `HOVER_WAVE_DURATION` seconds.
+    const hovers = hoverAmts.current;
+    const fires = fireAmts.current;
+    const goals = fireGoals.current;
+    let stateDirty = false;
+    let settling = false;
+    const hoverTarget = hovered.current;
+
+    if (hoverTarget >= 0 && open < 0.25) {
+      _hoverPoint.set(
+        shellGeo.centroids[hoverTarget * 3],
+        shellGeo.centroids[hoverTarget * 3 + 1],
+        shellGeo.centroids[hoverTarget * 3 + 2],
+      );
+      if (!hoverActive.current) {
+        // Fresh sector: snap the origin so the ripple starts exactly under the
+        // pointer instead of gliding in from wherever the last one ended.
+        hoverOrigin.current.copy(_hoverPoint);
+        hoverElapsed.current = 0;
+        hoverActive.current = true;
+      } else {
+        hoverOrigin.current.x = THREE.MathUtils.damp(
+          hoverOrigin.current.x,
+          _hoverPoint.x,
+          6,
+          delta,
+        );
+        hoverOrigin.current.y = THREE.MathUtils.damp(
+          hoverOrigin.current.y,
+          _hoverPoint.y,
+          6,
+          delta,
+        );
+        hoverOrigin.current.z = THREE.MathUtils.damp(
+          hoverOrigin.current.z,
+          _hoverPoint.z,
+          6,
+          delta,
+        );
+        hoverElapsed.current += delta;
+      }
+    } else {
+      hoverActive.current = false;
+      hoverElapsed.current = 0;
+    }
+
+    // How far the wavefront has travelled from the origin, in shell units.
+    const waveFront =
+      clamp01(hoverElapsed.current / HOVER_WAVE_DURATION) *
+      HOVER_SECTOR_RADIUS;
+
     if (hovers && fires && goals) {
-      const hoverTarget = hovered.current
       for (let index = 0; index < shellGeo.count; index++) {
-        const wantHover = hoverTarget === index && open < 0.25 && goals[index] < 0.5
+        let wantHover = 0;
+        if (hoverActive.current && goals[index] < 0.5) {
+          _shardPoint.set(
+            shellGeo.centroids[index * 3],
+            shellGeo.centroids[index * 3 + 1],
+            shellGeo.centroids[index * 3 + 2],
+          );
+          const dist = _shardPoint.distanceTo(hoverOrigin.current);
+          if (dist < HOVER_SECTOR_RADIUS) {
+            // Soft leading edge: 0 before the wave arrives, 1 once it has passed.
+            const arrived = THREE.MathUtils.smoothstep(
+              waveFront,
+              dist - HOVER_WAVE_EDGE,
+              dist + HOVER_WAVE_EDGE,
+            );
+            // Peak height fades toward the sector's rim, so the cluster reads as
+            // a bloom centred on the cursor rather than a disc of equal lift.
+            const reach = clamp01(1 - dist / HOVER_SECTOR_RADIUS);
+            const falloff = reach * reach * (3 - 2 * reach);
+            wantHover = arrived * falloff;
+          }
+        }
         const nextHover = THREE.MathUtils.damp(
           hovers[index],
-          wantHover ? 1 : 0,
-          7,
+          wantHover,
+          6,
           delta,
-        )
-        const nextFire = THREE.MathUtils.damp(fires[index], goals[index], 3.2, delta)
+        );
+        const nextFire = THREE.MathUtils.damp(
+          fires[index],
+          goals[index],
+          3.2,
+          delta,
+        );
         if (
           Math.abs(nextHover - hovers[index]) > 1e-4 ||
           Math.abs(nextFire - fires[index]) > 1e-4
         ) {
-          hovers[index] = nextHover
-          fires[index] = nextFire
-          shardState.data[index * 4] = nextHover
-          shardState.data[index * 4 + 1] = nextFire
-          stateDirty = true
-          settling = true
+          hovers[index] = nextHover;
+          fires[index] = nextFire;
+          shardState.data[index * 4] = nextHover;
+          shardState.data[index * 4 + 1] = nextFire;
+          stateDirty = true;
+          settling = true;
         }
       }
     }
-    if (stateDirty) shardState.texture.needsUpdate = true
+    if (stateDirty) shardState.texture.needsUpdate = true;
 
     // ---- shell -------------------------------------------------------------
-    peel.uOpen.value = open
-    peel.uFling.value = fling
-    peel.uTime.value = time
-    peel.uBase.value = BASE_SEPARATION
-    peel.uBreathe.value = 0.014 * idle
-    peel.uGlowColor.value.copy(sceneColors.accent).multiplyScalar(0.5)
+    peel.uOpen.value = open;
+    peel.uFling.value = fling;
+    peel.uTime.value = time;
+    peel.uBase.value = BASE_SEPARATION;
+    peel.uBreathe.value = 0.014 * idle;
+    peel.uGlowColor.value.copy(sceneColors.accent).multiplyScalar(0.5);
     peel.uRimColor.value
       .copy(sceneColors.signal)
-      .lerp(sceneColors.accent, rimPulse * 0.6)
-    peel.uRimGain.value = (0.22 + rimPulse * 0.3 * idle) * live
+      .lerp(sceneColors.accent, rimPulse * 0.6);
+    peel.uRimGain.value = (0.22 + rimPulse * 0.3 * idle) * live;
 
-    structuralColor(_structural)
-    materials.face.color.copy(_structural).lerp(sceneColors.ink, 0.08 + master * 0.06)
+    structuralColor(_structural);
+    materials.face.color
+      .copy(_structural)
+      .lerp(sceneColors.ink, 0.08 + master * 0.06);
     materials.face.emissive
       .copy(sceneColors.accent)
-      .lerp(sceneColors.signal, master * 0.55)
-    materials.face.emissiveIntensity = (0.05 + master * 0.07 * idle) * live
-    materials.face.envMapIntensity = 1.05 + master * 0.25
-    materials.face.opacity = live
-    materials.face.depthWrite = open < 0.18
+      .lerp(sceneColors.signal, master * 0.55);
+    materials.face.emissiveIntensity = (0.05 + master * 0.07 * idle) * live;
+    materials.face.envMapIntensity = 1.05 + master * 0.25;
+    materials.face.opacity = live;
+    materials.face.depthWrite = open < 0.18;
 
     materials.wire.color
       .copy(sceneColors.ink)
       .lerp(sceneColors.accent, 0.2 + rimPulse * 0.4)
-      .lerp(sceneColors.signal, master * 0.18)
-    materials.wire.opacity = (0.34 + rimPulse * 0.34 * idle) * live * (1 - fling * 0.7)
+      .lerp(sceneColors.signal, master * 0.18);
+    materials.wire.opacity =
+      (0.34 + rimPulse * 0.34 * idle) * live * (1 - fling * 0.7);
 
     if (rootNode) {
-      const idleYaw = Math.sin(time * 0.045) * 0.12 * idle
-      const idlePitch = Math.cos(time * 0.0315) * 0.05 * idle
+      const idleYaw = Math.sin(time * 0.045) * 0.12 * idle;
+      const idlePitch = Math.cos(time * 0.0315) * 0.05 * idle;
       rootNode.rotation.y = THREE.MathUtils.damp(
         rootNode.rotation.y,
         sceneState.pointerX * 0.028 * idle + idleYaw,
         2.2,
         delta,
-      )
+      );
       rootNode.rotation.x = THREE.MathUtils.damp(
         rootNode.rotation.x,
         -sceneState.pointerY * 0.018 * idle + idlePitch,
         2.2,
         delta,
-      )
-      rootNode.position.y = REACTOR_CORE[1] + Math.sin(time * 0.55) * 0.028 * idle
-      rootNode.scale.setScalar(stageScale * (1 + Math.sin(time * 0.7) * 0.012 * idle))
+      );
+      rootNode.position.y =
+        REACTOR_CORE[1] + Math.sin(time * 0.55) * 0.028 * idle;
+      rootNode.scale.setScalar(
+        stageScale * (1 + Math.sin(time * 0.7) * 0.012 * idle),
+      );
     }
-    if (shell.current) shell.current.rotation.y = time * 0.035 * idle
+    if (shell.current) shell.current.rotation.y = time * 0.035 * idle;
 
     // ---- housing -----------------------------------------------------------
     // The rings hold the view axis while the shell turns inside them, which is
     // what separates "instrument" from "spinning ball".
-    const housingNode = housing.current
+    const housingNode = housing.current;
     if (housingNode) {
-      housingNode.quaternion.copy(camera.quaternion)
-      housingNode.scale.setScalar(1 + open * 0.28)
+      housingNode.quaternion.copy(camera.quaternion);
+      housingNode.scale.setScalar(1 + open * 0.28);
     }
-    if (outerRing.current) outerRing.current.rotation.z = time * 0.06 * idle
-    if (innerRing.current) innerRing.current.rotation.z = -time * 0.1 * idle - open * 0.9
+    if (outerRing.current) outerRing.current.rotation.z = time * 0.06 * idle;
+    if (innerRing.current)
+      innerRing.current.rotation.z = -time * 0.1 * idle - open * 0.9;
 
-    const ringLive = live * (1 - open * 0.55)
-    materials.ring.color.copy(_structural)
+    const ringLive = live * (1 - open * 0.55);
+    materials.ring.color.copy(_structural);
     materials.ring.emissive
       .copy(sceneColors.accent)
-      .lerp(sceneColors.signal, ringPulse * 0.5)
-    materials.ring.emissiveIntensity = 0.18 + ringPulse * 0.5 * idle + open * 0.5
-    materials.ring.envMapIntensity = 1 + ringPulse * 0.4
-    materials.ring.opacity = ringLive
-    materials.ringInner.color.copy(_structural)
-    materials.ringInner.emissive.copy(sceneColors.signal)
-    materials.ringInner.emissiveIntensity = 0.25 + (1 - ringPulse) * 0.55 * idle
-    materials.ringInner.opacity = ringLive * 0.9
+      .lerp(sceneColors.signal, ringPulse * 0.5);
+    materials.ring.emissiveIntensity =
+      0.18 + ringPulse * 0.5 * idle + open * 0.5;
+    materials.ring.envMapIntensity = 1 + ringPulse * 0.4;
+    materials.ring.opacity = ringLive;
+    materials.ringInner.color.copy(_structural);
+    materials.ringInner.emissive.copy(sceneColors.signal);
+    materials.ringInner.emissiveIntensity =
+      0.25 + (1 - ringPulse) * 0.55 * idle;
+    materials.ringInner.opacity = ringLive * 0.9;
 
     materials.meridian.color
       .copy(sceneColors.signal)
-      .lerp(sceneColors.accent, master * 0.35)
-    materials.meridian.opacity = (0.14 + master * 0.16 * idle) * live * (1 - open)
+      .lerp(sceneColors.accent, master * 0.35);
+    materials.meridian.opacity =
+      (0.14 + master * 0.16 * idle) * live * (1 - open);
 
     // ---- core + limb glow --------------------------------------------------
     // The core is the reward for the aperture opening: hidden when shut, brightest
     // as the facets clear, gone with the hero.
-    const coreReveal = THREE.MathUtils.smoothstep(open, 0.05, 0.55)
+    const coreReveal = THREE.MathUtils.smoothstep(open, 0.05, 0.55);
     if (core.current) {
-      core.current.scale.setScalar(0.68 + corePulse * 0.07 + coreReveal * 0.5)
-      core.current.rotation.y = time * 0.12
-      core.current.rotation.x = time * 0.07
+      core.current.scale.setScalar(0.68 + corePulse * 0.07 + coreReveal * 0.5);
+      core.current.rotation.y = time * 0.12;
+      core.current.rotation.x = time * 0.07;
     }
-    materials.core.color.copy(sceneColors.signal).lerp(sceneColors.accent, corePulse)
+    materials.core.color
+      .copy(sceneColors.signal)
+      .lerp(sceneColors.accent, corePulse);
     materials.core.opacity =
-      (0.16 + corePulse * 0.14 * idle + coreReveal * 0.5) * live
+      (0.16 + corePulse * 0.14 * idle + coreReveal * 0.5) * live;
 
     // The limb wraps the shell rather than sitting behind it, so it breathes on
     // the master clock and widens as the aperture lets more light out.
-    const nearUniforms = materials.glowNear.uniforms
-    nearUniforms.uInner.value.copy(sceneColors.accent).lerp(sceneColors.signal, 0.35)
-    nearUniforms.uOuter.value.copy(sceneColors.signal)
+    const nearUniforms = materials.glowNear.uniforms;
+    nearUniforms.uInner.value
+      .copy(sceneColors.accent)
+      .lerp(sceneColors.signal, 0.35);
+    nearUniforms.uOuter.value.copy(sceneColors.signal);
     nearUniforms.uIntensity.value =
-      (0.26 + master * 0.13 * idle + coreReveal * 0.42) * live
+      (0.26 + master * 0.13 * idle + coreReveal * 0.42) * live;
     if (glowNear.current) {
-      glowNear.current.scale.setScalar(1 + master * 0.012 * idle + open * 0.34)
+      glowNear.current.scale.setScalar(1 + master * 0.012 * idle + open * 0.34);
     }
 
-    const farUniforms = materials.glowFar.uniforms
-    farUniforms.uInner.value.copy(sceneColors.accent).multiplyScalar(0.55)
-    farUniforms.uOuter.value.copy(sceneColors.accent).lerp(sceneColors.signal, 0.6)
+    const farUniforms = materials.glowFar.uniforms;
+    farUniforms.uInner.value.copy(sceneColors.accent).multiplyScalar(0.55);
+    farUniforms.uOuter.value
+      .copy(sceneColors.accent)
+      .lerp(sceneColors.signal, 0.6);
     farUniforms.uIntensity.value =
-      (0.07 + master * 0.05 * idle + coreReveal * 0.1) * live
+      (0.07 + master * 0.05 * idle + coreReveal * 0.1) * live;
     if (glowFar.current) {
-      glowFar.current.scale.setScalar(1 + master * 0.02 * idle + open * 0.5)
+      glowFar.current.scale.setScalar(1 + master * 0.02 * idle + open * 0.5);
     }
 
     // ---- cue ---------------------------------------------------------------
-    const cueVisibility = live * (1 - THREE.MathUtils.smoothstep(build, 0.04, 0.14))
-    materials.cueBody.color.copy(_structural)
-    materials.cueBody.emissive.copy(sceneColors.accent)
-    materials.cueBody.emissiveIntensity = 0.1 + cuePulse * 0.22
-    materials.cueBody.opacity = (0.9 + cuePulse * 0.08) * cueVisibility
-    materials.cueBody.envMapIntensity = 0.55 + cuePulse * 0.25
-    materials.cueAccent.color.copy(sceneColors.accent)
-    materials.cueAccent.emissive.copy(sceneColors.accent)
-    materials.cueAccent.emissiveIntensity = 0.45 + cuePulse * 0.55
-    materials.cueAccent.opacity = (0.88 + cuePulse * 0.1) * cueVisibility
-    materials.cueLabel.opacity = (0.94 + cuePulse * 0.06) * cueVisibility
+    const cueVisibility =
+      live * (1 - THREE.MathUtils.smoothstep(build, 0.04, 0.14));
+    materials.cueBody.color.copy(_structural);
+    materials.cueBody.emissive.copy(sceneColors.accent);
+    materials.cueBody.emissiveIntensity = 0.1 + cuePulse * 0.22;
+    materials.cueBody.opacity = (0.9 + cuePulse * 0.08) * cueVisibility;
+    materials.cueBody.envMapIntensity = 0.55 + cuePulse * 0.25;
+    materials.cueAccent.color.copy(sceneColors.accent);
+    materials.cueAccent.emissive.copy(sceneColors.accent);
+    materials.cueAccent.emissiveIntensity = 0.45 + cuePulse * 0.55;
+    materials.cueAccent.opacity = (0.88 + cuePulse * 0.1) * cueVisibility;
+    materials.cueLabel.opacity = (0.94 + cuePulse * 0.06) * cueVisibility;
     if (cueGroup.current) {
-      cueGroup.current.visible = cueVisibility > 0.035
-      cueGroup.current.position.set(0, -0.98 + Math.sin(time * 1.35) * 0.035 * idle, 0.78)
-      cueGroup.current.scale.setScalar(0.9 + cuePulse * 0.035)
+      cueGroup.current.visible = cueVisibility > 0.035;
+      cueGroup.current.position.set(
+        0,
+        -0.98 + Math.sin(time * 1.35) * 0.035 * idle,
+        0.78,
+      );
+      cueGroup.current.scale.setScalar(0.9 + cuePulse * 0.035);
       // Face the lens without orbiting off-centre (lookAt skewed the badge).
-      cueGroup.current.quaternion.copy(camera.quaternion)
+      cueGroup.current.quaternion.copy(camera.quaternion);
     }
 
     // ---- lighting ----------------------------------------------------------
     if (hemi.current) {
-      hemi.current.color.copy(sceneColors.ink)
-      hemi.current.groundColor.copy(sceneColors.base).lerp(sceneColors.accent, 0.12)
-      hemi.current.intensity = (0.42 + master * 0.12) * live
+      hemi.current.color.copy(sceneColors.ink);
+      hemi.current.groundColor
+        .copy(sceneColors.base)
+        .lerp(sceneColors.accent, 0.12);
+      hemi.current.intensity = (0.42 + master * 0.12) * live;
     }
     if (keyLight.current) {
-      keyLight.current.color.copy(sceneColors.ink).lerp(sceneColors.accent, 0.18)
+      keyLight.current.color
+        .copy(sceneColors.ink)
+        .lerp(sceneColors.accent, 0.18);
       // Enough to separate one facet from the next, not enough to clip. On flat
       // facets a punctual lobe is all-or-nothing — every pixel shares a normal,
       // so the facet is either unlit or solid white with no gradient across it.
       // Raking from the side rather than from overhead spreads the falloff over
       // many facets instead of detonating one.
-      keyLight.current.intensity = (0.62 + master * 0.18) * live
+      keyLight.current.intensity = (0.62 + master * 0.18) * live;
       keyLight.current.position.set(
         3.1 + Math.sin(time * 0.25) * 0.35 * idle,
         1.35,
         2.2 + Math.cos(time * 0.22) * 0.3 * idle,
-      )
+      );
     }
     if (fillLight.current) {
-      fillLight.current.color.copy(sceneColors.signal)
-      fillLight.current.intensity = (0.28 + pulse.counter * 0.22) * live
+      fillLight.current.color.copy(sceneColors.signal);
+      fillLight.current.intensity = (0.28 + pulse.counter * 0.22) * live;
     }
     if (rimLight.current) {
-      const angle = time * 0.55 * (0.25 + idle * 0.75)
+      const angle = time * 0.55 * (0.25 + idle * 0.75);
       // Orbits well clear of the shell. At the old 1.6 the light passed within
       // ~0.8 of the facets, and inverse-square put those facets far past white.
       rimLight.current.position.set(
         Math.cos(angle) * 2.7,
         0.35 + Math.sin(time * 0.7) * 0.2 * idle,
         Math.sin(angle) * 2.7,
-      )
-      rimLight.current.color.copy(sceneColors.accent).lerp(sceneColors.signal, rimPulse)
-      rimLight.current.intensity = (0.85 + rimPulse * 0.5) * live
+      );
+      rimLight.current.color
+        .copy(sceneColors.accent)
+        .lerp(sceneColors.signal, rimPulse);
+      rimLight.current.intensity = (0.85 + rimPulse * 0.5) * live;
     }
     if (coreGlow.current) {
-      coreGlow.current.color.copy(sceneColors.signal).lerp(sceneColors.accent, corePulse)
+      coreGlow.current.color
+        .copy(sceneColors.signal)
+        .lerp(sceneColors.accent, corePulse);
       coreGlow.current.intensity =
-        (0.55 + corePulse * 0.65) * live * (0.35 + coreReveal * 0.9)
+        (0.55 + corePulse * 0.65) * live * (0.35 + coreReveal * 0.9);
     }
 
-    if (!cinema && (settling || live > 0.015)) invalidate()
-  })
+    if (!cinema && (settling || live > 0.015)) invalidate();
+  });
 
   const shardAt = (event: ThreeEvent<PointerEvent>) =>
     event.faceIndex === undefined || event.faceIndex === null
       ? -1
-      : Math.floor(event.faceIndex / TRIS_PER_SHARD)
+      : Math.floor(event.faceIndex / TRIS_PER_SHARD);
 
   const handleMove = (event: ThreeEvent<PointerEvent>) => {
-    event.stopPropagation()
-    const index = shardAt(event)
-    if (index === hovered.current) return
-    hovered.current = index
-    document.body.style.cursor = index >= 0 ? 'pointer' : ''
-    invalidate()
-  }
+    event.stopPropagation();
+    const index = shardAt(event);
+    if (index === hovered.current) return;
+    hovered.current = index;
+    document.body.style.cursor = index >= 0 ? "pointer" : "";
+    invalidate();
+  };
 
   const handleOut = () => {
-    if (hovered.current === -1) return
-    hovered.current = -1
-    document.body.style.cursor = ''
-    invalidate()
-  }
+    if (hovered.current === -1) return;
+    hovered.current = -1;
+    document.body.style.cursor = "";
+    invalidate();
+  };
 
   const handleClick = (event: ThreeEvent<PointerEvent>) => {
-    event.stopPropagation()
-    const index = shardAt(event)
-    const goals = fireGoals.current
-    if (index < 0 || !goals || goals[index] > 0.5) return
-    goals[index] = 1
-    hovered.current = -1
-    document.body.style.cursor = ''
-    invalidate()
-  }
+    event.stopPropagation();
+    const index = shardAt(event);
+    const goals = fireGoals.current;
+    if (index < 0 || !goals || goals[index] > 0.5) return;
+    goals[index] = 1;
+    hovered.current = -1;
+    document.body.style.cursor = "";
+    invalidate();
+  };
 
   return (
     <group ref={root} position={REACTOR_CORE}>
-      <hemisphereLight ref={hemi} args={['#f3eee4', '#050608', 0.45]} />
-      <directionalLight ref={keyLight} position={[2.2, 3.2, 2.6]} intensity={1.2} />
-      <directionalLight ref={fillLight} position={[-2.6, 0.8, 1.4]} intensity={0.3} />
+      <hemisphereLight ref={hemi} args={["#f3eee4", "#050608", 0.45]} />
+      <directionalLight
+        ref={keyLight}
+        position={[2.2, 3.2, 2.6]}
+        intensity={1.2}
+      />
+      <directionalLight
+        ref={fillLight}
+        position={[-2.6, 0.8, 1.4]}
+        intensity={0.3}
+      />
       <pointLight ref={rimLight} distance={5.2} decay={2} intensity={1.5} />
-      <pointLight ref={coreGlow} position={[0, 0.05, 0]} distance={3.2} decay={2} />
+      <pointLight
+        ref={coreGlow}
+        position={[0, 0.05, 0]}
+        distance={3.2}
+        decay={2}
+      />
 
       <mesh
         ref={glowFar}
@@ -804,7 +954,10 @@ export const HeroStage = ({
         />
         {cinema ? (
           <>
-            <mesh geometry={geometries.meridian} material={materials.meridian} />
+            <mesh
+              geometry={geometries.meridian}
+              material={materials.meridian}
+            />
             <mesh
               geometry={geometries.meridian}
               material={materials.meridian}
@@ -828,7 +981,11 @@ export const HeroStage = ({
       />
 
       <group ref={housing}>
-        <mesh ref={outerRing} geometry={geometries.outer} material={materials.ring} />
+        <mesh
+          ref={outerRing}
+          geometry={geometries.outer}
+          material={materials.ring}
+        />
         <mesh
           ref={innerRing}
           geometry={geometries.inner}
@@ -851,5 +1008,5 @@ export const HeroStage = ({
         />
       </group>
     </group>
-  )
-}
+  );
+};

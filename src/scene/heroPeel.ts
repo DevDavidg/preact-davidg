@@ -11,32 +11,32 @@
  * in step. Only `uHoverPush` and `uFirePush` — both pointer-driven, neither part
  * of the scroll story — are smoothed on the CPU before they arrive.
  */
-import * as THREE from 'three'
+import * as THREE from "three";
 
 export interface PeelUniforms {
   /** Scroll-linear aperture, 0 → 1. The single source of opening truth. */
-  uOpen: { value: number }
+  uOpen: { value: number };
   /** Metres a fully-opened facet travels along its own normal. */
-  uBreak: { value: number }
+  uBreak: { value: number };
   /** Late outward throw as the hero hands off to the corridor. */
-  uFling: { value: number }
+  uFling: { value: number };
   /** Resting seam between facets. */
-  uBase: { value: number }
+  uBase: { value: number };
   /** Idle breathe amplitude — already gated by the master clock. */
-  uBreathe: { value: number }
-  uTime: { value: number }
+  uBreathe: { value: number };
+  uTime: { value: number };
   /** How far the iris order spreads the opening across the shell. */
-  uStagger: { value: number }
-  uHoverPush: { value: number }
-  uFirePush: { value: number }
+  uStagger: { value: number };
+  uHoverPush: { value: number };
+  uFirePush: { value: number };
   /** Corridor axis. Facets sweep along this so the break stays collinear with travel. */
-  uCorridor: { value: THREE.Vector3 }
+  uCorridor: { value: THREE.Vector3 };
   /** Per-facet state: r = hover, g = fire. */
-  uState: { value: THREE.DataTexture }
-  uShardCount: { value: number }
-  uGlowColor: { value: THREE.Color }
-  uRimColor: { value: THREE.Color }
-  uRimGain: { value: number }
+  uState: { value: THREE.DataTexture };
+  uShardCount: { value: number };
+  uGlowColor: { value: THREE.Color };
+  uRimColor: { value: THREE.Color };
+  uRimGain: { value: number };
 }
 
 export const createPeelUniforms = (
@@ -58,7 +58,7 @@ export const createPeelUniforms = (
   uGlowColor: { value: new THREE.Color() },
   uRimColor: { value: new THREE.Color() },
   uRimGain: { value: 0 },
-})
+});
 
 const PEEL_HEADER = /* glsl */ `
 attribute vec3 aCentroid;
@@ -124,7 +124,7 @@ void heroPeel(vec3 localPos, vec3 localNormal) {
   vThrow = throwAmt;
   vGlow = hover * 0.85 + fire * 1.5 + throwAmt * 0.3;
 }
-`
+`;
 
 const FRAGMENT_HEADER = /* glsl */ `
 varying float vGlow;
@@ -132,7 +132,7 @@ varying float vThrow;
 uniform vec3 uGlowColor;
 uniform vec3 uRimColor;
 uniform float uRimGain;
-`
+`;
 
 /**
  * Wires the peel into a lit material.
@@ -147,24 +147,24 @@ export const applyLitPeel = (
   uniforms: PeelUniforms,
 ) => {
   material.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, uniforms)
+    Object.assign(shader.uniforms, uniforms);
 
     shader.vertexShader = shader.vertexShader
-      .replace('void main() {', `${PEEL_HEADER}\nvoid main() {`)
+      .replace("void main() {", `${PEEL_HEADER}\nvoid main() {`)
       .replace(
-        '#include <beginnormal_vertex>',
+        "#include <beginnormal_vertex>",
         /* glsl */ `
         vec3 objectNormal = vec3( normal );
         heroPeel( position, objectNormal );
         objectNormal = gHeroNormal;
         `,
       )
-      .replace('#include <begin_vertex>', 'vec3 transformed = gHeroPos;')
+      .replace("#include <begin_vertex>", "vec3 transformed = gHeroPos;");
 
     shader.fragmentShader = shader.fragmentShader
-      .replace('void main() {', `${FRAGMENT_HEADER}\nvoid main() {`)
+      .replace("void main() {", `${FRAGMENT_HEADER}\nvoid main() {`)
       .replace(
-        '#include <emissivemap_fragment>',
+        "#include <emissivemap_fragment>",
         /* glsl */ `
         #include <emissivemap_fragment>
         vec3 heroView = normalize( vViewPosition );
@@ -172,10 +172,10 @@ export const applyLitPeel = (
         totalEmissiveRadiance += uGlowColor * vGlow;
         totalEmissiveRadiance += uRimColor * heroFresnel * uRimGain;
         `,
-      )
-  }
-  material.needsUpdate = true
-}
+      );
+  };
+  material.needsUpdate = true;
+};
 
 /** The same displacement for the unlit wire cage; no normal to carry. */
 export const applyLinePeel = (
@@ -183,28 +183,28 @@ export const applyLinePeel = (
   uniforms: PeelUniforms,
 ) => {
   material.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, uniforms)
+    Object.assign(shader.uniforms, uniforms);
 
     shader.vertexShader = shader.vertexShader
-      .replace('void main() {', `${PEEL_HEADER}\nvoid main() {`)
+      .replace("void main() {", `${PEEL_HEADER}\nvoid main() {`)
       .replace(
-        '#include <begin_vertex>',
+        "#include <begin_vertex>",
         /* glsl */ `
         heroPeel( position, vec3( 0.0, 0.0, 1.0 ) );
         vec3 transformed = gHeroPos;
         `,
-      )
+      );
 
     shader.fragmentShader = shader.fragmentShader
-      .replace('void main() {', `${FRAGMENT_HEADER}\nvoid main() {`)
+      .replace("void main() {", `${FRAGMENT_HEADER}\nvoid main() {`)
       .replace(
-        '#include <color_fragment>',
+        "#include <color_fragment>",
         /* glsl */ `
         #include <color_fragment>
         diffuseColor.rgb *= 1.0 + vGlow * 0.8;
         diffuseColor.a *= 1.0 - vThrow * 0.45;
         `,
-      )
-  }
-  material.needsUpdate = true
-}
+      );
+  };
+  material.needsUpdate = true;
+};
