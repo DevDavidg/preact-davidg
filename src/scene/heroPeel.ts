@@ -83,6 +83,7 @@ uniform float uShardCount;
 
 varying float vGlow;
 varying float vThrow;
+varying float vFacet;
 
 vec3 gHeroPos;
 vec3 gHeroNormal;
@@ -123,12 +124,18 @@ void heroPeel(vec3 localPos, vec3 localNormal) {
 
   vThrow = throwAmt;
   vGlow = hover * 0.85 + fire * 1.5 + throwAmt * 0.3;
+  // A stable per-facet value in [0,1]. Machined panels are cut from the same
+  // billet but never finish identically; without this every facet takes exactly
+  // the same roughness and the shell reads as one moulded ball rather than as an
+  // assembly of parts.
+  vFacet = fract(aPhase * 0.15915494 + 0.37);
 }
 `;
 
 const FRAGMENT_HEADER = /* glsl */ `
 varying float vGlow;
 varying float vThrow;
+varying float vFacet;
 uniform vec3 uGlowColor;
 uniform vec3 uRimColor;
 uniform float uRimGain;
@@ -163,6 +170,22 @@ export const applyLitPeel = (
 
     shader.fragmentShader = shader.fragmentShader
       .replace("void main() {", `${FRAGMENT_HEADER}\nvoid main() {`)
+      /*
+       * Per-facet finish.
+       *
+       * Flat facets share one normal, so a punctual highlight lights the *whole*
+       * facet at once and clips it to a white triangle — the single blown panel
+       * that made the shell look broken. Spreading roughness across the panels
+       * both breaks that up (a rougher facet cannot reach the same peak) and
+       * gives the assembly the panel-to-panel character machined parts have.
+       */
+      .replace(
+        "#include <roughnessmap_fragment>",
+        /* glsl */ `
+        #include <roughnessmap_fragment>
+        roughnessFactor = clamp( roughnessFactor * ( 0.6 + vFacet * 0.85 ), 0.04, 1.0 );
+        `,
+      )
       .replace(
         "#include <emissivemap_fragment>",
         /* glsl */ `
@@ -171,6 +194,21 @@ export const applyLitPeel = (
         float heroFresnel = pow( 1.0 - clamp( dot( normal, heroView ), 0.0, 1.0 ), 3.0 );
         totalEmissiveRadiance += uGlowColor * vGlow;
         totalEmissiveRadiance += uRimColor * heroFresnel * uRimGain;
+        `,
+      )
+      /*
+       * A ceiling on the highlight.
+       *
+       * Tone mapping compresses but does not prevent a facet reaching pure
+       * white, and one white triangle on an otherwise dark instrument reads as a
+       * rendering fault rather than as a glint. This rolls the top end off just
+       * below clipping, so a hot facet stays hot and stays metal.
+       */
+      .replace(
+        "#include <tonemapping_fragment>",
+        /* glsl */ `
+        gl_FragColor.rgb = gl_FragColor.rgb / ( 1.0 + max( gl_FragColor.rgb - 0.85, 0.0 ) * 1.6 );
+        #include <tonemapping_fragment>
         `,
       );
   };

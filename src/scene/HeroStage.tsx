@@ -94,6 +94,11 @@ const RIM_PHASE = Math.PI;
 
 const _dir = new THREE.Vector3();
 const _camStart = new THREE.Vector3();
+const _tickMatrix = new THREE.Matrix4();
+const _tickPosition = new THREE.Vector3();
+const _tickQuaternion = new THREE.Quaternion();
+const _tickScale = new THREE.Vector3(1, 1, 1);
+const _zAxis = new THREE.Vector3(0, 0, 1);
 const _structural = new THREE.Color();
 const _hoverPoint = new THREE.Vector3();
 const _shardPoint = new THREE.Vector3();
@@ -116,66 +121,108 @@ const heroViewAxis = () => {
 };
 
 /**
- * Graphite body.
+ * Machined graphite — deliberately *not* derived from the palette's ink.
  *
- * Kept deliberately dark: at metalness ~0.95 the base colour tints every
- * reflection, so a lighter body turns the whole shell into flat brown paint.
- * Dark here means the champagne only ever appears as *light* — highlight, rim,
- * env bounce — which is what separates machined metal from a coloured ball.
+ * At metalness ~0.96 the base colour multiplies every reflection, so it is not a
+ * pigment, it is a filter over the whole studio. Tinting it with the site's warm
+ * ink meant a warm filter over warm lights over a warm room: three multiplications
+ * of champagne, and the shell rendered as a gold ball rather than as metal.
+ *
+ * A neutral, very slightly cool body is what lets the champagne arrive purely as
+ * *light* — key, rim, env streak — which is the whole difference between a
+ * machined part standing in a warm room and a part painted gold.
  */
+const STEEL = new THREE.Color("#8e939a");
+
 const structuralColor = (target: THREE.Color) =>
-  target.copy(sceneColors.base).lerp(sceneColors.ink, 0.085);
+  target.copy(sceneColors.base).lerp(STEEL, 0.15);
 
-/** Soft studio gradient → PMREM. Reads as bounced light without a path tracer. */
+/**
+ * The studio the optic is reflecting.
+ *
+ * At `metalness` ~0.96 there is no diffuse term left: this image *is* the
+ * surface. A smooth gradient therefore produces a smooth, featureless ball —
+ * which is exactly what the shell used to look like, and why it read as brown
+ * paint rather than as metal. What makes metal legible is *structure* in the
+ * reflection: a horizon it can cut across, and hard-edged sources it can catch.
+ *
+ * So this is a real studio rather than a wash. A dark neutral room, a crisp
+ * horizon line, and three softboxes — a large champagne key, a cool fill
+ * opposite it, and a low kicker. Every facet then reflects a slightly different
+ * part of that room, which is what turns 320 identical triangles into an object.
+ *
+ * Authored 2:1, because an equirectangular map is a sphere unwrapped and a
+ * square canvas stretches the whole room vertically.
+ */
 const createStudioEnv = (gl: THREE.WebGLRenderer) => {
-  const size = 256;
+  const width = 512;
+  const height = 256;
   const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
+  canvas.width = width;
+  canvas.height = height;
   const ctx = canvas.getContext("2d");
+
   if (ctx) {
-    // Graphite studio, not a warm room. At metalness ~0.96 this gradient *is*
-    // the surface colour, so a brown env paints a brown ball; keeping it neutral
-    // lets the champagne arrive as highlight instead of as pigment.
-    const gradient = ctx.createLinearGradient(0, 0, 0, size);
-    gradient.addColorStop(0, "#28313d");
-    gradient.addColorStop(0.45, "#0a0d12");
-    gradient.addColorStop(0.74, "#15110d");
-    gradient.addColorStop(1, "#241a12");
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, size, size);
+    // The room. Cool overhead, near-black at the horizon, a warm floor bounce.
+    const room = ctx.createLinearGradient(0, 0, 0, height);
+    room.addColorStop(0, "#2c3844");
+    room.addColorStop(0.3, "#141a22");
+    room.addColorStop(0.49, "#06080b");
+    // The floor bounce stays dark and nearly neutral. The lower half of a sphere
+    // reflects the floor, so a warm bounce here is half the object's colour —
+    // the single biggest reason the shell used to read as brown.
+    room.addColorStop(0.51, "#08090a");
+    room.addColorStop(0.8, "#0f100f");
+    room.addColorStop(1, "#181510");
+    ctx.fillStyle = room;
+    ctx.fillRect(0, 0, width, height);
 
-    // Key bloom, deliberately wide and low-amplitude. A tight hot spot lands
-    // whole flat facets on pure white, which reads as a rendering fault rather
-    // than as a glint.
-    const bloom = ctx.createRadialGradient(
-      size * 0.72,
-      size * 0.28,
-      4,
-      size * 0.72,
-      size * 0.28,
-      size * 0.62,
-    );
-    bloom.addColorStop(0, "rgba(255,206,150,0.3)");
-    bloom.addColorStop(0.35, "rgba(230,200,145,0.12)");
-    bloom.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = bloom;
-    ctx.fillRect(0, 0, size, size);
+    /**
+     * A softbox, drawn as a blurred rectangle.
+     *
+     * Rectangular rather than radial on purpose: a round source reflects as a
+     * round dot, which reads as a bug light. A rectangle reflects as a streak
+     * that stretches and bends across facets, which is what says "this is a
+     * machined surface in a room".
+     */
+    const softbox = (
+      x: number,
+      y: number,
+      w: number,
+      h: number,
+      colour: string,
+      blur: number,
+    ) => {
+      ctx.save();
+      ctx.filter = `blur(${blur}px)`;
+      ctx.fillStyle = colour;
+      ctx.fillRect(x - w / 2, y - h / 2, w, h);
+      ctx.restore();
+    };
 
-    // A cool counter-bounce on the opposite side keeps the metal from reading
-    // as a single warm wash.
-    const cool = ctx.createRadialGradient(
-      size * 0.2,
-      size * 0.62,
-      4,
-      size * 0.2,
-      size * 0.62,
-      size * 0.38,
-    );
-    cool.addColorStop(0, "rgba(150,180,210,0.3)");
-    cool.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = cool;
-    ctx.fillRect(0, 0, size, size);
+    // Key: champagne, upper right, wide and low-amplitude. A tight hot source
+    // lands a whole flat facet on pure white in one step.
+    softbox(width * 0.66, height * 0.24, width * 0.32, height * 0.22, "rgba(255,216,170,0.8)", 26);
+    softbox(width * 0.66, height * 0.24, width * 0.19, height * 0.11, "rgba(255,238,214,0.72)", 8);
+
+    // Fill: cool, opposite, so the metal is never a single warm wash.
+    softbox(width * 0.2, height * 0.3, width * 0.24, height * 0.18, "rgba(162,196,230,0.58)", 22);
+
+    // Kicker: low and behind, catching the limb.
+    softbox(width * 0.9, height * 0.66, width * 0.16, height * 0.11, "rgba(255,180,84,0.45)", 18);
+
+    // The horizon. One bright hairline is what a reflective surface cuts across
+    // as it curves, and it is the single cheapest cue that this is metal.
+    ctx.save();
+    ctx.filter = "blur(1.5px)";
+    const horizon = ctx.createLinearGradient(0, 0, width, 0);
+    horizon.addColorStop(0, "rgba(120,140,165,0.05)");
+    horizon.addColorStop(0.35, "rgba(206,222,244,0.72)");
+    horizon.addColorStop(0.7, "rgba(246,222,186,0.85)");
+    horizon.addColorStop(1, "rgba(120,140,165,0.05)");
+    ctx.fillStyle = horizon;
+    ctx.fillRect(0, height * 0.5 - 1.5, width, 3);
+    ctx.restore();
   }
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -283,6 +330,43 @@ const createCueTexture = (label: string) => {
   return texture;
 };
 
+/** Index marks around the bezel. Three majors at 120° — one per law. */
+const TICK_COUNT = 24;
+const TICK_RADIUS = 1.09;
+/** Iris blades behind the shell. Six is the classic mechanical aperture. */
+const BLADE_COUNT = 6;
+/** Where a blade is hinged, in shell radii. Real irises pivot at the rim. */
+const BLADE_PIVOT = 1.0;
+
+/**
+ * One iris blade, authored with its hinge at the origin so an instance matrix
+ * only has to place and rotate it.
+ *
+ * A curved wedge, not a triangle: the leading edge sweeps in toward the centre
+ * and the trailing edge returns to the hinge, which is what lets six of them
+ * overlap into a closed disc and then retract cleanly to the rim.
+ */
+const createBladeGeometry = () => {
+  const shape = new THREE.Shape();
+  shape.moveTo(0, -0.085);
+  shape.quadraticCurveTo(-0.5, -0.34, -1.04, -0.2);
+  shape.quadraticCurveTo(-1.12, -0.1, -1.06, -0.02);
+  shape.quadraticCurveTo(-0.72, 0.04, -0.3, 0.115);
+  shape.lineTo(0, 0.085);
+  shape.closePath();
+
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth: 0.03,
+    bevelEnabled: true,
+    bevelThickness: 0.008,
+    bevelSize: 0.008,
+    bevelSegments: 1,
+    curveSegments: 8,
+  });
+  geometry.translate(0, 0, -0.015);
+  return geometry;
+};
+
 const createChevronGeometry = () => {
   // Tip points down — scroll enters the corridor below.
   const shape = new THREE.Shape();
@@ -317,6 +401,10 @@ export const HeroStage = ({
   const housing = useRef<THREE.Group>(null);
   const outerRing = useRef<THREE.Mesh>(null);
   const innerRing = useRef<THREE.Mesh>(null);
+  const ticks = useRef<THREE.InstancedMesh>(null);
+  const majorTicks = useRef<THREE.InstancedMesh>(null);
+  const iris = useRef<THREE.Group>(null);
+  const blades = useRef<THREE.InstancedMesh>(null);
   const core = useRef<THREE.Mesh>(null);
   const glowNear = useRef<THREE.Mesh>(null);
   const glowFar = useRef<THREE.Mesh>(null);
@@ -408,6 +496,14 @@ export const HeroStage = ({
       outer,
       inner,
       meridian,
+      // The housing rim. A chunky low-segment torus reads as a turned collar
+      // holding the optic, and it is what gives the object a silhouette from the
+      // side instead of two floating hoops.
+      rim: new THREE.TorusGeometry(1.19, 0.075, 4, cinema ? 72 : 40),
+      tick: new THREE.BoxGeometry(0.022, 0.075, 0.05),
+      tickMajor: new THREE.BoxGeometry(0.032, 0.15, 0.055),
+      spoke: new THREE.BoxGeometry(0.03, 0.3, 0.045),
+      blade: createBladeGeometry(),
       core: new THREE.IcosahedronGeometry(0.3, cinema ? 2 : 1),
       // Two shells: a tight one that hugs the limb, a wide one that gives the
       // optic a bed of atmosphere to sit in.
@@ -432,13 +528,18 @@ export const HeroStage = ({
       color: structuralColor(new THREE.Color()),
       metalness: 0.96,
       // Flat-shaded facets share one normal, so a tight specular lobe lights the
-      // *entire* facet at once and clips to a white triangle. A broader lobe puts
-      // the reading back on the env reflection, which varies facet to facet.
-      roughness: 0.38,
-      clearcoat: 0.5,
-      clearcoatRoughness: 0.2,
+      // *entire* facet at once and clips to a white triangle. The reading is
+      // handed to the env reflection instead, which now has a horizon and hard
+      // sources in it — that varies facet to facet, where a punctual highlight
+      // is all-or-nothing.
+      roughness: 0.3,
+      // A second, sharper layer over the metal: machined parts are lacquered,
+      // and the clearcoat is what puts a crisp softbox streak on top of the
+      // broader metal reflection instead of one muddy lobe.
+      clearcoat: 0.65,
+      clearcoatRoughness: 0.12,
       envMap,
-      envMapIntensity: 1.35,
+      envMapIntensity: 1.55,
       emissive: sceneColors.accent.clone(),
       emissiveIntensity: 1,
       transparent: true,
@@ -466,6 +567,31 @@ export const HeroStage = ({
       opacity: 0,
     });
     const ringInner = ring.clone();
+    // The housing sits behind everything and must never compete with the optic:
+    // rougher, barely reflective, closer to raw machined stock than to the
+    // polished bezel in front of it.
+    const housingMat = new THREE.MeshPhysicalMaterial({
+      color: structuralColor(new THREE.Color()),
+      metalness: 0.9,
+      roughness: 0.52,
+      envMap,
+      envMapIntensity: 0.6,
+      transparent: true,
+      opacity: 0,
+    });
+    // Blades are thin stamped steel, not turned parts — flat shading and a
+    // tighter roughness so the six of them separate as they overlap.
+    const bladeMat = new THREE.MeshPhysicalMaterial({
+      color: structuralColor(new THREE.Color()),
+      metalness: 0.94,
+      roughness: 0.34,
+      envMap,
+      envMapIntensity: 0.85,
+      flatShading: true,
+      transparent: true,
+      opacity: 0,
+      side: THREE.DoubleSide,
+    });
     const meridian = new THREE.MeshBasicMaterial({
       color: sceneColors.signal.clone(),
       transparent: true,
@@ -527,6 +653,8 @@ export const HeroStage = ({
       wire,
       ring,
       ringInner,
+      housing: housingMat,
+      blade: bladeMat,
       meridian,
       core: coreMat,
       glowNear: glowNearMat,
@@ -537,6 +665,40 @@ export const HeroStage = ({
       cueTexture,
     };
   }, [cue, envMap]);
+
+  /*
+   * The bezel's index marks never move relative to the bezel, so their matrices
+   * are written once. Three of the twenty-four are long — at 0°, 120° and 240°,
+   * one per law — which turns the ring's resting angle into a readout as well as
+   * a control.
+   */
+  useEffect(() => {
+    const minor = ticks.current;
+    const major = majorTicks.current;
+    if (!minor || !major) return;
+
+    let minorSlot = 0;
+    let majorSlot = 0;
+    for (let index = 0; index < TICK_COUNT; index += 1) {
+      const angle = (index / TICK_COUNT) * Math.PI * 2;
+      const isMajor = index % (TICK_COUNT / 3) === 0;
+      _tickPosition.set(
+        Math.cos(angle) * TICK_RADIUS,
+        Math.sin(angle) * TICK_RADIUS,
+        0,
+      );
+      // Each mark stands radially, so it points at the centre of the optic.
+      _tickQuaternion.setFromAxisAngle(_zAxis, angle - Math.PI / 2);
+      _tickScale.setScalar(1);
+      _tickMatrix.compose(_tickPosition, _tickQuaternion, _tickScale);
+      if (isMajor) major.setMatrixAt(majorSlot++, _tickMatrix);
+      else minor.setMatrixAt(minorSlot++, _tickMatrix);
+    }
+    minor.count = minorSlot;
+    major.count = majorSlot;
+    minor.instanceMatrix.needsUpdate = true;
+    major.instanceMatrix.needsUpdate = true;
+  }, []);
 
   // The displacement has to be attached before the first compile, not in a frame.
   useEffect(() => {
@@ -556,6 +718,8 @@ export const HeroStage = ({
       materials.wire.dispose();
       materials.ring.dispose();
       materials.ringInner.dispose();
+      materials.housing.dispose();
+      materials.blade.dispose();
       materials.meridian.dispose();
       materials.core.dispose();
       materials.glowNear.dispose();
@@ -807,26 +971,47 @@ export const HeroStage = ({
     peel.uRimColor.value
       .copy(sceneColors.signal)
       .lerp(sceneColors.accent, rimPulse * 0.6);
-    peel.uRimGain.value = (0.22 + rimPulse * 0.3 * idle) * live;
+    // The rim follows the same rule as the emissive: a cold instrument has a
+    // faint edge, a charging one has a hot one.
+    peel.uRimGain.value = (0.05 + open * 0.34 + rimPulse * 0.12 * idle) * live;
 
     structuralColor(_structural);
-    materials.face.color
-      .copy(_structural)
-      .lerp(sceneColors.ink, 0.08 + master * 0.06);
+    materials.face.color.copy(_structural).lerp(STEEL, master * 0.05);
     materials.face.emissive
       .copy(sceneColors.accent)
       .lerp(sceneColors.signal, master * 0.55);
-    materials.face.emissiveIntensity = (0.05 + master * 0.07 * idle) * live;
-    materials.face.envMapIntensity = 1.05 + master * 0.25;
+    /*
+     * Cold until charged.
+     *
+     * A flat emissive term is added to every pixel regardless of geometry, so at
+     * the old 0.05–0.12 the amber was contributing roughly a third of the red in
+     * the final image — uniformly, across the whole shell. That is the definition
+     * of paint: colour that does not respond to the light or the surface. It also
+     * told the wrong story, since a reactor at zero charge should be a cold object.
+     *
+     * Now it is effectively off while the optic is shut, and the glow arrives as
+     * the aperture does — light escaping from inside, which is what it is.
+     */
+    materials.face.emissiveIntensity =
+      (0.005 + open * 0.085 + master * 0.015 * idle) * live;
+    materials.face.envMapIntensity = 1.5 + master * 0.2;
     materials.face.opacity = live;
     materials.face.depthWrite = open < 0.18;
 
+    /*
+     * The seams, not a wireframe.
+     *
+     * A bright amber line on every facet edge was doing most of the talking:
+     * 320 lit triangles read as a low-poly gold ball no matter what the metal
+     * underneath was doing. Shut, the seams are barely there and the machined
+     * surface carries the shot; as the aperture opens they light up, because
+     * that is the moment they stop being panel gaps and start being the way out.
+     */
     materials.wire.color
-      .copy(sceneColors.ink)
-      .lerp(sceneColors.accent, 0.2 + rimPulse * 0.4)
-      .lerp(sceneColors.signal, master * 0.18);
+      .copy(STEEL)
+      .lerp(sceneColors.accent, 0.18 + open * 0.55 + rimPulse * 0.12);
     materials.wire.opacity =
-      (0.34 + rimPulse * 0.34 * idle) * live * (1 - fling * 0.7);
+      (0.1 + open * 0.4 + rimPulse * 0.1 * idle) * live * (1 - fling * 0.7);
 
     if (rootNode) {
       const idleYaw = Math.sin(time * 0.045) * 0.12 * idle;
@@ -900,6 +1085,52 @@ export const HeroStage = ({
       0.25 + (1 - ringPulse) * 0.55 * idle;
     materials.ringInner.opacity = ringLive * 0.9;
 
+    // The index marks belong to the bezel, so they simply inherit its angle.
+    const bezelAngle = outerRing.current?.rotation.z ?? 0;
+    if (ticks.current) ticks.current.rotation.z = bezelAngle;
+    if (majorTicks.current) majorTicks.current.rotation.z = bezelAngle;
+
+    materials.housing.color.copy(_structural);
+    materials.housing.opacity = live * 0.92 * (1 - open * 0.25);
+
+    /* ---- iris ---------------------------------------------------------------
+     *
+     * The shell is the aperture the visitor sees; this is the mechanism behind
+     * it. Six blades hinged at the rim, overlapping into a closed disc while the
+     * optic is shut and swinging clear as it opens — so peeling the facets away
+     * reveals a machine rather than an empty interior, and the core arrives from
+     * somewhere rather than fading up out of nothing.
+     */
+    const irisNode = iris.current;
+    if (irisNode) {
+      irisNode.quaternion.copy(camera.quaternion);
+      irisNode.scale.setScalar(1 + open * 0.16);
+    }
+    const bladeNode = blades.current;
+    if (bladeNode) {
+      // Retract on the back half of the aperture's travel: the facets have to be
+      // out of the way before the blades start moving, or the two mechanisms
+      // read as one confusing motion.
+      const irisOpen = THREE.MathUtils.smoothstep(open, 0.08, 0.62);
+      const swing = 0.12 + irisOpen * 0.95;
+      const drift = time * 0.02 * idle;
+      for (let index = 0; index < BLADE_COUNT; index += 1) {
+        const seat = (index / BLADE_COUNT) * Math.PI * 2 + drift;
+        _tickPosition.set(
+          Math.cos(seat) * BLADE_PIVOT,
+          Math.sin(seat) * BLADE_PIVOT,
+          0,
+        );
+        _tickQuaternion.setFromAxisAngle(_zAxis, seat + swing);
+        _tickScale.setScalar(1);
+        _tickMatrix.compose(_tickPosition, _tickQuaternion, _tickScale);
+        bladeNode.setMatrixAt(index, _tickMatrix);
+      }
+      bladeNode.instanceMatrix.needsUpdate = true;
+    }
+    materials.blade.color.copy(_structural).lerp(sceneColors.ink, 0.04);
+    materials.blade.opacity = live * (0.55 + open * 0.35);
+
     materials.meridian.color
       .copy(sceneColors.signal)
       .lerp(sceneColors.accent, master * 0.35);
@@ -972,22 +1203,23 @@ export const HeroStage = ({
 
     // ---- lighting ----------------------------------------------------------
     if (hemi.current) {
-      hemi.current.color.copy(sceneColors.ink);
-      hemi.current.groundColor
-        .copy(sceneColors.base)
-        .lerp(sceneColors.accent, 0.12);
-      hemi.current.intensity = (0.42 + master * 0.12) * live;
+      // Ambient stays neutral. Every warm photon in this shot should come from a
+      // source you could point at — the key, the rim, the core — not from the
+      // air, or the object is simply tinted rather than lit.
+      hemi.current.color.copy(STEEL);
+      hemi.current.groundColor.copy(sceneColors.base);
+      hemi.current.intensity = (0.34 + master * 0.1) * live;
     }
     if (keyLight.current) {
-      keyLight.current.color
-        .copy(sceneColors.ink)
-        .lerp(sceneColors.accent, 0.18);
-      // Enough to separate one facet from the next, not enough to clip. On flat
+      // Mostly neutral with a warm cast. The champagne belongs to the softbox in
+      // the env map, which reflects as a shaped streak; a warm punctual light
+      // just tints whatever facet it happens to hit.
+      keyLight.current.color.copy(STEEL).lerp(sceneColors.accent, 0.3);
+      // Deliberately small now that the studio env carries the read. On flat
       // facets a punctual lobe is all-or-nothing — every pixel shares a normal,
       // so the facet is either unlit or solid white with no gradient across it.
-      // Raking from the side rather than from overhead spreads the falloff over
-      // many facets instead of detonating one.
-      keyLight.current.intensity = (0.62 + master * 0.18) * live;
+      // This is here to separate neighbours by a shade, not to light the object.
+      keyLight.current.intensity = (0.42 + master * 0.12) * live;
       keyLight.current.position.set(
         3.1 + Math.sin(time * 0.25) * 0.35 * idle,
         1.35,
@@ -995,8 +1227,10 @@ export const HeroStage = ({
       );
     }
     if (fillLight.current) {
-      fillLight.current.color.copy(sceneColors.signal);
-      fillLight.current.intensity = (0.28 + pulse.counter * 0.22) * live;
+      // Cool fill against the warm key. Two warm sources give a flat wash; the
+      // temperature split is what makes a curved metal surface turn.
+      fillLight.current.color.copy(STEEL);
+      fillLight.current.intensity = (0.22 + pulse.counter * 0.16) * live;
     }
     if (rimLight.current) {
       const angle = time * 0.55 * (0.25 + idle * 0.75);
@@ -1010,7 +1244,7 @@ export const HeroStage = ({
       rimLight.current.color
         .copy(sceneColors.accent)
         .lerp(sceneColors.signal, rimPulse);
-      rimLight.current.intensity = (0.85 + rimPulse * 0.5) * live;
+      rimLight.current.intensity = (0.44 + rimPulse * 0.3) * live;
     }
     if (coreGlow.current) {
       coreGlow.current.color
@@ -1193,7 +1427,24 @@ export const HeroStage = ({
         renderOrder={1}
       />
 
+      {/* The mechanism behind the optic: blades hinged at the rim that clear as
+          the facets peel, so opening the shell reveals a machine. */}
+      <group ref={iris} position={[0, 0, -0.16]}>
+        <instancedMesh
+          ref={blades}
+          args={[geometries.blade, materials.blade, BLADE_COUNT]}
+          frustumCulled={false}
+        />
+      </group>
+
       <group ref={housing}>
+        {/* The turned collar the whole instrument is held in. */}
+        <mesh
+          geometry={geometries.rim}
+          material={materials.housing}
+          position={[0, 0, -0.05]}
+        />
+
         {/* The outer ring is the law selector — turn it to change the physics. */}
         <mesh
           ref={outerRing}
@@ -1203,11 +1454,37 @@ export const HeroStage = ({
           onPointerOut={handleRingOut}
           onPointerDown={handleRingDown}
         />
+        {/* Index marks: twenty-one minor, three major at the law detents. */}
+        <instancedMesh
+          ref={ticks}
+          args={[geometries.tick, materials.ring, TICK_COUNT]}
+          frustumCulled={false}
+        />
+        <instancedMesh
+          ref={majorTicks}
+          args={[geometries.tickMajor, materials.ringInner, 3]}
+          frustumCulled={false}
+        />
+
         <mesh
           ref={innerRing}
           geometry={geometries.inner}
           material={materials.ringInner}
         />
+        {/* Three struts tying the inner collar to the body. */}
+        {[0, 1, 2].map((index) => (
+          <mesh
+            key={index}
+            geometry={geometries.spoke}
+            material={materials.ringInner}
+            position={[
+              Math.cos((index / 3) * Math.PI * 2 + Math.PI / 2) * 1.05,
+              Math.sin((index / 3) * Math.PI * 2 + Math.PI / 2) * 1.05,
+              -0.02,
+            ]}
+            rotation={[0, 0, (index / 3) * Math.PI * 2]}
+          />
+        ))}
       </group>
 
       <group ref={cueGroup} position={[0, -0.92, 0.72]}>

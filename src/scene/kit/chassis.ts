@@ -19,11 +19,13 @@ import { toShards } from '../shardGeometry'
 
 export type ChassisKind = 'vault' | 'ledger' | 'totem'
 
-interface Box {
+export interface Box {
   size: [number, number, number]
   position: [number, number, number]
   /** Longest axis gets the extra segment so shards stay roughly square. */
   segments?: [number, number, number]
+  /** Euler rotation applied before the translation. */
+  rotation?: [number, number, number]
 }
 
 /**
@@ -34,7 +36,7 @@ interface Box {
  * non-indexed after `toNonIndexed` and concatenating three float arrays is the
  * whole operation.
  */
-const mergeBoxes = (boxes: Box[]): THREE.BufferGeometry => {
+export const mergeBoxes = (boxes: Box[]): THREE.BufferGeometry => {
   const positions: number[] = []
   const normals: number[] = []
   const uvs: number[] = []
@@ -43,6 +45,11 @@ const mergeBoxes = (boxes: Box[]): THREE.BufferGeometry => {
     const [width, height, depth] = box.size
     const [sx, sy, sz] = box.segments ?? [1, 1, 1]
     const source = new THREE.BoxGeometry(width, height, depth, sx, sy, sz)
+    if (box.rotation) {
+      source.rotateX(box.rotation[0])
+      source.rotateY(box.rotation[1])
+      source.rotateZ(box.rotation[2])
+    }
     source.translate(box.position[0], box.position[1], box.position[2])
     const flat = source.toNonIndexed()
     source.dispose()

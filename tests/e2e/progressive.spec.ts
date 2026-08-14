@@ -24,6 +24,14 @@ test.describe('reduced motion', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
   })
 
+  /*
+   * Waits for the canvas rather than sleeping and then looking, for the same
+   * reason as the cinema-path test below: these runs use a software rasteriser,
+   * and the performance governor is built to abandon the scene on hardware that
+   * cannot hold the frame budget. Sleeping first turns "reduced motion is still
+   * offered a scene" — which is the contract — into "a software rasteriser can
+   * sustain one for two and a half seconds", which is not.
+   */
   test('still mounts a demand-driven scene', async ({ page }) => {
     await page.goto('/es')
 
@@ -33,8 +41,7 @@ test.describe('reduced motion', () => {
       ),
     ).toBe(true)
 
-    await page.waitForTimeout(2500)
-    await expect(page.locator('canvas')).toHaveCount(1)
+    await expect(page.locator('canvas')).toHaveCount(1, { timeout: 8000 })
     await expect(page.locator('main')).toBeAttached()
   })
 
