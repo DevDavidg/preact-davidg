@@ -95,6 +95,10 @@ export interface Copy {
     title: string
     description: string
     ogAlt: string
+    cvTitle: string
+    cvDescription: string
+    gateTitle: string
+    gateDescription: string
   }
   nav: {
     ariaLabel: string
@@ -228,6 +232,7 @@ export interface Copy {
     }
     education: LabelledValue[]
     skills: LabelledValue[]
+    languages: LabelledValue[]
   }
   notFound: {
     title: string

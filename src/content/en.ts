@@ -6,10 +6,16 @@ export const en: Copy = {
   htmlLang: 'en',
 
   meta: {
-    title: 'David Guillen — Full Stack Senior',
+    title: 'David Guillen — Full Stack Senior in Buenos Aires',
     description:
-      'Full Stack Senior at Nonconformist. I build product interfaces, apps and design systems with React, React Native and Next.js — and this portfolio runs on a WebGL scene I wrote myself.',
-    ogAlt: 'David Guillen — Full Stack Senior',
+      'Full Stack Senior in Buenos Aires. I build product interfaces, apps and design systems with React, React Native and Next.js. Custom WebGL portfolio.',
+    ogAlt: 'David Guillen — Full Stack Senior in Buenos Aires',
+    cvTitle: 'David Guillen CV — Full Stack Senior',
+    cvDescription:
+      'CV of David Guillen, Full Stack Senior at Nonconformist in Buenos Aires. React, React Native, Next.js, design systems and WebGL.',
+    gateTitle: 'David Guillen — Full Stack Senior · ES / EN',
+    gateDescription:
+      'Portfolio of David Guillen, Full Stack Senior in Buenos Aires. Choose a language: Spanish or English.',
   },
 
   nav: {
@@ -313,6 +319,10 @@ export const en: Copy = {
       { key: 'Data', value: 'PostgreSQL, MySQL, MongoDB, Salesforce/SOQL' },
       { key: 'Interface', value: 'Design systems, MFE, accessibility, Core Web Vitals' },
       { key: 'Graphics', value: 'Three.js, React Three Fiber, GLSL, GSAP' },
+    ],
+    languages: [
+      { key: 'Spanish', value: 'Native' },
+      { key: 'English', value: 'B2' },
     ],
   },
 

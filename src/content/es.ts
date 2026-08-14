@@ -16,10 +16,16 @@ export const es: Copy = {
   htmlLang: 'es',
 
   meta: {
-    title: 'David Guillen — Full Stack Senior',
+    title: 'David Guillen — Full Stack Senior en Buenos Aires',
     description:
-      'Full Stack Senior en Nonconformist. Construyo interfaces de producto, apps y sistemas de diseño con React, React Native y Next.js — y este portfolio corre sobre una escena WebGL propia.',
-    ogAlt: 'David Guillen — Full Stack Senior',
+      'Full Stack Senior en Buenos Aires. Diseño interfaces, apps y design systems con React, React Native y Next.js. Portfolio con escena WebGL propia.',
+    ogAlt: 'David Guillen — Full Stack Senior en Buenos Aires',
+    cvTitle: 'CV de David Guillen — Full Stack Senior',
+    cvDescription:
+      'CV de David Guillen, Full Stack Senior en Nonconformist (Buenos Aires). React, React Native, Next.js, sistemas de diseño y WebGL.',
+    gateTitle: 'David Guillen — Full Stack Senior · ES / EN',
+    gateDescription:
+      'Portfolio de David Guillen, Full Stack Senior en Buenos Aires. Elegí idioma: español o English.',
   },
 
   nav: {
@@ -323,6 +329,10 @@ export const es: Copy = {
       { key: 'Datos', value: 'PostgreSQL, MySQL, MongoDB, Salesforce/SOQL' },
       { key: 'Interfaz', value: 'Sistemas de diseño, MFE, accesibilidad, Core Web Vitals' },
       { key: 'Gráficos', value: 'Three.js, React Three Fiber, GLSL, GSAP' },
+    ],
+    languages: [
+      { key: 'Español', value: 'Nativo' },
+      { key: 'English', value: 'B2' },
     ],
   },
 

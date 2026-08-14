@@ -1,0 +1,35 @@
+# David Guillen
+
+> Full Stack Senior in Buenos Aires. Product interfaces, mobile apps and design systems with React, React Native and Next.js. This site is a bilingual portfolio with a custom WebGL scene on top of static HTML.
+
+The site is available in Spanish (`/es`) and English (`/en`). `/` is the language picker (x-default).
+
+## Site
+
+- [Home (ES)](https://davidguillen.dev/es): Spanish home — work, experience, services, process, about, contact
+- [Home (EN)](https://davidguillen.dev/en): English home
+- [CV (ES)](https://davidguillen.dev/es/cv): Printable CV
+- [CV (EN)](https://davidguillen.dev/en/cv): Printable CV
+
+## Work
+
+Client sites in production:
+
+- [Andina ART](https://davidguillen.dev/es/proyectos/andina-art) — workplace-risk insurance site (andinaart.com.ar)
+- [AG Valores](https://davidguillen.dev/es/proyectos/ag-valores) — ALyC / capital-markets site (agvalores.com.ar)
+- [Nonconformist](https://davidguillen.dev/es/proyectos/nonconformist) — agency site (nonconformist.digital)
+
+English siblings live under `/en/work/{slug}`.
+
+## Contact
+
+- Email: dev.davidg@gmail.com
+- GitHub: https://github.com/DevDavidg
+- LinkedIn: https://www.linkedin.com/in/david-guillen-5074281b8
+- Base: Buenos Aires, Argentina (remote)
+
+## Notes
+
+- Do not invent metrics, client names or years of experience. Dates on the CV are fixed ranges.
+- Lab and archive pieces are labelled as concept or experiment, not as delivered client work.
+- The 3D reactor is progressive enhancement. The prerendered HTML is the source of truth.

@@ -31,13 +31,32 @@ export const SITE_HOST = SITE_ORIGIN.replace(/^https?:\/\//, '')
 
 export const SITE_NAME = 'David Guillen'
 
+/**
+ * Last editorial revision, used as `lastmod` in the sitemap. Update when the
+ * content model or a public URL changes in a way a crawler should recrawl.
+ */
+export const SITE_REVISED = '2026-08-13'
+
 export const PERSON = {
   name: 'David Guillen',
+  givenName: 'David',
+  familyName: 'Guillen',
   jobTitle: 'Full Stack Senior',
   email: 'dev.davidg@gmail.com',
+  telephone: '+541170030947',
   /** City only: precise location is not portfolio content. */
   locality: 'Buenos Aires',
+  region: 'Buenos Aires',
   country: 'AR',
+  countryName: 'Argentina',
+  worksFor: {
+    name: 'Nonconformist',
+    url: 'https://nonconformist.digital',
+  },
+  alumniOf: [
+    'Universidad Nacional Arturo Jauretche',
+    'Escuela Da Vinci',
+  ],
   sameAs: [
     'https://github.com/DevDavidg',
     'https://www.linkedin.com/in/david-guillen-5074281b8',

@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
 import { type MetaFunction } from 'react-router'
+import { CvDocument } from '../../src/components/CvDocument'
+import { JsonLd } from '../../src/components/JsonLd'
 import { Preflight } from '../../src/components/Preflight'
 import { SceneBoundary } from '../../src/components/SceneBoundary'
 import { ScrollRail } from '../../src/components/ScrollRail'
@@ -12,7 +14,7 @@ import { trackEvent } from '../../src/lib/analytics'
 import { useCopy } from '../../src/lib/locale'
 import { cvPath } from '../../src/lib/routes'
 import { CV_SECTION_IDS, cvRailChapters } from '../../src/lib/sceneRoutes'
-import { pageMeta } from '../../src/lib/seo'
+import { cvSchema, pageMeta } from '../../src/lib/seo'
 import { useReactorScroll, useScrollRefresh } from '../../src/motion/scroll'
 import { qualityOf, rendersCanvas } from '../../src/scene/sceneState'
 
@@ -22,8 +24,8 @@ export const meta: MetaFunction = ({ params }) => {
   return pageMeta({
     locale,
     path: cvPath(locale),
-    title: `${copy.cv.label} — David Guillen`,
-    description: copy.cv.intro,
+    title: copy.meta.cvTitle,
+    description: copy.meta.cvDescription,
   })
 }
 
@@ -43,22 +45,33 @@ const Cv = () => {
 
   const chapters = cvRailChapters(copy)
   const canvas = rendersCanvas(experience)
+  const schemas = cvSchema(locale)
+
+  if (!canvas) {
+    return (
+      <>
+        <CvDocument>
+          <JsonLd schemas={schemas} />
+        </CvDocument>
+        <Preflight />
+      </>
+    )
+  }
 
   return (
     <>
-      {canvas ? (
-        <SceneBoundary
-          quality={qualityOf(experience)}
-          copy={copy}
-          featured={copy.featured}
-          mode="cv"
-          sectionIds={CV_SECTION_IDS}
-        />
-      ) : null}
+      <SceneBoundary
+        quality={qualityOf(experience)}
+        copy={copy}
+        featured={copy.featured}
+        mode="cv"
+        sectionIds={CV_SECTION_IDS}
+      />
 
-      {canvas ? <StageTreatment /> : null}
+      <StageTreatment />
 
       <main id="main" tabIndex={-1} className="world-main focus-visible:outline-none">
+        <JsonLd schemas={schemas} />
         <ScrollRail chapters={chapters} />
       </main>
 

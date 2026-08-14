@@ -15,6 +15,7 @@ interface Conditions {
   memory?: number
   webgl2?: boolean
   saveData?: boolean
+  crawler?: boolean
 }
 
 /** Puts the environment into a specific shape so the gate can be asserted. */
@@ -26,6 +27,7 @@ const given = ({
   memory = 8,
   webgl2 = true,
   saveData = false,
+  crawler = false,
 }: Conditions) => {
   vi.stubGlobal('matchMedia', (query: string) => ({
     matches:
@@ -50,6 +52,12 @@ const given = ({
   })
   Object.defineProperty(navigator, 'connection', {
     value: saveData ? { saveData: true } : undefined,
+    configurable: true,
+  })
+  Object.defineProperty(navigator, 'userAgent', {
+    value: crawler
+      ? 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
+      : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/120.0.0.0',
     configurable: true,
   })
 
@@ -84,6 +92,11 @@ describe('capability gate', () => {
 
   it('never starts a scene without WebGL2', () => {
     given({ webgl2: false })
+    expect(detectQuality()).toBe('static')
+  })
+
+  it('never starts a scene for a known crawler', () => {
+    given({ crawler: true })
     expect(detectQuality()).toBe('static')
   })
 

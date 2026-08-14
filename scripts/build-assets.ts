@@ -260,19 +260,43 @@ const buildIcons = async () => {
   // The SVG favicon is the primary: it stays sharp at any size and is ~400 bytes.
   await writeFile(join(PUBLIC_DIR, 'favicon.svg'), monogramSvg(64, 12).trim())
 
+  // `/favicon.ico` still gets requested by crawlers and older scrapers.
+  const ico = await sharp(Buffer.from(monogramSvg(48, 8)))
+    .resize(48, 48)
+    .png({ compressionLevel: 9 })
+    .toBuffer()
+  await writeFile(join(PUBLIC_DIR, 'favicon.ico'), ico)
+
   await writeFile(
     join(PUBLIC_DIR, 'manifest.webmanifest'),
     `${JSON.stringify(
       {
-        name: 'David Guillen — Senior Frontend & Mobile Engineer',
+        id: '/',
+        name: 'David Guillen — Full Stack Senior',
         short_name: 'David Guillen',
-        start_url: '/',
+        description:
+          'Full Stack Senior in Buenos Aires. Product interfaces, apps and design systems with React, React Native and Next.js.',
+        lang: 'es',
+        dir: 'ltr',
+        start_url: '/es',
+        scope: '/',
         display: 'standalone',
         background_color: REACTOR,
         theme_color: REACTOR,
+        categories: ['portfolio', 'developer'],
         icons: [
-          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+          {
+            src: '/icons/icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/icons/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
+          },
         ],
       },
       null,

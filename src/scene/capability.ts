@@ -83,10 +83,26 @@ const LITE_MIN_WIDTH = 768
  * measures real frame time afterwards and can demote from here, which is what
  * catches a fast CPU paired with a weak GPU.
  */
+/**
+ * Crawlers that execute JavaScript still need the document, not the canvas.
+ * A bot with WebGL would otherwise hydrate into the 3D-only layout and lose
+ * every heading a search engine came for.
+ */
+const isCrawler = (): boolean => {
+  if (typeof navigator === 'undefined') return false
+  const ua = navigator.userAgent
+  if (!ua) return false
+  return /bot|crawler|spider|preview|slurp|facebookexternalhit|linkedinbot|whatsapp|telegrambot|discordbot|gptbot|claudebot|perplexity|bytespider|applebot|bingpreview|duckduckbot|yandex|baiduspider/i.test(
+    ua,
+  )
+}
+
 export const detectQuality = (): ExperienceState => {
   if (typeof window === 'undefined') return 'checking'
-  // Metered / no WebGL: no scene payload. Reduced motion still gets lite (demand
-  // frames) so the portfolio remains a 3D scroll narrative without a continuous loop.
+  // Metered / no WebGL / crawler: no scene payload. Reduced motion still gets
+  // lite (demand frames) so the portfolio remains a 3D scroll narrative without
+  // a continuous loop.
+  if (isCrawler()) return 'static'
   if (prefersLessData()) return 'static'
   if (!supportsWebGL2()) return 'static'
 

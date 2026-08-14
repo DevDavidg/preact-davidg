@@ -35,18 +35,21 @@ export const About = () => {
               data-hairline
               className="relative aspect-square w-full overflow-hidden border border-line bg-graphite"
             >
-              <img
-                src="/about/david-portrait.jpg"
-                alt={copy.about.portraitAlt}
-                width={800}
-                height={800}
-                loading="lazy"
-                decoding="async"
-                sizes="(max-width: 1024px) min(100vw, 30rem), 22rem"
-                className={`size-full object-cover object-[center_25%] transition-opacity duration-chapter ease-signal ${
-                  voxelFace ? 'opacity-0' : 'opacity-100'
-                }`}
-              />
+              <picture>
+                <source srcSet="/about/david-portrait.webp" type="image/webp" />
+                <img
+                  src="/about/david-portrait.jpg"
+                  alt={copy.about.portraitAlt}
+                  width={800}
+                  height={800}
+                  loading="lazy"
+                  decoding="async"
+                  sizes="(max-width: 1024px) min(100vw, 30rem), 22rem"
+                  className={`size-full object-cover object-[center_25%] transition-opacity duration-chapter ease-signal ${
+                    voxelFace ? 'opacity-0' : 'opacity-100'
+                  }`}
+                />
+              </picture>
             </div>
             <figcaption className="text-meta">{copy.about.portrait}</figcaption>
           </figure>

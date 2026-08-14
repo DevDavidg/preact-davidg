@@ -1,9 +1,10 @@
 import { useEffect } from 'react'
 import { Link, useNavigate, type MetaFunction } from 'react-router'
+import { JsonLd } from '../../src/components/JsonLd'
 import { COPY, DEFAULT_LOCALE, LOCALES } from '../../src/content'
 import { readPreferredLocale } from '../../src/lib/locale'
 import { homePath, LOCALE_GATE_PATH } from '../../src/lib/routes'
-import { pageMeta } from '../../src/lib/seo'
+import { gateSchema, pageMeta } from '../../src/lib/seo'
 import { PERSON } from '../../src/lib/site'
 
 /**
@@ -18,8 +19,8 @@ export const meta: MetaFunction = () => [
   ...pageMeta({
     locale: DEFAULT_LOCALE,
     path: LOCALE_GATE_PATH,
-    title: COPY[DEFAULT_LOCALE].meta.title,
-    description: COPY[DEFAULT_LOCALE].meta.description,
+    title: COPY[DEFAULT_LOCALE].meta.gateTitle,
+    description: COPY[DEFAULT_LOCALE].meta.gateDescription,
   }),
 ]
 
@@ -34,6 +35,7 @@ const LocaleGate = () => {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-8 px-gutter py-24">
+      <JsonLd schemas={gateSchema()} />
       <p className="text-meta">{PERSON.jobTitle}</p>
       <h1 className="text-display text-3xl sm:text-5xl">
         {copy.localeGate.title}

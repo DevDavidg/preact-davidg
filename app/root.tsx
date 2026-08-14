@@ -53,8 +53,12 @@ export const links: LinksFunction = () => [
     crossOrigin: 'anonymous',
   },
   { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' },
+  { rel: 'icon', href: '/favicon.ico', sizes: '48x48' },
   { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.png' },
   { rel: 'manifest', href: '/manifest.webmanifest' },
+  { rel: 'sitemap', href: '/sitemap.xml', type: 'application/xml' },
+  { rel: 'me', href: 'https://github.com/DevDavidg' },
+  { rel: 'me', href: 'https://www.linkedin.com/in/david-guillen-5074281b8' },
 ]
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -67,7 +71,9 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         <meta charSet="utf-8" />
         {/* No maximum-scale or user-scalable: pinch zoom stays available. */}
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="color-scheme" content="dark" />
         <meta name="theme-color" content="#050608" />
+        <meta name="application-name" content="David Guillen" />
         <meta name="author" content="David Guillen" />
         <Meta />
         <Links />

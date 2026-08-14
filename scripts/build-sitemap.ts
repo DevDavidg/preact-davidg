@@ -7,15 +7,16 @@
  *
  * Each entry carries its `hreflang` alternates, which is what tells a search engine
  * that `/es/...` and `/en/...` are the same page in two languages rather than two
- * competing pages.
+ * competing pages. Case and home URLs also list their share/project images.
  *
  * Run as part of `pnpm build`.
  */
 import { copyFile, mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { LOCALES } from '../src/content/index'
+import { findCase, isLocale, LOCALES } from '../src/content/index'
 import { NOT_FOUND_PATH, staticPaths, translatePath } from '../src/lib/routes'
-import { absoluteUrl, SITE_ORIGIN } from '../src/lib/site'
+import { OG_IMAGE } from '../src/lib/seo'
+import { absoluteUrl, SITE_ORIGIN, SITE_REVISED } from '../src/lib/site'
 
 const OUT_DIR = join(process.cwd(), 'build', 'client')
 
@@ -25,8 +26,45 @@ const indexable = (path: string) => path !== NOT_FOUND_PATH
 const priorityFor = (path: string) => {
   if (path === '/') return '0.5'
   if (/^\/[a-z]{2}$/.test(path)) return '1.0'
-  if (path.endsWith('/cv')) return '0.7'
+  if (path.endsWith('/cv')) return '0.8'
   return '0.8'
+}
+
+const escapeXml = (value: string) =>
+  value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+
+const imagesFor = (path: string): { loc: string; title: string }[] => {
+  const segments = path.replace(/^\/+|\/+$/g, '').split('/')
+  const [locale, section, slug] = segments
+
+  if (path === '/') {
+    return [{ loc: absoluteUrl(OG_IMAGE.es), title: 'David Guillen' }]
+  }
+
+  if (isLocale(locale) && !section) {
+    return [{ loc: absoluteUrl(OG_IMAGE[locale]), title: 'David Guillen' }]
+  }
+
+  if (isLocale(locale) && slug && (section === 'proyectos' || section === 'work')) {
+    const study = findCase(locale, slug)
+    if (!study) return []
+    return [
+      {
+        loc: absoluteUrl(study.image.src),
+        title: study.title,
+      },
+    ]
+  }
+
+  if (isLocale(locale) && section === 'cv') {
+    return [{ loc: absoluteUrl(OG_IMAGE[locale]), title: 'David Guillen' }]
+  }
+
+  return []
 }
 
 const urlEntry = (path: string) => {
@@ -37,12 +75,22 @@ const urlEntry = (path: string) => {
       )}" />`,
   ).join('\n')
 
+  const images = imagesFor(path)
+    .map(
+      (image) => `    <image:image>
+      <image:loc>${escapeXml(image.loc)}</image:loc>
+      <image:title>${escapeXml(image.title)}</image:title>
+    </image:image>`,
+    )
+    .join('\n')
+
   return `  <url>
     <loc>${absoluteUrl(path)}</loc>
 ${alternates}
     <xhtml:link rel="alternate" hreflang="x-default" href="${absoluteUrl('/')}" />
+    <lastmod>${SITE_REVISED}</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>${priorityFor(path)}</priority>
+    <priority>${priorityFor(path)}</priority>${images ? `\n${images}` : ''}
   </url>`
 }
 
@@ -53,13 +101,39 @@ const main = async () => {
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${paths.map(urlEntry).join('\n')}
 </urlset>
 `
 
   const robots = `# ${SITE_ORIGIN}
 User-agent: *
+Allow: /
+Disallow: /404
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Applebot-Extended
 Allow: /
 
 Sitemap: ${absoluteUrl('/sitemap.xml')}

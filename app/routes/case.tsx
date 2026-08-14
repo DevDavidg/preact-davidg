@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useLocation, useParams, type MetaFunction } from 'react-router'
+import { CaseDocument } from '../../src/components/CaseDocument'
 import { JsonLd } from '../../src/components/JsonLd'
 import { Preflight } from '../../src/components/Preflight'
 import { SceneBoundary } from '../../src/components/SceneBoundary'
@@ -39,7 +40,13 @@ export const meta: MetaFunction = ({ params, location }) => {
     description: study.summary,
     image: study.image.src,
     imageAlt: study.image.alt,
+    imageWidth: study.image.width,
+    imageHeight: study.image.height,
     ogType: 'article',
+    article: {
+      section: study.kindLabel,
+      tags: study.tags,
+    },
   })
 }
 
@@ -65,24 +72,34 @@ const Case = () => {
 
   const chapters = caseRailChapters(copy, study)
   const canvas = rendersCanvas(experience)
+  const schemas = caseSchema(locale, study)
+
+  if (!canvas) {
+    return (
+      <>
+        <CaseDocument study={study}>
+          <JsonLd schemas={schemas} />
+        </CaseDocument>
+        <Preflight />
+      </>
+    )
+  }
 
   return (
     <>
-      {canvas ? (
-        <SceneBoundary
-          quality={qualityOf(experience)}
-          copy={copy}
-          featured={copy.featured}
-          mode="case"
-          study={study}
-          sectionIds={CASE_SECTION_IDS}
-        />
-      ) : null}
+      <SceneBoundary
+        quality={qualityOf(experience)}
+        copy={copy}
+        featured={copy.featured}
+        mode="case"
+        study={study}
+        sectionIds={CASE_SECTION_IDS}
+      />
 
-      {canvas ? <StageTreatment /> : null}
+      <StageTreatment />
 
       <main id="main" tabIndex={-1} className="world-main focus-visible:outline-none">
-        <JsonLd schemas={caseSchema(locale, study)} />
+        <JsonLd schemas={schemas} />
         <ScrollRail chapters={chapters} />
       </main>
 

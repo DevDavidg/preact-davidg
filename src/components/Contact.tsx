@@ -126,7 +126,12 @@ export const Contact = () => {
                 onClick={() => trackEvent('contact_click', link.label.toLowerCase())}
                 data-print-url={link.href}
                 {...(link.external
-                  ? { target: '_blank', rel: 'noopener noreferrer' }
+                  ? {
+                      target: '_blank',
+                      rel: /github\.com|linkedin\.com/.test(link.href)
+                        ? 'me noopener noreferrer'
+                        : 'noopener noreferrer',
+                    }
                   : {})}
                 className="text-meta shard shard-fine inline-flex min-h-11 items-center gap-2 text-ink-soft transition-colors duration-hover ease-signal pointer-fine:hover:text-ignition"
               >
