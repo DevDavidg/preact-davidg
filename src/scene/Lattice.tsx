@@ -208,8 +208,10 @@ export const Lattice = ({ quality }: { quality: Quality }) => {
     material.depthWrite = false
     // The opening is a dedicated product shot; corridor architecture enters after it.
     material.uniforms.uOpacity.value = (0.26 + live * 0.14) * corridorPresence
-    material.uniforms.uSpread.value = 0.12
-    material.uniforms.uJitter.value = 0.04
+    // CPU-placed, so `drift` is pinned to 0 by construction; the law still gets
+    // to breathe the lattice, which is what keeps CHAOS from stopping at the
+    // objects the visitor happens to be looking at.
+    material.setShape({ spread: 0.12, jitter: 0.04 })
   })
 
   return (

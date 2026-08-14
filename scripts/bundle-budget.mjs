@@ -19,8 +19,22 @@ const BUDGETS = {
   criticalJs: 150 * 1024,
   /** CSS on the critical path. */
   criticalCss: 20 * 1024,
-  /** The lazily imported 3D scene, including its share of Three.js. */
-  sceneJs: 320 * 1024,
+  /**
+   * The lazily imported 3D scene, including its share of Three.js.
+   *
+   * Raised from 320 kB when the corridor gained the operator layer: the three
+   * module bays and their chassis, the uplink handshake, the pointer probe, the
+   * signal conduits and the voxel portrait. That work landed at ~319 kB, which
+   * technically still fit — but a budget with 700 bytes of headroom stops being
+   * a guard and becomes a tripwire, so this leaves room to work in.
+   *
+   * Note what this number is and is not. It sums *every* chunk that is not on
+   * the critical path, so splitting work into a lazier chunk makes it go up, not
+   * down — per-chunk overhead is real and the sum is unchanged otherwise. It is
+   * a ceiling on how much JavaScript the site can ever ask for, which is the
+   * useful guard; it is not the scene's first payload.
+   */
+  sceneJs: 330 * 1024,
   /** All self-hosted fonts together. */
   fonts: 120 * 1024,
   /** Any single project image, in any format. */

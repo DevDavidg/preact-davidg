@@ -40,6 +40,14 @@ export const startMotionRuntime = ({
 
   setScroller({
     toElement: (element) => lenis.scrollTo(element, { offset: -1 }),
+    // `immediate` on purpose: a drag is the visitor's own hand on the value, and
+    // easing toward a target that moves again next frame turns a 1:1 gesture
+    // into a rubber band. The wheel keeps its smoothing; this does not want it.
+    by: (pixels) =>
+      lenis.scrollTo(lenis.targetScroll + pixels, {
+        immediate: true,
+        force: true,
+      }),
   })
 
   const handleScroll = () => {

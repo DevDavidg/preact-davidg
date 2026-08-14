@@ -14,8 +14,17 @@ export const computeViewportFit = (aspect: number, heightPx: number) => {
   return Math.round(Math.min(aspectFit, heightFit) * 50) / 50
 }
 
-/** Console plate multiplier — framed inside the viewport, not edge-to-edge. */
-export const consoleSizeFit = (fit: number) => 0.44 + fit * 0.26
+/**
+ * Console plate multiplier — framed inside the viewport, not edge-to-edge.
+ *
+ * Raised from `0.44 + fit * 0.26`. Type size scales with `fit` while the plate
+ * scaled with this, so at the old ceiling the plates were too small for the copy
+ * they carry and every console clipped: headlines rendered as "Interfaces qu…"
+ * and whole data rows were dropped. A bigger plate at the same type size is
+ * reading room, not a louder card — even at the new ceiling a console occupies
+ * about a quarter of the frame at its reading distance.
+ */
+export const consoleSizeFit = (fit: number) => 0.5 + fit * 0.34
 
 /**
  * Hero shell multiplier.

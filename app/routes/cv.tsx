@@ -2,12 +2,15 @@ import { useEffect } from 'react'
 import { type MetaFunction } from 'react-router'
 import { CvDocument } from '../../src/components/CvDocument'
 import { JsonLd } from '../../src/components/JsonLd'
+import { OperatorBar } from '../../src/components/OperatorBar'
 import { Preflight } from '../../src/components/Preflight'
 import { SceneBoundary } from '../../src/components/SceneBoundary'
 import { ScrollRail } from '../../src/components/ScrollRail'
+import { SkipLink } from '../../src/components/Nav'
 import { StageTreatment } from '../../src/components/StageTreatment'
 import { COPY, isLocale } from '../../src/content'
 import { useExperience } from '../../src/hooks/useExperience'
+import { useOperatorConsole } from '../../src/hooks/useOperatorConsole'
 import { usePerformanceGovernor } from '../../src/hooks/usePerformanceGovernor'
 import { usePointerTracking } from '../../src/hooks/usePointerTracking'
 import { trackEvent } from '../../src/lib/analytics'
@@ -38,6 +41,7 @@ const Cv = () => {
   usePointerTracking(experience)
   usePerformanceGovernor(experience)
   useScrollRefresh(copy.locale)
+  useOperatorConsole(experience, cvPath(locale))
 
   useEffect(() => {
     trackEvent('cv_view', locale)
@@ -60,6 +64,8 @@ const Cv = () => {
 
   return (
     <>
+      <SkipLink />
+
       <SceneBoundary
         quality={qualityOf(experience)}
         copy={copy}
@@ -69,6 +75,7 @@ const Cv = () => {
       />
 
       <StageTreatment />
+      <OperatorBar />
 
       <main id="main" tabIndex={-1} className="world-main focus-visible:outline-none">
         <JsonLd schemas={schemas} />

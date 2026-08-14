@@ -124,6 +124,23 @@ export interface Copy {
     hint: string
     boot: string
     phases: Record<string, string>
+    /**
+     * Reactor vocabulary.
+     *
+     * The corridor speaks in operations — lock, charge, law, uplink — while the
+     * static document keeps product language, because a recruiter and a crawler
+     * should never have to learn the metaphor to read the page. Both are true at
+     * once, which is why these strings live apart from the section copy.
+     */
+    operator: string
+    /** `{n}` is substituted with the module number. */
+    moduleLock: string
+    sectorLabel: string
+    uplinkReady: string
+    uplinkHold: string
+    uplinkDone: string
+    /** Preflight telemetry, ticked off as each subsystem actually reports. */
+    bootLines: string[]
   }
   hero: {
     eyebrow: string

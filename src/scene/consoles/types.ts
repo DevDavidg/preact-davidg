@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import type { Quality } from '../capability'
+import type { ChassisKind } from '../kit/chassis'
 import type { ConsoleRow } from '../kit/consoleLayout'
 import type { SectionWindows } from '../ui/sectionRanges'
 
@@ -43,8 +44,21 @@ export interface ConsoleSpec {
   actions?: ConsoleActionSpec[]
   /** Optional link to a featured module index for focus boost. */
   moduleIndex?: number
+  /**
+   * A featured module's bay: the project shot and the housing it seats into.
+   * Present only on the three featured consoles, and only rendered where the
+   * viewport is wide enough to hold a plate and a bay side by side.
+   */
+  bay?: {
+    shot: string
+    chassis: ChassisKind
+    /** Short name for the operator log when the module seats. */
+    label: string
+  }
   /** When set, bypasses section-derived enter/exit (module beats). */
   timing?: ConsoleTimingOverride
+  /** The finale console carries the handshake terminals. */
+  uplink?: boolean
 }
 
 export interface BuiltConsole {

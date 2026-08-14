@@ -2,17 +2,20 @@ import { useEffect } from 'react'
 import { useLocation, useParams, type MetaFunction } from 'react-router'
 import { CaseDocument } from '../../src/components/CaseDocument'
 import { JsonLd } from '../../src/components/JsonLd'
+import { OperatorBar } from '../../src/components/OperatorBar'
 import { Preflight } from '../../src/components/Preflight'
 import { SceneBoundary } from '../../src/components/SceneBoundary'
 import { ScrollRail } from '../../src/components/ScrollRail'
+import { SkipLink } from '../../src/components/Nav'
 import { StageTreatment } from '../../src/components/StageTreatment'
 import { COPY, findCase, isLocale } from '../../src/content'
 import { useExperience } from '../../src/hooks/useExperience'
+import { useOperatorConsole } from '../../src/hooks/useOperatorConsole'
 import { usePerformanceGovernor } from '../../src/hooks/usePerformanceGovernor'
 import { usePointerTracking } from '../../src/hooks/usePointerTracking'
 import { trackEvent } from '../../src/lib/analytics'
 import { useCopy } from '../../src/lib/locale'
-import { casePath } from '../../src/lib/routes'
+import { casePath, cvPath } from '../../src/lib/routes'
 import { CASE_SECTION_IDS, caseRailChapters } from '../../src/lib/sceneRoutes'
 import { caseSchema, pageMeta } from '../../src/lib/seo'
 import { useReactorScroll, useScrollRefresh } from '../../src/motion/scroll'
@@ -61,6 +64,7 @@ const Case = () => {
   usePointerTracking(experience)
   usePerformanceGovernor(experience)
   useScrollRefresh(`${copy.locale}-${params.slug ?? ''}`)
+  useOperatorConsole(experience, cvPath(locale))
 
   const study = findCase(locale, params.slug)
 
@@ -87,6 +91,8 @@ const Case = () => {
 
   return (
     <>
+      <SkipLink />
+
       <SceneBoundary
         quality={qualityOf(experience)}
         copy={copy}
@@ -97,6 +103,7 @@ const Case = () => {
       />
 
       <StageTreatment />
+      <OperatorBar />
 
       <main id="main" tabIndex={-1} className="world-main focus-visible:outline-none">
         <JsonLd schemas={schemas} />

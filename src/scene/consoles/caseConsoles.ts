@@ -21,10 +21,19 @@ export const caseConsoleSpecs = (
       side: -1,
       rise: 0.25,
       rows: [
-        { kind: 'eyebrow', text: `${copy.work.caseOf.toUpperCase()}  ·  ${study.kindLabel.toUpperCase()}` },
-        { kind: 'title', text: trimTitle(study.title, 32), em: 0.32 },
-        { kind: 'lead', text: trimLead(study.summary, 95) },
-        { kind: 'data', text: study.tags.slice(0, 5).join(' · ').toUpperCase() },
+        // An eyebrow is one line by construction. Two labels joined into it only
+        // ever meant the second one was cut, so the kind moves down to the data
+        // row where it has the width to be read.
+        { kind: 'eyebrow', text: copy.work.caseOf.toUpperCase() },
+        { kind: 'title', text: trimTitle(study.title, 32), em: 0.3 },
+        { kind: 'lead', text: trimLead(study.summary, 88) },
+        {
+          kind: 'data',
+          text: `${study.kindLabel.toUpperCase()}  ·  ${study.tags
+            .slice(0, 4)
+            .join(' · ')
+            .toUpperCase()}`,
+        },
         { kind: 'data', text: trimLead(study.outcome, 70) },
       ],
       actions: [

@@ -1,7 +1,8 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { Quality } from './capability'
+import { reactorControl } from './control/reactorControl'
 import { ARTIFACTS, CONDUIT_Y, REACTOR_CORE } from './layout'
 import { sceneColors } from './sceneColors'
 import { clamp01, livePowerFor, sceneState } from './sceneState'
@@ -140,12 +141,18 @@ const buildConduits = (): THREE.BufferGeometry => {
 
 interface SignalConduitsProps {
   quality: Quality
-  /** Assembly window per module, so light arrives before the project does. */
-  windows: { enter: number; span: number; pass: number }[]
 }
 
-export const SignalConduits = ({ quality, windows }: SignalConduitsProps) => {
+/**
+ * The timing comes from the placed consoles rather than from measured DOM
+ * sections. Placement resequences every beat into an exclusive reading slice, so
+ * a conduit lit from the raw section window would energise for a module the
+ * visitor is not being shown — light arriving for the wrong project is worse
+ * than no light at all.
+ */
+export const SignalConduits = ({ quality }: SignalConduitsProps) => {
   const geometry = useMemo(buildConduits, [])
+  const mesh = useRef<THREE.Mesh>(null)
 
   const material = useMemo(
     () =>
@@ -180,31 +187,56 @@ export const SignalConduits = ({ quality, windows }: SignalConduitsProps) => {
     const build = sceneState.build
     const { uniforms } = material
     uniforms.uTime.value = state.clock.elapsedTime
-    uniforms.uPower.value = livePowerFor(build)
+    // The harness carries the sound as well as the charge: with audio on, the
+    // conduits are the room's own level meter, so the visitor can see what they
+    // are hearing travel down the corridor.
+    uniforms.uPower.value = Math.min(
+      1,
+      livePowerFor(build) + reactorControl.audio * 0.5,
+    )
     uniforms.uSignal.value.copy(sceneColors.signal)
     uniforms.uAccent.value.copy(sceneColors.accent)
 
     const energy = uniforms.uEnergy.value as number[]
     const focus = uniforms.uFocus.value as number[]
 
+    const beats = reactorControl.moduleBeats
+
     for (let index = 0; index < ARTIFACTS.length; index++) {
-      const window = windows[index]
-      if (!window) {
+      const beat = beats[index]
+      if (!beat) {
         energy[index] = 0
         focus[index] = 0
         continue
       }
 
-      // Light leads the module: the conduit is charged over the first half of the
-      // panel's own window, so it is lit by the time the shards land.
-      const lead = clamp01((build - (window.enter - window.span * 0.25)) /
-        Math.max(window.span * 0.75, 0.02))
-      // Fades once the camera is past, otherwise three lit lines trail the visitor
+      // Light leads the module: the conduit charges over the run-up to the beat
+      // and is already lit by the time the bay's shards land, so the visitor sees
+      // the cause before the effect.
+      const lead = clamp01(
+        (build - (beat.enter - beat.span * 0.9)) /
+          Math.max(beat.span * 1.4, 0.02),
+      )
+      // Fades once the beat is over, otherwise three lit lines trail the visitor
       // into the next chapter and the room never settles.
-      const retire = clamp01((build - (window.pass + 0.06)) / 0.1)
+      const retire = clamp01((build - beat.exit) / Math.max(beat.exitSpan, 0.02))
       energy[index] = lead * (1 - retire)
-      focus[index] =
-        sceneState.focus === index ? energy[index] : 0
+      focus[index] = sceneState.focus === index ? energy[index] : 0
+    }
+
+    /*
+     * A dark harness is not drawn at all.
+     *
+     * The fragment shader already discards an unenergised conduit, but a discard
+     * happens *after* the fragment has been shaded — so three floor-length
+     * ribbons were still being rasterised across the opening shot, where no
+     * module exists to light them. On a weak GPU that fill was enough to push
+     * the frame budget over and have the governor abandon the scene outright.
+     */
+    const node = mesh.current
+    if (node) {
+      node.visible =
+        energy[0] > 0.001 || energy[1] > 0.001 || energy[2] > 0.001
     }
   })
 
@@ -212,9 +244,11 @@ export const SignalConduits = ({ quality, windows }: SignalConduitsProps) => {
   // causal read survives on a phone, which is the part that carries the story.
   return (
     <mesh
+      ref={mesh}
       geometry={geometry}
       material={material}
       frustumCulled={false}
+      visible={false}
       renderOrder={quality === 'cinema' ? 1 : 0}
     />
   )

@@ -2,19 +2,22 @@ import { useEffect, useMemo } from 'react'
 import { useLocation, type MetaFunction } from 'react-router'
 import { HomeDocument } from '../../src/components/HomeDocument'
 import { JsonLd } from '../../src/components/JsonLd'
+import { OperatorBar } from '../../src/components/OperatorBar'
 import { Preflight } from '../../src/components/Preflight'
 import { SceneBoundary } from '../../src/components/SceneBoundary'
 import { ScrollRail } from '../../src/components/ScrollRail'
+import { SkipLink } from '../../src/components/Nav'
 import { StageTreatment } from '../../src/components/StageTreatment'
 import { homeRailChapters } from '../../src/lib/sceneRoutes'
 import { COPY, isLocale } from '../../src/content'
 import { useExperience } from '../../src/hooks/useExperience'
+import { useOperatorConsole } from '../../src/hooks/useOperatorConsole'
 import { usePerformanceGovernor } from '../../src/hooks/usePerformanceGovernor'
 import { usePointerTracking } from '../../src/hooks/usePointerTracking'
 import { useSectionTracking } from '../../src/hooks/useSectionTracking'
 import { trackEvent } from '../../src/lib/analytics'
 import { useCopy } from '../../src/lib/locale'
-import { homePath, SECTION_IDS } from '../../src/lib/routes'
+import { cvPath, homePath, SECTION_IDS } from '../../src/lib/routes'
 import { homeSchema, pageMeta } from '../../src/lib/seo'
 import {
   useAnchorScroll,
@@ -50,6 +53,7 @@ const Home = () => {
   useAnchorScroll()
   useSectionTracking(SECTION_IDS)
   useScrollRefresh(copy.locale)
+  useOperatorConsole(experience, cvPath(copy.locale))
 
   useEffect(() => {
     if (experience === 'checking') return
@@ -98,6 +102,14 @@ const Home = () => {
 
   return (
     <>
+      {/*
+        The corridor has no navigation on purpose — every route is a raycast
+        target on a console. That is right for a pointer and wrong for a
+        keyboard, so the two controls a visitor cannot reach any other way are
+        real DOM: a skip link into the rail, and the operator's own panel.
+      */}
+      <SkipLink />
+
       <SceneBoundary
         quality={qualityOf(experience)}
         copy={copy}
@@ -106,6 +118,7 @@ const Home = () => {
       />
 
       <StageTreatment />
+      <OperatorBar />
 
       <main id="main" tabIndex={-1} className="world-main focus-visible:outline-none">
         <JsonLd schemas={homeSchema(copy.locale)} />

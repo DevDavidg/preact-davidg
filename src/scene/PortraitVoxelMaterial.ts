@@ -23,6 +23,9 @@ uniform float uVelocity;
 uniform float uFogDensity;
 uniform float uStaggerRatio;
 uniform vec4 uWindow;
+/** The probe, already transformed into this mesh's local space on the CPU. */
+uniform vec3 uProbe;
+uniform float uProbeAmount;
 
 varying vec3 vColor;
 varying vec3 vNormalW;
@@ -63,6 +66,17 @@ void main() {
 
   vec3 centre = mix(aChaos, aHome, lock);
   centre += aAxis * sin(uTime * 0.7 + aSeed * 6.2831) * 0.08 * loose * (1.0 + speed * 0.4);
+
+  // The portrait answers the pointer.
+  //
+  // A settled face that ignores the cursor is a photograph; one whose voxels
+  // lift toward it is a sensor, and the About beat is the one place in the room
+  // where the subject should look back. The falloff is a tight gaussian so the
+  // effect is a local swell under the cursor rather than the whole head leaning.
+  vec3 toward = uProbe - centre;
+  float reach = length(toward);
+  float pull = uProbeAmount * exp(-reach * reach * 3.4) * lock;
+  centre += toward / max(reach, 0.001) * pull * 0.14;
 
   vec4 world = modelMatrix * vec4(centre + rotated, 1.0);
   vec4 viewPos = viewMatrix * world;
@@ -153,6 +167,8 @@ export class PortraitVoxelMaterial extends THREE.ShaderMaterial {
         uFogDensity: { value: FOG_DENSITY },
         uStaggerRatio: { value: STAGGER_RATIO },
         uWindow: { value: new THREE.Vector4(0, 1, 1, 0.05) },
+        uProbe: { value: new THREE.Vector3(0, 0, 99) },
+        uProbeAmount: { value: 0 },
         uAccent: { value: sceneColors.accent.clone() },
         uFogColor: { value: sceneColors.base.clone() },
       },

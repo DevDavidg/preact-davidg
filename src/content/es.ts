@@ -58,6 +58,19 @@ export const es: Copy = {
       TRANSMIT: 'TRANSMISIÓN',
       IGNITION: 'IGNICIÓN',
     },
+    operator: 'OPERADOR · DG-01',
+    moduleLock: 'MÓDULO {n} ASENTADO',
+    sectorLabel: 'SECTOR 02 · INESTABLE',
+    uplinkReady: 'UPLINK LISTO',
+    uplinkHold: 'MANTENÉ PARA CERRAR EL CIRCUITO',
+    uplinkDone: 'UPLINK ESTABLECIDO',
+    bootLines: [
+      'WEBGL2',
+      'FIDELIDAD',
+      'SPLINE',
+      'AUDIO',
+      'REACTOR',
+    ],
   },
 
   hero: {

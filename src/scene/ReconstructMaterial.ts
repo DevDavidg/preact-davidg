@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { liveLaw, reactorControl } from './control/reactorControl'
 import { sceneColors } from './sceneColors'
 
 const vertexShader = /* glsl */ `
@@ -99,6 +100,12 @@ uniform sampler2D uMap;
 uniform float uHasMap;
 /** 1 when the mesh is a console plate that has to back world type opaquely. */
 uniform float uSolidFill;
+/** WIRE mode: the corridor as a blueprint rather than as matter. */
+uniform float uWire;
+/** Live loudness, 0 → 1. The room lights on what the visitor is hearing. */
+uniform float uAudio;
+/** Law heat, 0 → 1. CHAOS runs the whole corridor hotter. */
+uniform float uHeat;
 
 varying vec3 vBary;
 varying vec3 vNormalW;
@@ -186,6 +193,10 @@ void main() {
   // Heat on shards still in flight — hotter on photo debris so it reads as
   // project matter before it locks into a plate.
   color += uAccent * (1.0 - vAssembled) * mix(0.06, 0.2, uHasMap);
+  // The law's heat, and the sound the visitor is actually hearing. Both are
+  // deliberately additive rim terms: they change how the room *feels* without
+  // ever repainting a surface, so a photo shot still reads as the photo.
+  color += uAccent * fresnel * (uHeat * 0.35 + uAudio * 0.18);
 
   float alpha = solid * (0.40 + key * 0.32) + edgeGlow + fresnel * lit * 0.22;
   // Textured panels need presence while flying and hold against the lattice when home.
@@ -195,6 +206,22 @@ void main() {
   alpha = max(alpha, uSolidFill * smoothstep(0.2, 0.9, vAssembled));
   alpha *= 1.0 - depthFocus * 0.18;
   alpha *= uOpacity * mix(mix(0.35, 0.82, uHasMap), 1.0, vAssembled);
+
+  // WIRE: the same object, drawn as the drawing of itself.
+  //
+  // Not a second shader, and not THREE's own wireframe flag — both would lose
+  // the per-shard settle and the photo tint that make this readable. The
+  // barycentric edge term is already exact at any depth, so blueprint mode is
+  // just that term promoted to the whole read while the shaded face and the
+  // photo fill are dialled out under it.
+  if (uWire > 0.001) {
+    vec3 lineTint = mix(uInk, uAccent, 0.35 + uHeat * 0.4);
+    float line = edge * (0.85 + band * 0.5 + uFocus * 0.4);
+    vec3 wireColor = lineTint * (0.55 + line * 1.4);
+    float wireAlpha = clamp(line * 1.15 + 0.02, 0.0, 1.0) * uOpacity;
+    color = mix(color, wireColor, uWire);
+    alpha = mix(alpha, wireAlpha, uWire);
+  }
 
   if (alpha < 0.004) discard;
   fragColor = vec4(color, clamp(alpha, 0.0, 1.0));
@@ -216,6 +243,21 @@ export interface ReconstructSync {
    * `build`.
    */
   assembleAt?: number
+}
+
+/**
+ * The shard shape a mesh wants *before* the law scales it.
+ *
+ * Objects author what they would do under VISCOUS — a console frame gathers
+ * tightly, a five-metre column barely moves — and the law multiplies that. It is
+ * what keeps CHAOS from flattening every object into the same amount of noise,
+ * and it means a new mesh joins the physics by doing nothing at all.
+ */
+export interface ReconstructShape {
+  spread: number
+  jitter: number
+  /** Omit on CPU-placed meshes; their drift is pinned to 0 by construction. */
+  drift?: number
 }
 
 /**
@@ -284,8 +326,31 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
         uMap: { value: options.map ?? blankMap },
         uHasMap: { value: options.map ? 1 : 0 },
         uSolidFill: { value: options.solid ? 1 : 0 },
+        uWire: { value: 0 },
+        uAudio: { value: 0 },
+        uHeat: { value: 0 },
       },
     })
+    this.cpuPlaced = cpuPlaced
+  }
+
+  /** True when the mesh places itself and the shader must not add drift. */
+  private readonly cpuPlaced: boolean
+
+  /**
+   * Sets the authored shard shape, scaled by whatever law is in force.
+   *
+   * Call this instead of writing `uSpread` / `uJitter` / `uDrift` directly — a
+   * direct write is invisible to the law and the object simply stops obeying
+   * the room.
+   */
+  setShape(shape: ReconstructShape) {
+    const { uniforms } = this
+    uniforms.uSpread.value = shape.spread * liveLaw.spread
+    uniforms.uJitter.value = shape.jitter * liveLaw.jitter
+    if (shape.drift !== undefined && !this.cpuPlaced) {
+      uniforms.uDrift.value = shape.drift * liveLaw.drift
+    }
   }
 
   /** Pushes a frame of state into the shader. */
@@ -300,6 +365,9 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
     uniforms.uAssembleAt.value = state.assembleAt ?? -1
     uniforms.uAccent.value.copy(sceneColors.accent)
     uniforms.uInk.value.copy(sceneColors.ink)
+    uniforms.uWire.value = reactorControl.modeAmount.wire
+    uniforms.uAudio.value = reactorControl.audio
+    uniforms.uHeat.value = liveLaw.heat
     // Once faces carry the read, real occlusion beats blended transparency.
     // Textured panels wait until nearly locked (high alpha + stagger). Follow
     // the threshold both ways so scrolling back clears writers mid-flight.
@@ -309,6 +377,10 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
     // Console plates occlude a little earlier than shaded backdrop: their whole
     // job is to be behind type, and a plate that is opaque but not yet writing
     // depth lets the corridor show through the copy for a few frames.
-    this.depthWrite = stage > (mapped ? 0.72 : solid ? 0.45 : 0.55)
+    // A blueprint does not occlude: in WIRE the far side of the corridor has to
+    // show through the near side, which is the whole point of the mode.
+    this.depthWrite =
+      reactorControl.modeAmount.wire < 0.5 &&
+      stage > (mapped ? 0.72 : solid ? 0.45 : 0.55)
   }
 }

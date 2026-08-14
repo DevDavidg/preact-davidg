@@ -9,7 +9,10 @@ import {
   softDisassemble,
 } from '../ui/assembleDrama'
 import { ActionPlate } from './ActionPlate'
+import type { ChassisKind } from './chassis'
+import { ModuleRig } from './ModuleRig'
 import { openFrame } from './panelGeometry'
+import { UplinkGate } from './UplinkGate'
 
 /**
  * Reading console: solid face + softly assembling sharded frame.
@@ -32,6 +35,14 @@ export interface ConsoleProps {
   exitSpan?: number
   moduleIndex?: number
   actions?: ConsoleAction[]
+  /** Which lane the plate sits in — the bay takes the other one. */
+  side?: -1 | 0 | 1
+  /** A featured module's bay. Omitted where the viewport cannot hold it. */
+  bay?: { shot: string; chassis: ChassisKind; label: string }
+  /** The finale plate carries the handshake terminals. */
+  uplink?: boolean
+  /** Which action id, if any, is the uplink's payload. */
+  chargedAction?: string
 }
 
 const FRAME_PAD = 0.1
@@ -47,6 +58,10 @@ export const Console = ({
   exitSpan = 0.05,
   moduleIndex,
   actions = [],
+  side = 0,
+  bay,
+  uplink = false,
+  chargedAction,
 }: ConsoleProps) => {
   const group = useRef<THREE.Group>(null)
   const face = useRef<THREE.Mesh>(null)
@@ -141,9 +156,11 @@ export const Console = ({
       )
     }
 
-    frameMat.uniforms.uSpread.value = THREE.MathUtils.lerp(0.55, 0.06, assemble)
-    frameMat.uniforms.uJitter.value = THREE.MathUtils.lerp(0.12, 0.02, assemble)
-    frameMat.uniforms.uDrift.value = THREE.MathUtils.lerp(1, 0.04, assemble)
+    frameMat.setShape({
+      spread: THREE.MathUtils.lerp(0.55, 0.06, assemble),
+      jitter: THREE.MathUtils.lerp(0.12, 0.02, assemble),
+      drift: THREE.MathUtils.lerp(1, 0.04, assemble),
+    })
     frameMat.sync({
       build,
       live: liveFor(build),
@@ -192,6 +209,31 @@ export const Console = ({
         position={[0, 0, -0.02]}
         renderOrder={1}
       />
+      {bay && moduleIndex != null ? (
+        <ModuleRig
+          consoleWidth={width}
+          consoleHeight={height}
+          side={side}
+          enter={enter}
+          span={span}
+          exit={exit}
+          exitSpan={exitSpan}
+          moduleIndex={moduleIndex}
+          shot={bay.shot}
+          chassis={bay.chassis}
+          label={bay.label}
+        />
+      ) : null}
+      {uplink ? (
+        <UplinkGate
+          width={width}
+          height={height}
+          enter={enter}
+          span={span}
+          exit={exit}
+          exitSpan={exitSpan}
+        />
+      ) : null}
       {actions.map((action, index) => (
         <ActionPlate
           key={action.id}
@@ -203,6 +245,7 @@ export const Console = ({
           span={span * 0.55}
           exit={exit}
           exitSpan={exitSpan}
+          charged={action.id === chargedAction}
           onActivate={action.onActivate}
         />
       ))}

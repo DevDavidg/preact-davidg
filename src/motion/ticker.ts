@@ -32,6 +32,8 @@ export const runTicks = (time: number, delta: number) => {
 
 export interface Scroller {
   toElement: (element: HTMLElement) => void
+  /** Relative jump in pixels, for gestures that drive the story by hand. */
+  by: (pixels: number) => void
 }
 
 let scroller: Scroller | null = null
@@ -60,6 +62,25 @@ export const scrollToSection = (id: string) => {
     return
   }
   target.scrollIntoView({ behavior: nativeBehavior(), block: 'start' })
+}
+
+/**
+ * Advances the story by hand.
+ *
+ * Objects in the room can be dragged to drive the charge — the hero shell is
+ * opened this way — and a gesture has to move the *same* value the wheel moves,
+ * or the scene and the scroll position immediately disagree about where the
+ * visitor is. Routing through the installed scroller is what guarantees that;
+ * the native fallback exists because anchors have to work with no runtime.
+ */
+export const scrollByPixels = (pixels: number) => {
+  if (!pixels) return
+  if (scroller) {
+    scroller.by(pixels)
+    return
+  }
+  if (typeof window === 'undefined') return
+  window.scrollBy(0, pixels)
 }
 
 /* Layout invalidation ----------------------------------------------------- */

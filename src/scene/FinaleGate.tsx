@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { reactorControl } from './control/reactorControl'
 import { PORTAL_POSITION } from './layout'
 import { ReconstructMaterial } from './ReconstructMaterial'
 import { livePowerFor, sceneState, clamp01 } from './sceneState'
@@ -65,25 +66,38 @@ export const FinaleGate = () => {
     const power = livePowerFor(build)
     const enter = clamp01((build - 0.7) / 0.24)
     const ease = softAssemble(enter)
+    /*
+     * The gate is the *consequence* of the handshake, not a second control.
+     *
+     * The terminals the visitor actually touches are on the contact plate at
+     * reading distance; this stands eleven metres down the corridor, where a
+     * clickable target would be a few pixels across. Scroll assembles the
+     * structure, and the circuit closing is what powers it — so the last beat of
+     * the room is something the visitor did, seen at the scale of the building.
+     */
+    const handshake = reactorControl.uplink
 
-    material.uniforms.uSpread.value = THREE.MathUtils.lerp(0.7, 0.05, ease)
-    material.uniforms.uJitter.value = THREE.MathUtils.lerp(0.14, 0.02, ease)
-    material.uniforms.uDrift.value = THREE.MathUtils.lerp(1, 0.04, ease)
+    material.setShape({
+      spread: THREE.MathUtils.lerp(0.7, 0.05, ease),
+      jitter: THREE.MathUtils.lerp(0.14, 0.02, ease),
+      drift: THREE.MathUtils.lerp(1, 0.04, ease),
+    })
     material.sync({
       build,
-      live: power,
-      focus: ease * 0.45,
+      live: Math.max(power, handshake),
+      focus: ease * 0.45 + handshake * 0.5,
       time: state.clock.elapsedTime,
       velocity: sceneState.velocity,
       assembleAt: ease * 0.88,
     })
-    material.uniforms.uOpacity.value = ease * (0.5 + power * 0.35)
+    material.uniforms.uOpacity.value =
+      ease * (0.5 + power * 0.35 + handshake * 0.3)
 
-    spin.current += delta * (0.18 + power * 0.45)
+    spin.current += delta * (0.18 + power * 0.45 + handshake * 2.6)
     const root = group.current
     if (root) {
       root.visible = ease > 0.02
-      root.scale.setScalar(0.9 + ease * 0.12 + power * 0.05)
+      root.scale.setScalar(0.9 + ease * 0.12 + power * 0.05 + handshake * 0.06)
       const ring = root.children[posts.length + 1] as THREE.Mesh | undefined
       if (ring) ring.rotation.z = spin.current
     }

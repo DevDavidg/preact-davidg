@@ -2,16 +2,30 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useCopy } from '../../lib/locale'
+import { reactorControl } from '../control/reactorControl'
 import { sceneState, useSceneStore } from '../sceneState'
 import type { BuiltConsole } from './types'
 
 /**
- * Phase + charge as a thin plate on the active console frame — not a HUD.
+ * The readout, mounted on whichever console is being read — not a HUD.
+ *
+ * Two lines. The top one is the machine's own state: chapter, charge, and the
+ * law if it is not the default. The bottom one is the last thing the *operator*
+ * did — a sector vented, a module seated, a mode engaged, the handshake closed.
+ *
+ * That second line is what makes the room answer back. Every operation in the
+ * scene writes to `reactorControl.log` from wherever it happens, and this is the
+ * one place it surfaces, so a visitor who fires a facet or turns the law sees
+ * the machine acknowledge it in the machine's own vocabulary.
  */
 
 interface TelemetryStripProps {
   consoles: BuiltConsole[]
 }
+
+/** Two rows of monospace at a comfortable texel density. */
+const STRIP_WIDTH = 512
+const STRIP_HEIGHT = 96
 
 export const TelemetryStrip = ({ consoles }: TelemetryStripProps) => {
   const { copy } = useCopy()
@@ -21,8 +35,8 @@ export const TelemetryStrip = ({ consoles }: TelemetryStripProps) => {
 
   const { texture, material, canvas, context } = useMemo(() => {
     const canvas = document.createElement('canvas')
-    canvas.width = 512
-    canvas.height = 48
+    canvas.width = STRIP_WIDTH
+    canvas.height = STRIP_HEIGHT
     const context = canvas.getContext('2d')!
     const texture = new THREE.CanvasTexture(canvas)
     texture.colorSpace = THREE.SRGBColorSpace
@@ -62,22 +76,43 @@ export const TelemetryStrip = ({ consoles }: TelemetryStripProps) => {
 
     const phaseLabel = (copy.hud.phases[phase] ?? phase).toUpperCase()
     const percent = String(Math.round(build * 100)).padStart(3, '0')
-    const label = `${phaseLabel}  ·  ${percent}%`
+    const law =
+      reactorControl.law === 'VISCOUS' ? '' : `  ·  ${reactorControl.law}`
+    const entry = reactorControl.log[0]
+    const label = `${phaseLabel}  ·  ${percent}%${law}\n${entry?.id ?? 0}${
+      entry?.text ?? ''
+    }`
+
     if (label !== lastLabel.current) {
       lastLabel.current = label
       context.clearRect(0, 0, canvas.width, canvas.height)
+      context.textBaseline = 'middle'
+
       context.font = '500 26px "IBM Plex Mono", ui-monospace, monospace'
       context.fillStyle = 'rgba(236, 232, 224, 0.78)'
-      context.textBaseline = 'middle'
-      context.fillText(label, 8, canvas.height / 2)
+      context.fillText(`${phaseLabel}  ·  ${percent}%${law}`, 8, 26)
+
+      if (entry) {
+        context.font = '500 22px "IBM Plex Mono", ui-monospace, monospace'
+        // Operator lines arrive in the accent; routine ones stay quiet, so the
+        // strip never reads as a log of equally loud events.
+        context.fillStyle = entry.weight
+          ? 'rgba(255, 180, 84, 0.92)'
+          : 'rgba(154, 148, 140, 0.8)'
+        context.fillText(`› ${entry.text}`, 8, 68)
+      }
       texture.needsUpdate = true
     }
 
-    const local = new THREE.Vector3(0, active.spec.height / 2 + 0.16, 0.05)
+    const local = new THREE.Vector3(0, active.spec.height / 2 + 0.2, 0.05)
     local.applyQuaternion(active.quaternion)
     node.position.copy(active.position).add(local)
     node.quaternion.copy(active.quaternion)
-    node.scale.set(active.spec.width * 0.42, 0.1, 1)
+    node.scale.set(
+      active.spec.width * 0.46,
+      ((active.spec.width * 0.46) / STRIP_WIDTH) * STRIP_HEIGHT,
+      1,
+    )
 
     const presence =
       THREE.MathUtils.smoothstep(

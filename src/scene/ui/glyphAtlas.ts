@@ -128,6 +128,16 @@ interface Request {
   chars: Set<string>
 }
 
+/**
+ * Always rasterised, for every role.
+ *
+ * Layout can introduce an ellipsis that appears in no source string: a plate is
+ * a fixed rectangle, so a row that overflows it is abbreviated at layout time,
+ * long after the atlas was built from the untruncated copy. Without this the
+ * mark would silently render as a blank advance.
+ */
+const ALWAYS = '…'
+
 /** Collapses the requested strings into the unique glyph set per role. */
 const collectRequests = (
   sources: Iterable<{ role: FontRole; text: string }>,
@@ -136,7 +146,7 @@ const collectRequests = (
   for (const { role, text } of sources) {
     let chars = byRole.get(role)
     if (!chars) {
-      chars = new Set<string>()
+      chars = new Set<string>([ALWAYS])
       byRole.set(role, chars)
     }
     for (const char of text) {

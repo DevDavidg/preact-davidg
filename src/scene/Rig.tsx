@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { damp3 } from 'maath/easing'
 import type { Quality } from './capability'
+import { reactorControl } from './control/reactorControl'
 import {
   cameraFovFor,
   cameraHoldFor,
@@ -91,6 +92,28 @@ export const Rig = ({ quality }: { quality: Quality }) => {
     roll.current = THREE.MathUtils.damp(roll.current, -pointerX * 0.017, 3, delta)
     camera.rotateZ(roll.current)
 
+    /*
+     * Operator feedback in the lens.
+     *
+     * `punch` is the impulse every operation writes: a module seating, a law
+     * turning, the handshake closing. It is applied *after* `lookAt`, in camera
+     * space, so it never fights the spline — the shot stays exactly where the
+     * story put it and simply flinches. `shake` is the sustained one CHAOS and
+     * overclock hold, which is why it is a rotation rather than a translation:
+     * a translating camera in a corridor reads as a physics bug, a rotating one
+     * reads as a machine running hot.
+     *
+     * Both are damped to nothing in `advanceControl`, so a dropped frame or a
+     * torn-down scene can never leave the camera displaced.
+     */
+    const kick = reactorControl.punch
+    const shake = reactorControl.shake
+    if (kick > 0.001) camera.translateZ(-kick * 0.34)
+    if (shake > 0.001) {
+      camera.rotateX(Math.sin(time * 31.7) * shake * 0.0035)
+      camera.rotateY(Math.cos(time * 27.3) * shake * 0.0035)
+    }
+
     if (camera instanceof THREE.PerspectiveCamera) {
       // Wider FOV on short viewports so plates and the hero stay framed.
       const base =
@@ -98,7 +121,10 @@ export const Rig = ({ quality }: { quality: Quality }) => {
         breath * 0.5 +
         fovBump
       const targetFov = THREE.MathUtils.lerp(base, 42 + fovBump * 0.55, standby)
-      camera.fov = THREE.MathUtils.damp(camera.fov, targetFov, 2.4, delta)
+      // The kick reaches the lens as well as the body — a punch-in of a couple
+      // of degrees is what turns a nudge into an impact.
+      camera.fov =
+        THREE.MathUtils.damp(camera.fov, targetFov, 2.4, delta) - kick * 1.8
       camera.updateProjectionMatrix()
     }
   })

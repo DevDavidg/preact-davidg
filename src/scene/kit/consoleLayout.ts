@@ -33,6 +33,15 @@ export interface ConsoleContentRect {
   height: number
   /** Padding from plate edge. */
   pad?: number
+  /**
+   * Height reserved at the foot of the plate for action plates.
+   *
+   * It used to be a constant, which meant the five consoles that carry no
+   * actions at all — the lab, services, process and about beats — each gave up
+   * a third of a metre of reading height to buttons that do not exist, and had
+   * their copy clipped for it. Pass 0 when the plate has nothing to press.
+   */
+  actionBand?: number
 }
 
 export interface ConsolePlacement {
@@ -187,12 +196,12 @@ export const layoutConsoleRows = (
 ): TextBlock[] => {
   const pad = rect.pad ?? 0.14
   // Keep a clear band for ActionPlates so copy never collides with CTAs.
-  const actionBand = 0.36
+  const actionBand = rect.actionBand ?? 0.36
   const contentW = Math.max(rect.width - pad * 2, 0.4)
   const contentH = Math.max(rect.height - pad * 2 - actionBand, 0.45)
   const topY = contentH / 2 + actionBand * 0.5
   let cursorY = topY
-  const gap = 0.07 * fit
+  const gap = 0.055 * fit
   const blocks: TextBlock[] = []
 
   const localNormal = new THREE.Vector3(0, 0, 1).applyQuaternion(placement.quaternion)
@@ -222,10 +231,43 @@ export const layoutConsoleRows = (
     // Leave room for remaining rows — drop low-priority if we run out.
     if (cursorY - blockHeight < floorY) {
       if ((row.priority ?? defaults.priority) < 4) continue
-      // High priority: clamp into remaining space by dropping lines.
       const remaining = cursorY - floorY
+      /*
+       * No room is no room, whatever the priority.
+       *
+       * The clamp below used `Math.max(1, …)`, so a high-priority row with
+       * negative remaining space still drew one line — below the floor, on top
+       * of the action plates. On the experience console that put a role log
+       * straight through "VER CV COMPLETO". Priority decides who gets the last
+       * line available; it cannot conjure one that is not there.
+       */
+      if (remaining < leading * em * 0.9) continue
+      // High priority: clamp into remaining space by dropping lines.
       const keep = Math.max(1, Math.floor(remaining / (leading * em)))
       wrapped.length = Math.min(wrapped.length, keep)
+    }
+
+    /*
+     * Say when the copy was cut.
+     *
+     * A plate is a fixed rectangle and the copy behind it is translated, so a
+     * lead that fits in one language overflows in the other and a row that fits
+     * on a laptop is clamped on a short window. Silently dropping the tail read
+     * as a rendering fault — "Sitio principal de" and then nothing. An ellipsis
+     * turns the same clamp into an abbreviation, which is what it actually is.
+     */
+    const source = row.text.replace(/\s+/g, ' ').trim()
+    if (wrapped.join(' ').length < source.length) {
+      const last = wrapped[wrapped.length - 1]
+      let shortened = `${last}…`
+      // The ellipsis has to fit too, so give back characters until it does.
+      while (
+        shortened.length > 1 &&
+        measureLine(atlas, role, Array.from(shortened), tracking) > maxEm
+      ) {
+        shortened = `${shortened.slice(0, -2).trimEnd()}…`
+      }
+      wrapped[wrapped.length - 1] = shortened
     }
 
     const finalText = wrapped.join('\n')

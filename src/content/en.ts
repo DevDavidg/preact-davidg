@@ -48,6 +48,19 @@ export const en: Copy = {
       TRANSMIT: 'TRANSMIT',
       IGNITION: 'IGNITION',
     },
+    operator: 'OPERATOR · DG-01',
+    moduleLock: 'MODULE {n} LOCKED',
+    sectorLabel: 'SECTOR 02 · UNSTABLE',
+    uplinkReady: 'UPLINK READY',
+    uplinkHold: 'HOLD TO CLOSE THE CIRCUIT',
+    uplinkDone: 'UPLINK ESTABLISHED',
+    bootLines: [
+      'WEBGL2',
+      'FIDELITY',
+      'SPLINE',
+      'AUDIO',
+      'REACTOR',
+    ],
   },
 
   hero: {

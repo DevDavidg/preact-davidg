@@ -73,8 +73,15 @@ export const ARTIFACTS: ArtifactPlacement[] = [
   { position: [-2.1, 1.52, -3.8], yaw: 0.64, pitch: -0.12, scale: 1.2 },
 ];
 
-/** Aspect of the module panels, matching the 16:10 project shots. */
-export const ARTIFACT_PANEL = { width: 2.9, height: 1.8125 } as const;
+/**
+ * Corridor slots for the three featured modules.
+ *
+ * These are no longer free-standing panels in the room — a module's bay is now
+ * mounted on the console that carries its copy, so the work and the words about
+ * it can never be on screen at different times. What survives here is the
+ * corridor geometry the slots still drive: which bay a conduit runs to, and
+ * which column of the colonnade lifts when a module is in focus.
+ */
 
 /**
  * The reactor core: the object the whole room is wired to. It sits behind the
@@ -295,13 +302,6 @@ export const artifactLabelWindow = (
 const compactViewport = () =>
   typeof window !== "undefined" &&
   (window.innerWidth < 1200 || window.innerHeight < 720);
-
-/**
- * Shard density for the module panels. Narrow or short viewports keep the single
- * draw call but fewer triangles — fill rate is the cost here, not draw count.
- */
-export const panelSegments = (): [number, number] =>
-  compactViewport() ? [9, 6] : [12, 8];
 
 /** Voxel grid for the About headshot; background cull drops most cells. */
 export const portraitVoxelGrid = (): [number, number] =>

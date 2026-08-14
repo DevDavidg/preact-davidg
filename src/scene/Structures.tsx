@@ -93,6 +93,11 @@ const Bay = ({
 
     focus.current = THREE.MathUtils.damp(focus.current, targetFocus, 7, delta)
 
+    // Backdrop shapes stay small on purpose — loose shards on a five-metre
+    // column throw spikes across the copy in the middle of the corridor — but
+    // they are still scaled by the law, so the architecture belongs to the same
+    // physics as the objects in front of it.
+    material.setShape({ spread: 0.35, jitter: 0.08, drift: 1 })
     material.sync({
       build,
       live: liveFor(build),

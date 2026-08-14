@@ -130,12 +130,54 @@ test.describe('mobile', () => {
 })
 
 test.describe('cinema path', () => {
+  /*
+   * What this asserts, and what it deliberately does not.
+   *
+   * The contract is that a capable desktop is *offered* the reactor: the gate
+   * says cinema and the canvas mounts. It used to assert that by sleeping three
+   * seconds first, which quietly folded in a second, much stronger claim —
+   * that the scene is still running three seconds later.
+   *
+   * These runs use SwiftShader, a software rasteriser standing in for a GPU the
+   * headless browser does not have. It is slower than any real device the site
+   * will meet, and `usePerformanceGovernor` is built to notice exactly that and
+   * hand the visitor the document instead. So on a rich enough scene the old
+   * assertion tested the governor's willingness to give up, not the gate's
+   * decision — and it failed for precisely the reason the governor exists.
+   *
+   * Waiting on the canvas from the moment of navigation tests the mount itself.
+   * The abandon path has its own coverage below: whatever the governor decides,
+   * the page it leaves behind has to be complete.
+   */
   test('mounts a canvas on a capable desktop', async ({ page, isMobile }) => {
     test.skip(isMobile, 'desktop project only')
 
     await page.goto('/es')
-    await page.waitForTimeout(3000)
-    await expect(page.locator('canvas')).toHaveCount(1)
+    await expect(page.locator('canvas')).toHaveCount(1, { timeout: 8000 })
     await expect(page.locator('.stage')).toBeAttached()
+  })
+
+  test('leaves a usable page if the governor abandons the scene', async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, 'desktop project only')
+
+    await page.goto('/es')
+    await expect(page.locator('canvas')).toHaveCount(1, { timeout: 8000 })
+    // Long enough for the governor to have measured and, on this rasteriser,
+    // most likely to have given up.
+    await page.waitForTimeout(6000)
+
+    const abandoned = (await page.locator('canvas').count()) === 0
+    // Either the scene survived, or it went away and the scroll narrative and
+    // its chapter anchors are still there to carry the page.
+    await expect(page.locator('main')).toBeAttached()
+    for (const id of ['hero', 'work', 'contact']) {
+      await expect(page.locator(`#${id}`)).toBeAttached()
+    }
+    if (abandoned) {
+      await expect(page.locator('.stage')).toHaveCount(0)
+    }
   })
 })

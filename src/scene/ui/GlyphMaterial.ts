@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { reactorControl } from '../control/reactorControl'
 import { sceneColors } from '../sceneColors'
 import { FOG_DENSITY } from '../layout'
 import { STAGGER_RATIO } from './fragmentSettle'
@@ -25,6 +26,8 @@ uniform float uTime;
 uniform float uVelocity;
 uniform float uFogDensity;
 uniform float uStaggerRatio;
+/** GHOST: releases settled type back toward the cloud it arrived from. */
+uniform float uGhost;
 
 varying vec2 vAtlasUv;
 varying vec3 vNormalW;
@@ -66,7 +69,10 @@ void main() {
   // Soft settle in; leave fades in place — no explode cloud.
   float settled = arrive * (1.0 - leaving);
   // Lock home earlier so copy reads while still gathering.
-  float lock = smoothstep(0.18, 0.72, arrive);
+  // GHOST reopens that lock rather than adding a second motion on top: the type
+  // travels back down the exact path it arrived by, so releasing the key puts
+  // every letter home again with no snap.
+  float lock = smoothstep(0.18, 0.72, arrive) * (1.0 - uGhost * 0.85);
   float loose = (1.0 - lock) * (1.0 - leaving);
   float speed = clamp(abs(uVelocity) * 0.004, 0.0, 0.5) * loose;
 
@@ -78,6 +84,9 @@ void main() {
 
   vec3 centre = mix(aChaos, aHome, lock);
   centre += aAxis * sin(uTime * 0.4 + aSeed * 6.2831) * 0.012 * loose;
+  // A slow fall while ghosting, per-letter out of phase — the frequency reads as
+  // falling code rather than as one block sliding down.
+  centre.y -= uGhost * fract(uTime * (0.16 + aSeed * 0.34) + aSeed) * 0.85;
 
   vec4 world = modelMatrix * vec4(centre + rotated, 1.0);
   vec4 viewPos = viewMatrix * world;
@@ -86,7 +95,7 @@ void main() {
   vNormalW = normalize(mat3(modelMatrix) * rotatedN);
   vViewDir = normalize(cameraPosition - world.xyz);
   vSettled = settled;
-  vAccent = aStyle.x;
+  vAccent = clamp(aStyle.x + uGhost * 0.55, 0.0, 1.0);
   // Kill pre-enter + post-exit fully so other modules never ghost as debris.
   vWeight = aStyle.y * settled * (1.0 - smoothstep(0.0, 0.55, leaving));
   vVoxel = step(0.5, aStyle.z);
@@ -200,6 +209,7 @@ export class GlyphMaterial extends THREE.ShaderMaterial {
         uOpacity: { value: 1 },
         uFogDensity: { value: FOG_DENSITY },
         uStaggerRatio: { value: STAGGER_RATIO },
+        uGhost: { value: 0 },
         uInk: { value: sceneColors.ink.clone() },
         uAccent: { value: sceneColors.accent.clone() },
         uFogColor: { value: sceneColors.base.clone() },
@@ -214,6 +224,7 @@ export class GlyphMaterial extends THREE.ShaderMaterial {
     uniforms.uTime.value = state.time
     uniforms.uVelocity.value = state.velocity
     uniforms.uOpacity.value = state.opacity
+    uniforms.uGhost.value = reactorControl.modeAmount.ghost
     uniforms.uInk.value.copy(sceneColors.ink)
     uniforms.uAccent.value.copy(sceneColors.accent)
     uniforms.uFogColor.value.copy(sceneColors.base)

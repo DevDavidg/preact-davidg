@@ -21,9 +21,21 @@ import type { ThreeEvent } from "@react-three/fiber";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Quality } from "./capability";
+import {
+  LAWS,
+  clearHot,
+  fireSector,
+  grab,
+  liveLaw,
+  markHot,
+  pushLog,
+  reactorControl,
+  setLaw,
+} from "./control/reactorControl";
 import { buildHeroShell, TRIS_PER_SHARD } from "./heroShell";
 import { applyLinePeel, applyLitPeel, createPeelUniforms } from "./heroPeel";
 import { CAMERA_PATH, REACTOR_CORE } from "./layout";
+import { scrollByPixels } from "../motion/ticker";
 import { idleAmount, pulse, pulseAt, sectionPhase } from "./pulse";
 import { sceneColors } from "./sceneColors";
 import { clamp01, sceneState } from "./sceneState";
@@ -50,6 +62,29 @@ const SHELL_RADIUS = 0.78;
 const HOVER_SECTOR_RADIUS = SHELL_RADIUS * 1.15;
 const HOVER_WAVE_DURATION = 0.3;
 const HOVER_WAVE_EDGE = 0.16;
+
+/**
+ * Opening the shell by hand.
+ *
+ * The aperture is a pure function of scroll, which is right — but it means the
+ * first thing the visitor does is turn a wheel at a closed object. Dragging the
+ * shell downward now drives the same scroll value directly, so the first gesture
+ * in the room is one the operator performed rather than one the page performed
+ * for them. `DRAG_GAIN` is deliberately above 1: a short pull should clear the
+ * aperture, not require the whole first chapter's worth of travel.
+ */
+const DRAG_GAIN = 2.4;
+/** Past this many pixels the gesture is a drag, not a click on a facet. */
+const DRAG_SLOP = 5;
+
+/**
+ * The outer ring is the law selector.
+ *
+ * Putting it on the object rather than on a panel is the difference between an
+ * instrument and a settings menu — and it is reachable exactly when it should
+ * be, since the rings are at full presence only while the shell is still shut.
+ */
+const RING_STEP = 0.62;
 
 /** Locked phases off the master clock — one tempo, four amplitudes. */
 const CORE_PHASE = sectionPhase(0);
@@ -302,6 +337,16 @@ export const HeroStage = ({
   const hoverActive = useRef(false);
   /** Seconds since the sector was entered — drives the ripple's outward travel. */
   const hoverElapsed = useRef(0);
+  /** The live gesture: which control is held, and how far it has travelled. */
+  const drag = useRef<{
+    kind: "shell" | "ring" | null;
+    x: number;
+    y: number;
+    moved: number;
+    yaw: number;
+  }>({ kind: null, x: 0, y: 0, moved: 0, yaw: 0 });
+  /** Damped ring feedback while the law is being turned. */
+  const ringGrip = useRef(0);
 
   const invalidate = useThree((state) => state.invalidate);
   const camera = useThree((state) => state.camera);
@@ -526,9 +571,81 @@ export const HeroStage = ({
   useEffect(
     () => () => {
       document.body.style.cursor = "";
+      document.body.style.userSelect = "";
     },
     [],
   );
+
+  /*
+   * The gesture loop.
+   *
+   * Both controls on the optic — the shell and the law ring — are drags, and a
+   * drag that only listens on its own mesh dies the moment the pointer leaves
+   * it. Tracking on the window instead means the visitor can throw the ring past
+   * the edge of the shell and the turn still counts.
+   *
+   * Mouse only. On touch the browser is already scrolling the page under the
+   * finger, and driving the scroller from here as well would double every swipe.
+   */
+  useEffect(() => {
+    if (!cinema) return;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const gesture = drag.current;
+      if (!gesture.kind) return;
+
+      const dx = event.clientX - gesture.x;
+      const dy = event.clientY - gesture.y;
+      gesture.x = event.clientX;
+      gesture.y = event.clientY;
+      gesture.moved += Math.abs(dx) + Math.abs(dy);
+
+      if (gesture.kind === "shell") {
+        // Down opens. The facets sweep back along the corridor as the aperture
+        // clears, so the hand and the geometry travel the same direction.
+        scrollByPixels(dy * DRAG_GAIN);
+        return;
+      }
+
+      gesture.yaw += dx * 0.0042;
+      // Detented, not continuous: a law is a discrete state, and a ring that
+      // slid between two of them would leave the room in a value with no name.
+      while (Math.abs(gesture.yaw) >= RING_STEP) {
+        const direction = gesture.yaw > 0 ? 1 : -1;
+        gesture.yaw -= direction * RING_STEP;
+        const index =
+          (LAWS.indexOf(reactorControl.law) + direction + LAWS.length) %
+          LAWS.length;
+        setLaw(LAWS[index]);
+      }
+    };
+
+    const endGesture = () => {
+      const gesture = drag.current;
+      if (!gesture.kind) return;
+      if (gesture.kind === "shell" && gesture.moved > DRAG_SLOP) {
+        pushLog("aperture · opened by hand");
+      }
+      gesture.kind = null;
+      gesture.yaw = 0;
+      grab(null);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    window.addEventListener("pointerup", endGesture);
+    window.addEventListener("pointercancel", endGesture);
+    window.addEventListener("blur", endGesture);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", endGesture);
+      window.removeEventListener("pointercancel", endGesture);
+      window.removeEventListener("blur", endGesture);
+      endGesture();
+    };
+  }, [cinema]);
 
   useFrame((state, delta) => {
     const build = sceneState.build;
@@ -546,7 +663,20 @@ export const HeroStage = ({
     const live = presence.current;
     const rootNode = root.current;
     if (rootNode) rootNode.visible = live > 0.01;
-    if (live <= 0.01) return;
+    if (live <= 0.01) {
+      /*
+       * The reveal is a function of the clock, not of scroll.
+       *
+       * On the lighter quality the renderer only draws when something asks it
+       * to, and the only thing that asks is scroll. So if the very first frame
+       * landed before `reveal` had left zero — which is exactly what happens on
+       * a fast connection — presence was clamped to 0, nothing requested another
+       * frame, and the optic never appeared at all for the rest of the session.
+       * The visitor's first impression was an empty room.
+       */
+      if (!cinema && reveal < 1 && fade > 0.01) invalidate();
+      return;
+    }
 
     // Straight with scroll: the aperture is the scroll value, undamped.
     const open = clamp01((build - OPEN_START) / (OPEN_END - OPEN_START));
@@ -670,7 +800,9 @@ export const HeroStage = ({
     peel.uFling.value = fling;
     peel.uTime.value = time;
     peel.uBase.value = BASE_SEPARATION;
-    peel.uBreathe.value = 0.014 * idle;
+    // The law reaches the shell too: under CHAOS the shut optic is visibly
+    // straining before the visitor has scrolled a pixel.
+    peel.uBreathe.value = 0.014 * idle * (0.45 + liveLaw.agitation * 0.55);
     peel.uGlowColor.value.copy(sceneColors.accent).multiplyScalar(0.5);
     peel.uRimColor.value
       .copy(sceneColors.signal)
@@ -727,7 +859,25 @@ export const HeroStage = ({
       housingNode.quaternion.copy(camera.quaternion);
       housingNode.scale.setScalar(1 + open * 0.28);
     }
-    if (outerRing.current) outerRing.current.rotation.z = time * 0.06 * idle;
+    // The ring parks at a detent per law, so its angle is a readout as well as a
+    // control: three positions, three physics, and the idle drift stops the
+    // moment a hand is on it.
+    const lawDetent = LAWS.indexOf(reactorControl.law) * ((Math.PI * 2) / 3);
+    ringGrip.current = THREE.MathUtils.damp(
+      ringGrip.current,
+      reactorControl.hotId === "ring" || drag.current.kind === "ring" ? 1 : 0,
+      8,
+      delta,
+    );
+    if (outerRing.current) {
+      const idleSpin = time * 0.06 * idle * (1 - ringGrip.current);
+      outerRing.current.rotation.z = THREE.MathUtils.damp(
+        outerRing.current.rotation.z,
+        idleSpin - lawDetent - drag.current.yaw * 1.5,
+        7,
+        delta,
+      );
+    }
     if (innerRing.current)
       innerRing.current.rotation.z = -time * 0.1 * idle - open * 0.9;
 
@@ -737,7 +887,11 @@ export const HeroStage = ({
       .copy(sceneColors.accent)
       .lerp(sceneColors.signal, ringPulse * 0.5);
     materials.ring.emissiveIntensity =
-      0.18 + ringPulse * 0.5 * idle + open * 0.5;
+      0.18 +
+      ringPulse * 0.5 * idle +
+      open * 0.5 +
+      ringGrip.current * 0.7 +
+      liveLaw.heat * 0.5;
     materials.ring.envMapIntensity = 1 + ringPulse * 0.4;
     materials.ring.opacity = ringLive;
     materials.ringInner.color.copy(_structural);
@@ -869,6 +1023,24 @@ export const HeroStage = ({
     if (!cinema && (settling || live > 0.015)) invalidate();
   });
 
+  const beginDrag = (
+    kind: "shell" | "ring",
+    event: ThreeEvent<PointerEvent>,
+  ) => {
+    if (!cinema || event.pointerType !== "mouse" || event.button !== 0) return;
+    drag.current = {
+      kind,
+      x: event.clientX,
+      y: event.clientY,
+      moved: 0,
+      yaw: 0,
+    };
+    grab(kind === "ring" ? "law-ring" : "shell");
+    document.body.style.cursor = kind === "ring" ? "ew-resize" : "grabbing";
+    // A drag across a page is a text selection unless something says otherwise.
+    document.body.style.userSelect = "none";
+  };
+
   const shardAt = (event: ThreeEvent<PointerEvent>) =>
     event.faceIndex === undefined || event.faceIndex === null
       ? -1
@@ -876,28 +1048,68 @@ export const HeroStage = ({
 
   const handleMove = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
+    if (drag.current.kind) return;
     const index = shardAt(event);
     if (index === hovered.current) return;
     hovered.current = index;
-    document.body.style.cursor = index >= 0 ? "pointer" : "";
+    if (index >= 0) markHot("shell");
+    else clearHot("shell");
+    document.body.style.cursor = index >= 0 ? "grab" : "";
     invalidate();
   };
 
   const handleOut = () => {
+    clearHot("shell");
     if (hovered.current === -1) return;
     hovered.current = -1;
-    document.body.style.cursor = "";
+    if (!drag.current.kind) document.body.style.cursor = "";
     invalidate();
   };
 
+  const handleShellDown = (event: ThreeEvent<PointerEvent>) => {
+    event.stopPropagation();
+    beginDrag("shell", event);
+  };
+
+  const handleRingDown = (event: ThreeEvent<PointerEvent>) => {
+    event.stopPropagation();
+    beginDrag("ring", event);
+  };
+
+  const handleRingOver = (event: ThreeEvent<PointerEvent>) => {
+    event.stopPropagation();
+    markHot("ring", { ui: true });
+    document.body.style.cursor = "ew-resize";
+    invalidate();
+  };
+
+  const handleRingOut = () => {
+    clearHot("ring");
+    if (!drag.current.kind) document.body.style.cursor = "";
+    invalidate();
+  };
+
+  /**
+   * Firing a sector.
+   *
+   * The old click threw a facet off the shell and nothing else happened, which
+   * made it read as a rendering glitch rather than as an action. A fired sector
+   * now leaves a mark: a rung tone, a numbered line in the operator log, and a
+   * count that eventually hands the visitor the console. The facet still goes —
+   * it is a vent, and a vent that never vents is a button.
+   */
   const handleClick = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
+    if (drag.current.moved > DRAG_SLOP) return;
     const index = shardAt(event);
     const goals = fireGoals.current;
     if (index < 0 || !goals || goals[index] > 0.5) return;
     goals[index] = 1;
     hovered.current = -1;
     document.body.style.cursor = "";
+
+    const fired = fireSector();
+    if (fired === 4) pushLog("console · reactor.help()", 0);
     invalidate();
   };
 
@@ -944,6 +1156,7 @@ export const HeroStage = ({
           frustumCulled={false}
           onPointerMove={handleMove}
           onPointerOut={handleOut}
+          onPointerDown={handleShellDown}
           onClick={handleClick}
         />
         <lineSegments
@@ -981,10 +1194,14 @@ export const HeroStage = ({
       />
 
       <group ref={housing}>
+        {/* The outer ring is the law selector — turn it to change the physics. */}
         <mesh
           ref={outerRing}
           geometry={geometries.outer}
           material={materials.ring}
+          onPointerOver={handleRingOver}
+          onPointerOut={handleRingOut}
+          onPointerDown={handleRingDown}
         />
         <mesh
           ref={innerRing}

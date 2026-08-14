@@ -54,6 +54,97 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
+/*
+ * Modes.
+ *
+ * Two of the reactor's hidden modes are screen treatments rather than scene
+ * state, and both are deliberately CSS rather than a post-processing pass:
+ * `@react-three/postprocessing` plus `postprocessing` is roughly 200 kB and a
+ * ping-pong render target every frame to deliver a scanline and a warm wash.
+ *
+ * Each treatment is `display: none` until its mode attribute lands on the root,
+ * because a filter that evaluates to identity still promotes the canvas to its
+ * own compositing layer — "off" has to mean absent, not neutral. The strength
+ * inside comes from a custom property the stage writes per frame, so engaging a
+ * mode crossfades instead of snapping.
+ */
+
+.stage-scanlines,
+.stage-heat {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+:root[data-crt='on'] .stage-scanlines {
+  display: block;
+  opacity: var(--crt, 0);
+  background: repeating-linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-reactor) 62%, transparent) 0 1px,
+    transparent 1px 3px
+  );
+}
+
+/* Tube geometry: the corners of a CRT were never as bright as the centre. */
+:root[data-crt='on'] .stage-scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 78% 68% at 50% 50%,
+    transparent 52%,
+    color-mix(in srgb, var(--color-reactor) 72%, transparent) 100%
+  );
+}
+
+/*
+ * The phosphor itself. Filtering `.stage` filters the WebGL canvas, which is
+ * how the whole room — not an overlay on top of it — takes on the tube.
+ */
+:root[data-crt='on'] .stage {
+  filter: contrast(calc(1 + var(--crt, 0) * 0.3))
+    saturate(calc(1 - var(--crt, 0) * 0.45))
+    brightness(calc(1 + var(--crt, 0) * 0.06));
+}
+
+:root[data-overclock='on'] .stage-heat {
+  display: block;
+  opacity: calc(var(--overclock, 0) * 0.5);
+  background:
+    radial-gradient(
+      ellipse 60% 50% at 50% 60%,
+      color-mix(in srgb, var(--color-ignition) 20%, transparent) 0%,
+      transparent 70%
+    ),
+    linear-gradient(
+      to top,
+      color-mix(in srgb, var(--color-ignition) 12%, transparent) 0%,
+      transparent 45%
+    );
+  mix-blend-mode: screen;
+}
+
+/* Running hot: more grain, and the room stops sitting still. */
+:root[data-overclock='on'] .stage-grain {
+  opacity: calc(0.035 + var(--overclock, 0) * 0.045);
+}
+
+/* Blueprint mode dims the screen-space warmth so the lines carry the read. */
+:root[data-wire='on'] .stage-vignette {
+  opacity: 0.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Modes stay available — they are looks, not motion — but the heat wash is
+     the one that reads as flicker, so it holds still. */
+  :root[data-overclock='on'] .stage-heat {
+    opacity: calc(var(--overclock, 0) * 0.28);
+  }
+}
+
 /* Screen-space confirmation of the physical portal; opacity is driven per frame. */
 .stage-ignition {
   position: fixed;

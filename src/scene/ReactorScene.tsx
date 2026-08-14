@@ -3,8 +3,15 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { CaseStudy, Copy } from "../content";
 import { SECTION_IDS } from "../lib/routes";
+import { AboutPortrait } from "./AboutPortrait";
 import { Atmosphere } from "./Atmosphere";
 import type { Quality } from "./capability";
+import {
+  advanceControl,
+  reactorControl,
+  resetControl,
+} from "./control/reactorControl";
+import { CursorProbe } from "./CursorProbe";
 import { GridFloor } from "./GridFloor";
 import { Lattice } from "./Lattice";
 import { PORTAL_POSITION } from "./layout";
@@ -12,6 +19,7 @@ import { ReactorCore } from "./ReactorCore";
 import { Rig } from "./Rig";
 import { FinaleGate } from "./FinaleGate";
 import { HeroStage } from "./HeroStage";
+import { SignalConduits } from "./SignalConduits";
 import { Structures } from "./Structures";
 import { advancePulse, setPulseDepth } from "./pulse";
 import { refreshSceneColors, sceneColors } from "./sceneColors";
@@ -40,6 +48,7 @@ const DPR: Record<"full" | "reduced" | "minimal", [number, number]> = {
   reduced: [1, 1.5],
   minimal: [1, 1],
 };
+
 
 /**
  * Reports the first presented frame, so the preflight overlay can clear on real
@@ -89,8 +98,16 @@ const PulseDriver = () => {
     };
   }, []);
 
+  // A route change must not leave the machine mid-operation: a held object, a
+  // half-charged handshake or a lit mode belong to the room that was torn down.
+  useEffect(() => resetControl, []);
+
   useFrame((state, delta) => {
     advancePulse(state.clock.elapsedTime, delta);
+    // Same tick, same negative priority as the pulse clock: every reader in the
+    // frame sees the law, the modes and the impulses computed for *this* frame,
+    // rather than a mix of this frame's scroll and last frame's physics.
+    advanceControl(delta);
   }, -1);
 
   return null;
@@ -249,11 +266,14 @@ const IgnitionFlare = () => {
 
   useFrame(() => {
     const power = livePowerFor(sceneState.build);
+    // The handshake is the other half of the finale: scroll charges the glow,
+    // closing the circuit is what makes it flare.
+    const handshake = reactorControl.uplink;
     material.color.copy(sceneColors.accent);
     // Soft end glow — structure/gate carry the finale, not a screen-filling blob.
-    material.opacity = power * power * 0.28;
+    material.opacity = power * power * 0.28 + handshake * handshake * 0.22;
     const sprite = mesh.current;
-    if (sprite) sprite.scale.setScalar(8 + power * 5);
+    if (sprite) sprite.scale.setScalar(8 + power * 5 + handshake * 4);
   });
 
   return (
@@ -333,7 +353,17 @@ export const ReactorScene = ({
           mode={mode}
           study={study}
         />
+        {/* Causality: the light reaches a bay before the project does. Only the
+            home corridor has modules to wire. */}
+        {mode === "home" ? <SignalConduits quality={quality} /> : null}
+        {mode === "home" ? (
+          <AboutPortrait quality={quality} windows={windows} />
+        ) : null}
         <FinaleGate />
+
+        {/* The probe is the room's answer to "can I touch this", so it only
+            exists where there is a hand to answer. */}
+        {cinema ? <CursorProbe /> : null}
 
         {fidelity === "minimal" ? null : <IgnitionFlare />}
       </Canvas>
