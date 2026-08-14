@@ -16,7 +16,7 @@ import { join } from 'node:path'
 import { findCase, isLocale, LOCALES } from '../src/content/index'
 import { NOT_FOUND_PATH, staticPaths, translatePath } from '../src/lib/routes'
 import { OG_IMAGE } from '../src/lib/seo'
-import { absoluteUrl, SITE_ORIGIN, SITE_REVISED } from '../src/lib/site'
+import { absoluteUrl, PERSON, SITE_ORIGIN, SITE_REVISED } from '../src/lib/site'
 
 const OUT_DIR = join(process.cwd(), 'build', 'client')
 
@@ -139,8 +139,46 @@ Allow: /
 Sitemap: ${absoluteUrl('/sitemap.xml')}
 `
 
+  const llms = `# David Guillen
+
+> Full Stack Senior in Buenos Aires. Product interfaces, mobile apps and design systems with React, React Native and Next.js. This site is a bilingual portfolio with a custom WebGL scene on top of static HTML.
+
+The site is available in Spanish (\`/es\`) and English (\`/en\`). \`/\` is the language picker (x-default).
+
+## Site
+
+- [Home (ES)](${absoluteUrl('/es')}): Spanish home — work, experience, services, process, about, contact
+- [Home (EN)](${absoluteUrl('/en')}): English home
+- [CV (ES)](${absoluteUrl('/es/cv')}): Printable CV
+- [CV (EN)](${absoluteUrl('/en/cv')}): Printable CV
+
+## Work
+
+Client sites in production:
+
+- [Andina ART](${absoluteUrl('/es/proyectos/andina-art')}) — workplace-risk insurance site (andinaart.com.ar)
+- [AG Valores](${absoluteUrl('/es/proyectos/ag-valores')}) — ALyC / capital-markets site (agvalores.com.ar)
+- [Nonconformist](${absoluteUrl('/es/proyectos/nonconformist')}) — agency site (nonconformist.digital)
+
+English siblings live under \`/en/work/{slug}\`.
+
+## Contact
+
+- Email: ${PERSON.email}
+- GitHub: ${PERSON.sameAs[0]}
+- LinkedIn: ${PERSON.sameAs[1]}
+- Base: Buenos Aires, Argentina (remote)
+
+## Notes
+
+- Do not invent metrics, client names or years of experience. Dates on the CV are fixed ranges.
+- Lab and archive pieces are labelled as concept or experiment, not as delivered client work.
+- The 3D reactor is progressive enhancement. The prerendered HTML is the source of truth.
+`
+
   await writeFile(join(OUT_DIR, 'sitemap.xml'), sitemap)
   await writeFile(join(OUT_DIR, 'robots.txt'), robots)
+  await writeFile(join(OUT_DIR, 'llms.txt'), llms)
 
   // Vercel (and most static hosts) serve root `404.html` with a real 404 status.
   // Prerender places the page at `/404/index.html`; mirror it for the host contract.
@@ -148,6 +186,7 @@ Sitemap: ${absoluteUrl('/sitemap.xml')}
 
   console.log(`sitemap.xml  ${paths.length} urls`)
   console.log('robots.txt   written')
+  console.log('llms.txt     written')
   console.log('404.html     mirrored from /404/')
 }
 

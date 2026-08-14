@@ -2,22 +2,22 @@
 
 > Full Stack Senior in Buenos Aires. Product interfaces, mobile apps and design systems with React, React Native and Next.js. This site is a bilingual portfolio with a custom WebGL scene on top of static HTML.
 
-The site is available in Spanish (`/es`) and English (`/en`). `/` is the language picker (x-default).
+The site is available in Spanish (`/es`) and English (`/en`). `/` is the language picker (x-default). Absolute URLs are written at build time from `VITE_SITE_ORIGIN`.
 
 ## Site
 
-- [Home (ES)](https://davidguillen.dev/es): Spanish home — work, experience, services, process, about, contact
-- [Home (EN)](https://davidguillen.dev/en): English home
-- [CV (ES)](https://davidguillen.dev/es/cv): Printable CV
-- [CV (EN)](https://davidguillen.dev/en/cv): Printable CV
+- [Home (ES)](/es): Spanish home — work, experience, services, process, about, contact
+- [Home (EN)](/en): English home
+- [CV (ES)](/es/cv): Printable CV
+- [CV (EN)](/en/cv): Printable CV
 
 ## Work
 
 Client sites in production:
 
-- [Andina ART](https://davidguillen.dev/es/proyectos/andina-art) — workplace-risk insurance site (andinaart.com.ar)
-- [AG Valores](https://davidguillen.dev/es/proyectos/ag-valores) — ALyC / capital-markets site (agvalores.com.ar)
-- [Nonconformist](https://davidguillen.dev/es/proyectos/nonconformist) — agency site (nonconformist.digital)
+- [Andina ART](/es/proyectos/andina-art) — workplace-risk insurance site (andinaart.com.ar)
+- [AG Valores](/es/proyectos/ag-valores) — ALyC / capital-markets site (agvalores.com.ar)
+- [Nonconformist](/es/proyectos/nonconformist) — agency site (nonconformist.digital)
 
 English siblings live under `/en/work/{slug}`.
 
