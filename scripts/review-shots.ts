@@ -32,7 +32,7 @@ const VIEWS: View[] = [
   { name: '05-process', path: '/es', width: 1440, height: 900, scroll: 6.8 },
   { name: '06-about', path: '/es', width: 1440, height: 900, scroll: 8.0 },
   { name: '07-contact', path: '/es', width: 1440, height: 900, scroll: 9.4 },
-  { name: '08-case', path: '/es/proyectos/andina-art', width: 1440, height: 900 },
+  { name: '08-case', path: '/es/proyectos/ag-valores', width: 1440, height: 900 },
   { name: '09-cv', path: '/es/cv', width: 1440, height: 900 },
   { name: '10-mobile-hero', path: '/es', width: 390, height: 844, mobile: true },
   { name: '11-mobile-work', path: '/es', width: 390, height: 844, scroll: 1.6, mobile: true },

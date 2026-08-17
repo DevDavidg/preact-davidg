@@ -227,14 +227,14 @@ export const Atmosphere = ({ quality }: { quality: Quality }) => {
     const portalPulse = pulseAt(sectionPhase(3))
     portalMaterial.color.copy(sceneColors.accent)
     if (portal.current) {
-      const breathe = 1 + power * 0.13 + (portalPulse - 0.5) * 0.056 * power
+      const breathe = 1 + power * 0.2 + (portalPulse - 0.5) * 0.08 * power
       portal.current.scale.setScalar(breathe)
       // Effectively off until the final chapter, then accelerating. A radial plane
       // keeps this one extra draw cheap.
       // Visible earlier so the corridor end never reads as a black void.
-      const approach = THREE.MathUtils.smoothstep(sceneState.build, 0.62, 0.92)
+      const approach = THREE.MathUtils.smoothstep(sceneState.build, 0.58, 0.92)
       portalMaterial.opacity =
-        Math.max(power, approach * 0.55) * (0.28 + power * 0.55)
+        Math.max(power, approach * 0.62) * (0.32 + power * 0.62)
     }
 
     dustMaterial.color.copy(sceneColors.signal).lerp(sceneColors.accent, 0.12 + power * 0.18)

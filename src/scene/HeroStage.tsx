@@ -39,6 +39,7 @@ import { scrollByPixels } from "../motion/ticker";
 import { idleAmount, pulse, pulseAt, sectionPhase } from "./pulse";
 import { sceneColors } from "./sceneColors";
 import { clamp01, sceneState } from "./sceneState";
+import { createStudioEquirect } from "./studioEnv";
 import { computeViewportFit, heroSizeFit } from "./viewportFit";
 
 const HERO_FADE_START = 0.055;
@@ -138,97 +139,18 @@ const structuralColor = (target: THREE.Color) =>
   target.copy(sceneColors.base).lerp(STEEL, 0.15);
 
 /**
- * The studio the optic is reflecting.
+ * The studio the optic is reflecting, drawn once as an equirect and prefiltered
+ * into a PMREM for the shell's real PBR materials.
  *
  * At `metalness` ~0.96 there is no diffuse term left: this image *is* the
- * surface. A smooth gradient therefore produces a smooth, featureless ball —
- * which is exactly what the shell used to look like, and why it read as brown
- * paint rather than as metal. What makes metal legible is *structure* in the
- * reflection: a horizon it can cut across, and hard-edged sources it can catch.
- *
- * So this is a real studio rather than a wash. A dark neutral room, a crisp
- * horizon line, and three softboxes — a large champagne key, a cool fill
- * opposite it, and a low kicker. Every facet then reflects a slightly different
- * part of that room, which is what turns 320 identical triangles into an object.
- *
- * Authored 2:1, because an equirectangular map is a sphere unwrapped and a
- * square canvas stretches the whole room vertically.
+ * surface. What makes metal legible is *structure* in the reflection — a
+ * horizon it can cut across, and hard-edged sources it can catch — which is
+ * why `createStudioEquirect` (shared with the finale gate, so every polished
+ * surface in the room reflects the same studio) authors a real room rather
+ * than a smooth wash.
  */
-const createStudioEnv = (gl: THREE.WebGLRenderer) => {
-  const width = 512;
-  const height = 256;
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d");
-
-  if (ctx) {
-    // The room. Cool overhead, near-black at the horizon, a warm floor bounce.
-    const room = ctx.createLinearGradient(0, 0, 0, height);
-    room.addColorStop(0, "#2c3844");
-    room.addColorStop(0.3, "#141a22");
-    room.addColorStop(0.49, "#06080b");
-    // The floor bounce stays dark and nearly neutral. The lower half of a sphere
-    // reflects the floor, so a warm bounce here is half the object's colour —
-    // the single biggest reason the shell used to read as brown.
-    room.addColorStop(0.51, "#08090a");
-    room.addColorStop(0.8, "#0f100f");
-    room.addColorStop(1, "#181510");
-    ctx.fillStyle = room;
-    ctx.fillRect(0, 0, width, height);
-
-    /**
-     * A softbox, drawn as a blurred rectangle.
-     *
-     * Rectangular rather than radial on purpose: a round source reflects as a
-     * round dot, which reads as a bug light. A rectangle reflects as a streak
-     * that stretches and bends across facets, which is what says "this is a
-     * machined surface in a room".
-     */
-    const softbox = (
-      x: number,
-      y: number,
-      w: number,
-      h: number,
-      colour: string,
-      blur: number,
-    ) => {
-      ctx.save();
-      ctx.filter = `blur(${blur}px)`;
-      ctx.fillStyle = colour;
-      ctx.fillRect(x - w / 2, y - h / 2, w, h);
-      ctx.restore();
-    };
-
-    // Key: champagne, upper right, wide and low-amplitude. A tight hot source
-    // lands a whole flat facet on pure white in one step.
-    softbox(width * 0.66, height * 0.24, width * 0.32, height * 0.22, "rgba(255,216,170,0.8)", 26);
-    softbox(width * 0.66, height * 0.24, width * 0.19, height * 0.11, "rgba(255,238,214,0.72)", 8);
-
-    // Fill: cool, opposite, so the metal is never a single warm wash.
-    softbox(width * 0.2, height * 0.3, width * 0.24, height * 0.18, "rgba(162,196,230,0.58)", 22);
-
-    // Kicker: low and behind, catching the limb.
-    softbox(width * 0.9, height * 0.66, width * 0.16, height * 0.11, "rgba(255,180,84,0.45)", 18);
-
-    // The horizon. One bright hairline is what a reflective surface cuts across
-    // as it curves, and it is the single cheapest cue that this is metal.
-    ctx.save();
-    ctx.filter = "blur(1.5px)";
-    const horizon = ctx.createLinearGradient(0, 0, width, 0);
-    horizon.addColorStop(0, "rgba(120,140,165,0.05)");
-    horizon.addColorStop(0.35, "rgba(206,222,244,0.72)");
-    horizon.addColorStop(0.7, "rgba(246,222,186,0.85)");
-    horizon.addColorStop(1, "rgba(120,140,165,0.05)");
-    ctx.fillStyle = horizon;
-    ctx.fillRect(0, height * 0.5 - 1.5, width, 3);
-    ctx.restore();
-  }
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.mapping = THREE.EquirectangularReflectionMapping;
-  texture.colorSpace = THREE.SRGBColorSpace;
-
+const createStudioEnv = (gl: THREE.WebGLRenderer, cinema: boolean) => {
+  const texture = createStudioEquirect(cinema ? 768 : 512, cinema ? 384 : 256);
   const pmrem = new THREE.PMREMGenerator(gl);
   const envMap = pmrem.fromEquirectangular(texture).texture;
   texture.dispose();
@@ -448,7 +370,7 @@ export const HeroStage = ({
   const detail = cinema ? 2 : 1;
 
   const viewAxis = useMemo(heroViewAxis, []);
-  const envMap = useMemo(() => createStudioEnv(gl), [gl]);
+  const envMap = useMemo(() => createStudioEnv(gl, cinema), [gl, cinema]);
   const shellGeo = useMemo(
     () => buildHeroShell(SHELL_RADIUS, detail, viewAxis),
     [detail, viewAxis],
@@ -704,7 +626,7 @@ export const HeroStage = ({
   useEffect(() => {
     applyLitPeel(materials.face, peel);
     applyLinePeel(materials.wire, peel);
-    peel.uCorridor.value.copy(viewAxis).multiplyScalar(0.85);
+    peel.uCorridor.value.copy(viewAxis).multiplyScalar(1.6);
   }, [materials.face, materials.wire, peel, viewAxis]);
 
   useEffect(
@@ -1066,7 +988,7 @@ export const HeroStage = ({
     if (innerRing.current)
       innerRing.current.rotation.z = -time * 0.1 * idle - open * 0.9;
 
-    const ringLive = live * (1 - open * 0.55);
+    const ringLive = live * (1 - open * 0.85);
     materials.ring.color.copy(_structural);
     materials.ring.emissive
       .copy(sceneColors.accent)
@@ -1091,7 +1013,7 @@ export const HeroStage = ({
     if (majorTicks.current) majorTicks.current.rotation.z = bezelAngle;
 
     materials.housing.color.copy(_structural);
-    materials.housing.opacity = live * 0.92 * (1 - open * 0.25);
+    materials.housing.opacity = live * 0.92 * (1 - open * 0.7);
 
     /* ---- iris ---------------------------------------------------------------
      *
@@ -1150,7 +1072,7 @@ export const HeroStage = ({
       .copy(sceneColors.signal)
       .lerp(sceneColors.accent, corePulse);
     materials.core.opacity =
-      (0.16 + corePulse * 0.14 * idle + coreReveal * 0.5) * live;
+      (0.16 + corePulse * 0.14 * idle + coreReveal * 0.68) * live;
 
     // The limb wraps the shell rather than sitting behind it, so it breathes on
     // the master clock and widens as the aperture lets more light out.
@@ -1160,9 +1082,9 @@ export const HeroStage = ({
       .lerp(sceneColors.signal, 0.35);
     nearUniforms.uOuter.value.copy(sceneColors.signal);
     nearUniforms.uIntensity.value =
-      (0.26 + master * 0.13 * idle + coreReveal * 0.42) * live;
+      (0.32 + master * 0.13 * idle + coreReveal * 0.58) * live;
     if (glowNear.current) {
-      glowNear.current.scale.setScalar(1 + master * 0.012 * idle + open * 0.34);
+      glowNear.current.scale.setScalar(1 + master * 0.012 * idle + open * 0.42);
     }
 
     const farUniforms = materials.glowFar.uniforms;
@@ -1171,9 +1093,9 @@ export const HeroStage = ({
       .copy(sceneColors.accent)
       .lerp(sceneColors.signal, 0.6);
     farUniforms.uIntensity.value =
-      (0.07 + master * 0.05 * idle + coreReveal * 0.1) * live;
+      (0.1 + master * 0.05 * idle + coreReveal * 0.18) * live;
     if (glowFar.current) {
-      glowFar.current.scale.setScalar(1 + master * 0.02 * idle + open * 0.5);
+      glowFar.current.scale.setScalar(1 + master * 0.02 * idle + open * 0.62);
     }
 
     // ---- cue ---------------------------------------------------------------

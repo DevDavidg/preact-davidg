@@ -67,12 +67,15 @@ const Bay = ({
   bay,
   geometries,
   material,
+  quality,
 }: {
   bay: BayBuild
   geometries: THREE.BufferGeometry[]
   material: ReconstructMaterial
+  quality: Quality
 }) => {
   const focus = useRef(0)
+  const cinema = quality === 'cinema'
 
   useFrame((state, delta) => {
     const build = sceneState.build
@@ -96,8 +99,13 @@ const Bay = ({
     // Backdrop shapes stay small on purpose — loose shards on a five-metre
     // column throw spikes across the copy in the middle of the corridor — but
     // they are still scaled by the law, so the architecture belongs to the same
-    // physics as the objects in front of it.
-    material.setShape({ spread: 0.35, jitter: 0.08, drift: 1 })
+    // physics as the objects in front of it. Cinema affords a slightly livelier
+    // read; lite keeps it calm to protect fill rate.
+    material.setShape({
+      spread: cinema ? 0.42 : 0.35,
+      jitter: cinema ? 0.11 : 0.08,
+      drift: 1,
+    })
     material.sync({
       build,
       live: liveFor(build),
@@ -106,7 +114,8 @@ const Bay = ({
       velocity: sceneState.velocity,
       buildBias: bay.buildBias,
     })
-    material.uniforms.uOpacity.value = 0.55 * corridorPresence
+    material.uniforms.uOpacity.value =
+      0.55 * corridorPresence * (cinema ? 1.2 : 1)
   })
 
   return (
@@ -169,6 +178,7 @@ export const Structures = ({ quality }: { quality: Quality }) => {
             bay={bay}
             geometries={geometries[index]}
             material={materials[index]}
+            quality={quality}
           />
         ),
       )}

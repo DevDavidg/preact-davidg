@@ -207,11 +207,16 @@ export const Lattice = ({ quality }: { quality: Quality }) => {
     })
     material.depthWrite = false
     // The opening is a dedicated product shot; corridor architecture enters after it.
-    material.uniforms.uOpacity.value = (0.26 + live * 0.14) * corridorPresence
+    material.uniforms.uOpacity.value =
+      (0.26 + live * 0.14) * corridorPresence * (rich ? 1.15 : 1)
     // CPU-placed, so `drift` is pinned to 0 by construction; the law still gets
     // to breathe the lattice, which is what keeps CHAOS from stopping at the
-    // objects the visitor happens to be looking at.
-    material.setShape({ spread: 0.12, jitter: 0.04 })
+    // objects the visitor happens to be looking at. Cinema gets a touch more
+    // spread/jitter — the same density boost the bays get.
+    material.setShape({
+      spread: rich ? 0.16 : 0.12,
+      jitter: rich ? 0.06 : 0.04,
+    })
   })
 
   return (

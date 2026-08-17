@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { Quality } from './capability'
+import { liveLaw, reactorControl } from './control/reactorControl'
 import { pulse } from './pulse'
 import { sceneColors } from './sceneColors'
 import { liveFor, sceneState } from './sceneState'
@@ -23,6 +24,10 @@ uniform float uTime;
 uniform float uCinema;
 /** Master envelope, supplied by the shared clock — never a local sine. */
 uniform float uPulse;
+/** Same law/audio reads every ReconstructMaterial gets — keeps the floor in
+ * step with the shard architecture instead of reading as a separate system. */
+uniform float uHeat;
+uniform float uAudio;
 uniform vec3 uInk;
 uniform vec3 uAccent;
 
@@ -80,6 +85,8 @@ void main() {
   // ground plane until the corridor begins to take over.
   float corridorPresence = smoothstep(0.08, 0.22, uBuild);
   alpha *= mix(0.22, 1.0, corridorPresence);
+  // Cinema keeps the extra fill rate; lite spends it on the objects, not the floor.
+  alpha *= 1.0 + uCinema * 0.22;
 
   vec3 color = mix(
     uInk,
@@ -87,7 +94,9 @@ void main() {
     clamp(
       uLive * 0.5 +
         beam * 0.4 * scrollW * (1.0 - workQuiet * 0.4) +
-        idleBeam * 0.22 * idleW,
+        idleBeam * 0.22 * idleW +
+        uHeat * 0.3 +
+        uAudio * 0.15,
       0.0,
       1.0
     )
@@ -114,6 +123,8 @@ export const GridFloor = ({ quality }: { quality: Quality }) => {
           uTime: { value: 0 },
           uCinema: { value: 0 },
           uPulse: { value: 0 },
+          uHeat: { value: 0 },
+          uAudio: { value: 0 },
           uInk: { value: sceneColors.ink.clone() },
           uAccent: { value: sceneColors.accent.clone() },
         },
@@ -138,6 +149,8 @@ export const GridFloor = ({ quality }: { quality: Quality }) => {
     material.uniforms.uCinema.value = quality === 'cinema' ? 1 : 0
     // Gated by idle so the standby sweep steps back the moment scroll takes over.
     material.uniforms.uPulse.value = 0.5 + (pulse.master - 0.5) * pulse.idle
+    material.uniforms.uHeat.value = liveLaw.heat
+    material.uniforms.uAudio.value = reactorControl.audio
     material.uniforms.uInk.value.copy(sceneColors.ink)
     material.uniforms.uAccent.value.copy(sceneColors.accent)
   })

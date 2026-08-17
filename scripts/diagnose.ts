@@ -13,7 +13,7 @@ const ROOT = join(process.cwd(), 'build', 'client')
 const PORT = 4321
 const TARGETS = process.argv.slice(2).length
   ? process.argv.slice(2)
-  : ['/es', '/en', '/es/proyectos/andina-art', '/en/cv', '/404']
+  : ['/es', '/en', '/es/proyectos/ag-valores', '/en/cv', '/404']
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',

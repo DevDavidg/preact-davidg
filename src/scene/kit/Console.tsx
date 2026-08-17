@@ -43,6 +43,8 @@ export interface ConsoleProps {
   uplink?: boolean
   /** Which action id, if any, is the uplink's payload. */
   chargedAction?: string
+  /** The shared studio, reflected on the frame the same way the gate is. */
+  envMap?: THREE.Texture | null
 }
 
 const FRAME_PAD = 0.1
@@ -62,6 +64,7 @@ export const Console = ({
   bay,
   uplink = false,
   chargedAction,
+  envMap = null,
 }: ConsoleProps) => {
   const group = useRef<THREE.Group>(null)
   const face = useRef<THREE.Mesh>(null)
@@ -117,6 +120,12 @@ export const Console = ({
     line.renderOrder = 2
     return line
   }, [width, height, rimMat])
+
+  // The frame is bare metal with no photo to protect, so — like the gate — it
+  // earns a mirror sheen from the same shared room rather than staying flat.
+  useEffect(() => {
+    frameMat.setEnv(envMap)
+  }, [frameMat, envMap])
 
   useEffect(
     () => () => {

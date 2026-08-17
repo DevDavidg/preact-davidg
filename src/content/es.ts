@@ -115,7 +115,7 @@ export const es: Copy = {
         role: 'Fullstack Senior',
         period: 'Oct 2024 — Actualidad',
         context:
-          'Consultora IT. Andina ART (web principal), A3Mercados (sitio en desarrollo), design system de Banco Mariva (React MFE), módulo de flujos Santander (Angular/BPMN), mantenimiento Salesforce en Bayer y MVP mobile DGALUM (React Native/Expo).',
+          'Consultora IT. A3Mercados (sitio en desarrollo), design system de Banco Mariva (React MFE), módulo de flujos Santander (Angular/BPMN), mantenimiento Salesforce en Bayer y MVP mobile DGALUM (React Native/Expo).',
         current: true,
       },
       {
@@ -363,54 +363,6 @@ export const es: Copy = {
 
   featured: [
     {
-      slug: 'andina-art',
-      title: 'Andina ART',
-      kind: 'product',
-      kindLabel: 'Cliente · sitio en producción',
-      tags: ['NEXT.JS', 'SEGUROS', 'REACT'],
-      summary:
-        'Sitio principal de Andina ART: riesgos del trabajo y seguros, con información institucional y captación de consulta.',
-      outcome:
-        'La web pública quedó en producción bajo andinaart.com.ar, con stack React/Next y API Express detrás del front.',
-      problem:
-        'La aseguradora necesitaba una presencia web moderna que explique el producto y canalice contacto, sin arrastrar un CMS legacy.',
-      role: 'Encargado del desarrollo de la web principal en Nonconformist.',
-      scope: 'Cliente de Nonconformist. Front público y capa Express de soporte.',
-      stack: ['React', 'Next.js', 'Express', 'Bootstrap'],
-      constraints: [
-        'Contenido regulado del rubro ART: claridad por encima de adorno.',
-        'Tiene que funcionar bien en móvil: gran parte del tráfico llega desde ahí.',
-        'El handoff a la agencia tiene que dejar el repo mantenible.',
-      ],
-      decisions: [
-        {
-          title: 'Next para el sitio público',
-          body: 'SSR/SSG donde conviene, rutas claras y SEO de páginas institucionales sin montar un CMS completo al día uno.',
-        },
-        {
-          title: 'Express como borde del front',
-          body: 'Formularios y endpoints de soporte viven fuera del bundle del navegador, así el front no acumula secretos ni lógica sensible.',
-        },
-      ],
-      contribution: [
-        'Arquitectura y desarrollo del sitio público.',
-        'Integración con Express para flujos de contacto y datos.',
-        'Maquetado responsive y handoff al equipo de la agencia.',
-      ],
-      evidence: [
-        'El sitio está en producción: https://www.andinaart.com.ar/',
-        'El rol y el stack constan en el CV bajo Nonconformist.',
-      ],
-      demoUrl: 'https://www.andinaart.com.ar/',
-      image: {
-        src: '/work/andina-art.jpg',
-        alt: 'Sitio de Andina ART: portada de ART Argentina y seguros de riesgos laborales',
-        width: 1600,
-        height: 1000,
-      },
-      plate: 'MÓDULO 01 — ANDINA',
-    },
-    {
       slug: 'ag-valores',
       title: 'AG Valores',
       kind: 'product',
@@ -456,7 +408,7 @@ export const es: Copy = {
         width: 1600,
         height: 1000,
       },
-      plate: 'MÓDULO 02 — AG VALORES',
+      plate: 'MÓDULO 01 — AG VALORES',
     },
     {
       slug: 'nonconformist',
@@ -504,7 +456,7 @@ export const es: Copy = {
         width: 1600,
         height: 1000,
       },
-      plate: 'MÓDULO 03 — NXC',
+      plate: 'MÓDULO 02 — NXC',
     },
   ],
 

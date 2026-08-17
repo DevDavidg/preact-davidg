@@ -25,6 +25,7 @@ import { ReconstructMaterial } from './ReconstructMaterial'
 import { sceneColors } from './sceneColors'
 import { livePowerFor, sceneState, clamp01 } from './sceneState'
 import { toShards } from './shardGeometry'
+import { createStudioEquirect } from './studioEnv'
 import { softAssemble } from './ui/assembleDrama'
 
 const COLUMN_X = 2.9
@@ -234,6 +235,14 @@ export const FinaleGate = () => {
     [],
   )
 
+  // The gate is the one machined structure the visitor sees dead-on and at
+  // rest, so it is where a mirror reflection earns the most: the same studio
+  // the hero shell reflects, held on the gate's columns and stator ring.
+  const envMap = useMemo(() => createStudioEquirect(512, 256), [])
+  useEffect(() => {
+    material.setEnv(envMap)
+  }, [material, envMap])
+
   const portalMaterial = useMemo(
     () =>
       new THREE.ShaderMaterial({
@@ -260,8 +269,9 @@ export const FinaleGate = () => {
       Object.values(geometries).forEach((geometry) => geometry.dispose())
       material.dispose()
       portalMaterial.dispose()
+      envMap.dispose()
     },
-    [geometries, material, portalMaterial],
+    [geometries, material, portalMaterial, envMap],
   )
 
   useFrame((state, delta) => {

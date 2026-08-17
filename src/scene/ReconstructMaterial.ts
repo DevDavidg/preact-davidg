@@ -106,6 +106,10 @@ uniform float uWire;
 uniform float uAudio;
 /** Law heat, 0 → 1. CHAOS runs the whole corridor hotter. */
 uniform float uHeat;
+/** The shared studio, sampled as a mirror reflection when a mesh opts in. */
+uniform sampler2D uEnvMap;
+/** 1 when the mesh carries a reflection; unset objects skip the sample cost. */
+uniform float uHasEnv;
 
 varying vec3 vBary;
 varying vec3 vNormalW;
@@ -118,6 +122,13 @@ varying float vViewDistance;
 
 // GLSL3 has no gl_FragColor; three aliases attribute/varying but not the output.
 layout(location = 0) out vec4 fragColor;
+
+/** A reflection direction onto the shared studio's equirect layout. */
+vec2 equirectUv(vec3 dir) {
+  float u = atan(dir.z, dir.x) * 0.15915494 + 0.5;
+  float v = asin(clamp(dir.y, -1.0, 1.0)) * 0.31830989 + 0.5;
+  return vec2(u, v);
+}
 
 void main() {
   // Barycentric wireframe: fwidth keeps the line one pixel wide at any depth.
@@ -158,6 +169,11 @@ void main() {
   face += uInk * spec * lit * 0.35;
   face = mix(face, uAccent * 0.4, liveAccent * fresnel * 0.55);
 
+  // Optional mirror term: the shared studio, held to structural surfaces only —
+  // a project photo panel keeps its own shot rather than picking up the room.
+  vec3 envColor = texture(uEnvMap, equirectUv(reflect(-view, normal))).rgb;
+  face = mix(face, envColor, uHasEnv * (1.0 - uHasMap) * fresnel * (0.4 + lit * 0.4));
+
   // Full plate photo fills as shards lock. Loose debris keeps colour via edge
   // tint only — painting the map at uHasMap alone doubled the dossier JPEG
   // until per-card DOM void (~assemble 0.58+).
@@ -178,6 +194,7 @@ void main() {
   edgeGlow *= mix(1.0, 0.18 + uFocus * 0.5, shotMix * smoothstep(0.5, 0.95, vAssembled));
 
   vec3 rim = uAccent * fresnel * lit * liveAccent * (0.28 + uFocus * 0.55);
+  rim += envColor * uHasEnv * fresnel * lit * 0.32;
 
   // Controlled depth without a full-screen DOF pass: distant, unfocused matter
   // loses contrast in BEAUTY, while the active bay/panel stays optically crisp.
@@ -329,6 +346,8 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
         uWire: { value: 0 },
         uAudio: { value: 0 },
         uHeat: { value: 0 },
+        uEnvMap: { value: blankMap },
+        uHasEnv: { value: 0 },
       },
     })
     this.cpuPlaced = cpuPlaced
@@ -351,6 +370,18 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
     if (shape.drift !== undefined && !this.cpuPlaced) {
       uniforms.uDrift.value = shape.drift * liveLaw.drift
     }
+  }
+
+  /**
+   * Opts a mesh into the shared studio reflection. Structural surfaces only —
+   * a project photo panel (`uHasMap`) ignores this even when set, so a case
+   * study never picks up the room over its own shot. Pass `null` to go back
+   * to the flat key/fill/fresnel read.
+   */
+  setEnv(texture: THREE.Texture | null) {
+    const { uniforms } = this
+    uniforms.uEnvMap.value = texture ?? blankMap
+    uniforms.uHasEnv.value = texture ? 1 : 0
   }
 
   /** Pushes a frame of state into the shader. */

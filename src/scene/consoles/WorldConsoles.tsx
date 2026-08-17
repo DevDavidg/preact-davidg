@@ -8,6 +8,7 @@ import type { Quality } from '../capability'
 import { publishBeats } from '../control/reactorControl'
 import { Console } from '../kit/Console'
 import { layoutConsoleRows } from '../kit/consoleLayout'
+import { createStudioEquirect } from '../studioEnv'
 import { GlyphField } from '../ui/GlyphField'
 import { buildGlyphAtlas, type GlyphAtlas } from '../ui/glyphAtlas'
 import { layoutBlocks, type TextBlock } from '../ui/glyphLayout'
@@ -130,6 +131,20 @@ export const WorldConsoles = ({
   const heightPx = useThree((state) => state.size.height)
   const fit = computeViewportFit(aspect, heightPx)
   const sizeFit = consoleSizeFit(fit)
+
+  /*
+   * One shared studio for every project frame — cinema only, so a budget
+   * device never spends a canvas + texture upload on a reflection it can't
+   * afford. Every console mounts at once (visibility is presence, not
+   * mount/unmount), so this is built once here rather than per-card.
+   */
+  const envMap = useMemo(
+    () => (quality === 'cinema' ? createStudioEquirect(384, 192) : null),
+    [quality],
+  )
+  useEffect(() => {
+    return () => envMap?.dispose()
+  }, [envMap])
 
   const sources = useMemo(() => {
     if (mode === 'cv') return cvConsoleSources(copy, locale)
@@ -291,6 +306,7 @@ export const WorldConsoles = ({
           side={entry.spec.side}
           bay={bays ? entry.spec.bay : undefined}
           uplink={entry.spec.uplink}
+          envMap={envMap}
           chargedAction={
             entry.spec.uplink
               ? entry.spec.actions?.find((action) => action.kind === 'mailto')

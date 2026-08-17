@@ -25,6 +25,15 @@ import { livePowerFor, sceneState } from '../scene/sceneState'
  * - A hidden tab is silent, and the whole graph is torn down on opt-out.
  * - Every transient is rate-limited. A pointer sweeping a shell fires dozens of
  *   hover events a second, and an unthrottled click per event is a buzzsaw.
+ *
+ * Two more voices layer on top of the base instrument:
+ * - Every burst and tone panned to the pointer's screen position, so the room
+ *   has a left/right side instead of every event arriving dead centre.
+ * - `hover`/`tick`/`lock`/`law` read the operator's active mode and pick a
+ *   different filter/oscillator character per mode, so `wire`, `crt`, and
+ *   `ghost` are a different instrument, not the same click retuned. Overclock
+ *   instead drives the whole master bus through a soft-clip stage that grows
+ *   with heat — the room distorting, not one more voice.
  */
 
 /** Deliberately low: this is a room, not a soundtrack. */
@@ -90,8 +99,30 @@ export const startReactorSound = (): ReactorSound => {
   analyser.smoothingTimeConstant = 0.6
   const levelBuffer = new Uint8Array(analyser.fftSize)
 
-  master.connect(analyser)
-  master.connect(context.destination)
+  /**
+   * Overclock's own instrument: a soft-clip stage on the master bus, silent
+   * (identity curve) everywhere else. It grows with heat rather than snapping
+   * on, so the room saturates the same way its filter opens up.
+   */
+  const drive = context.createWaveShaper()
+  drive.oversample = '2x'
+  let driveAmount = -1
+  const driveCurve = (amount: number) => {
+    const samples = 256
+    const curve = new Float32Array(samples)
+    const k = 1 + amount * 6
+    const norm = Math.tanh(k) || 1
+    for (let index = 0; index < samples; index += 1) {
+      const x = (index / (samples - 1)) * 2 - 1
+      curve[index] = Math.tanh(x * k) / norm
+    }
+    return curve
+  }
+  drive.curve = driveCurve(0)
+
+  master.connect(drive)
+  drive.connect(analyser)
+  drive.connect(context.destination)
 
   // Room tone: a low fifth, slightly detuned so it beats rather than sits still.
   const room = context.createGain()
@@ -142,6 +173,17 @@ export const startReactorSound = (): ReactorSound => {
   ignitionUpperVoice.frequency.value = 330
   ignitionUpperVoice.connect(ignitionUpper)
   ignitionUpperVoice.start()
+  // A third partial, detuned a few cents off the fundamental, so full charge
+  // thickens into a beating unison instead of just getting louder.
+  const ignitionDetune = context.createGain()
+  ignitionDetune.gain.value = 0
+  ignitionDetune.connect(master)
+  const ignitionDetuneVoice = context.createOscillator()
+  ignitionDetuneVoice.type = 'triangle'
+  ignitionDetuneVoice.frequency.value = 165
+  ignitionDetuneVoice.detune.value = 9
+  ignitionDetuneVoice.connect(ignitionDetune)
+  ignitionDetuneVoice.start()
 
   /**
    * Friction.
@@ -173,6 +215,14 @@ export const startReactorSound = (): ReactorSound => {
 
   const running = () => context.state === 'running'
 
+  /**
+   * The pointer's screen position, read fresh per voice so a hover on the left
+   * edge and a lock on the right edge land in different places — no plumbing
+   * beyond the tracker that already exists for pointer-driven scene state.
+   */
+  const pointerPan = () =>
+    Math.max(-1, Math.min(1, sceneState.pointerX || 0))
+
   /** Shared transient factory — one buffer source through a band and a gain. */
   const burst = (
     buffer: AudioBuffer,
@@ -190,7 +240,9 @@ export const startReactorSound = (): ReactorSound => {
     band.Q.value = q
     const level = context.createGain()
     level.gain.value = gain
-    source.connect(band).connect(level).connect(master)
+    const pan = context.createStereoPanner()
+    pan.pan.value = pointerPan()
+    source.connect(band).connect(level).connect(pan).connect(master)
     source.start()
   }
 
@@ -212,7 +264,9 @@ export const startReactorSound = (): ReactorSound => {
     level.gain.setValueAtTime(0.0001, now)
     level.gain.exponentialRampToValueAtTime(gain, now + 0.012)
     level.gain.exponentialRampToValueAtTime(0.0001, now + seconds)
-    oscillator.connect(level).connect(master)
+    const pan = context.createStereoPanner()
+    pan.pan.value = pointerPan()
+    oscillator.connect(level).connect(pan).connect(master)
     oscillator.start(now)
     oscillator.stop(now + seconds + 0.05)
   }
@@ -241,11 +295,27 @@ export const startReactorSound = (): ReactorSound => {
       now,
       0.6,
     )
+    ignitionDetune.gain.setTargetAtTime(
+      power * IGNITION_GAIN * 0.5,
+      now,
+      0.4,
+    )
 
     // Friction only exists while something is genuinely held and moving.
     const held = reactorControl.held ? reactorControl.heldSpeed : 0
     frictionGain.gain.setTargetAtTime(held * FRICTION_GAIN, now, 0.08)
     frictionFilter.frequency.setTargetAtTime(240 + held * 1400, now, 0.1)
+
+    // Overclock is the room saturating, not a new voice — the curve only
+    // regenerates when the target has actually moved, so idle frames cost
+    // nothing.
+    const targetDrive = reactorControl.modes.overclock
+      ? Math.min(1, 0.35 + heat * 0.65)
+      : 0
+    if (Math.abs(targetDrive - driveAmount) > 0.03) {
+      driveAmount = targetDrive
+      drive.curve = driveCurve(driveAmount)
+    }
 
     frame = requestAnimationFrame(follow)
   }
@@ -260,12 +330,46 @@ export const startReactorSound = (): ReactorSound => {
   }
   document.addEventListener('visibilitychange', handleVisibility)
 
+  /**
+   * `wire`/`crt`/`ghost` each retune the four short voices below into a
+   * different instrument rather than a different pitch. `overclock` is
+   * excluded — it already has its own instrument, the drive bus in `follow`.
+   * Priority favours the mode most visually dominant when stacked.
+   */
+  type VoiceMode = 'default' | 'wire' | 'crt' | 'ghost'
+  const activeVoiceMode = (): VoiceMode => {
+    if (reactorControl.modes.ghost) return 'ghost'
+    if (reactorControl.modes.crt) return 'crt'
+    if (reactorControl.modes.wire) return 'wire'
+    return 'default'
+  }
+  /** CRT's echo tap — one delayed repeat, the same trick `whoosh` already uses. */
+  const echoTap = (buffer: AudioBuffer, frequency: number, gain: number) => {
+    window.setTimeout(() => burst(buffer, frequency, 3, gain, 'bandpass'), 35)
+  }
+
   const lock = (index = 0) => {
     const pitch = LOCK_PITCHES[Math.abs(index) % LOCK_PITCHES.length]
     // Two halves: the impact (noise) and the body (pitch). Either alone reads as
     // a UI beep; together they read as a part seating in a socket.
-    burst(transient, pitch * 2.4, 1.4, 0.055)
-    tone(pitch, 0.045, 0.42)
+    switch (activeVoiceMode()) {
+      case 'wire':
+        burst(transient, pitch * 3.2, 2.2, 0.045, 'highpass')
+        tone(pitch * 2, 0.03, 0.28, 'sine')
+        break
+      case 'crt':
+        burst(transient, pitch * 2.4, 1.4, 0.05)
+        tone(pitch, 0.045, 0.42, 'square', 2)
+        echoTap(shortTransient, pitch * 3, 0.014)
+        break
+      case 'ghost':
+        burst(transient, pitch * 1.2, 0.8, 0.05, 'lowpass')
+        tone(pitch * 0.5, 0.05, 0.9, 'sine', -12)
+        break
+      default:
+        burst(transient, pitch * 2.4, 1.4, 0.055)
+        tone(pitch, 0.045, 0.42)
+    }
   }
 
   return {
@@ -273,21 +377,62 @@ export const startReactorSound = (): ReactorSound => {
       const now = context.currentTime
       if (now - lastHover < HOVER_THROTTLE) return
       lastHover = now
-      burst(shortTransient, 1600, 3.2, 0.028)
+      switch (activeVoiceMode()) {
+        case 'wire':
+          burst(shortTransient, 2600, 5, 0.024, 'highpass')
+          break
+        case 'crt':
+          burst(shortTransient, 1600, 3.2, 0.026)
+          echoTap(shortTransient, 2100, 0.012)
+          break
+        case 'ghost':
+          burst(shortTransient, 900, 2, 0.03, 'lowpass')
+          break
+        default:
+          burst(shortTransient, 1600, 3.2, 0.028)
+      }
     },
     tick: () => {
       const now = context.currentTime
       if (now - lastTick < TICK_THROTTLE) return
       lastTick = now
-      burst(shortTransient, 3200, 4.5, 0.022, 'highpass')
+      switch (activeVoiceMode()) {
+        case 'wire':
+          burst(shortTransient, 4200, 6, 0.02, 'highpass')
+          break
+        case 'crt':
+          burst(shortTransient, 3200, 4.5, 0.02)
+          echoTap(shortTransient, 3600, 0.01)
+          break
+        case 'ghost':
+          burst(shortTransient, 1800, 2.5, 0.024, 'lowpass')
+          break
+        default:
+          burst(shortTransient, 3200, 4.5, 0.022, 'highpass')
+      }
     },
     lock,
     // `pulse` predates the voice bank; module focus still calls it.
     pulse: () => lock(0),
     law: (index = 0) => {
       const pitch = LAW_PITCHES[Math.abs(index) % LAW_PITCHES.length]
-      tone(pitch, 0.03, 0.55, 'sine')
-      tone(pitch * 1.5, 0.018, 0.7, 'sine', 4)
+      switch (activeVoiceMode()) {
+        case 'wire':
+          tone(pitch * 2, 0.025, 0.4, 'sine')
+          tone(pitch * 3, 0.014, 0.5, 'sine', 7)
+          break
+        case 'crt':
+          tone(pitch, 0.03, 0.5, 'square', 2)
+          tone(pitch * 1.5, 0.016, 0.6, 'square', -2)
+          break
+        case 'ghost':
+          tone(pitch * 0.5, 0.032, 0.9, 'sine', -14)
+          tone(pitch * 0.75, 0.02, 1.1, 'sine', 14)
+          break
+        default:
+          tone(pitch, 0.03, 0.55, 'sine')
+          tone(pitch * 1.5, 0.018, 0.7, 'sine', 4)
+      }
     },
     whoosh: () => {
       if (!running()) return
@@ -327,6 +472,7 @@ export const startReactorSound = (): ReactorSound => {
         breath.stop()
         ignitionVoice.stop()
         ignitionUpperVoice.stop()
+        ignitionDetuneVoice.stop()
         frictionSource.stop()
         void context.close()
       }, 400)

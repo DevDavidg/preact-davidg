@@ -44,12 +44,12 @@ export const createPeelUniforms = (
   count: number,
 ): PeelUniforms => ({
   uOpen: { value: 0 },
-  uBreak: { value: 1.85 },
+  uBreak: { value: 2.85 },
   uFling: { value: 0 },
   uBase: { value: 0.022 },
   uBreathe: { value: 0 },
   uTime: { value: 0 },
-  uStagger: { value: 0.85 },
+  uStagger: { value: 1.05 },
   uHoverPush: { value: 0.07 },
   uFirePush: { value: 2.8 },
   uCorridor: { value: new THREE.Vector3() },
@@ -112,7 +112,7 @@ void heroPeel(vec3 localPos, vec3 localNormal) {
     hover * uHoverPush +
     fire * uFirePush;
 
-  float spin = throwAmt * (0.7 + aPhase * 0.1) + fire * 1.1;
+  float spin = throwAmt * (1.35 + aPhase * 0.32) + fire * 1.1;
   float shrink = 1.0 - throwAmt * 0.34 - fire * 0.15;
 
   gHeroPos =

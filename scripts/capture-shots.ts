@@ -41,7 +41,6 @@ const SETTLE: Record<string, number> = {
   'landing-davinci': 9000,
   'david-g-dev': 7000,
   fueradecontexto: 4000,
-  'andina-art': 2500,
   'ag-valores': 2500,
   nonconformist: 2500,
 }

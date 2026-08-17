@@ -156,7 +156,6 @@ The site is available in Spanish (\`/es\`) and English (\`/en\`). \`/\` is the l
 
 Client sites in production:
 
-- [Andina ART](${absoluteUrl('/es/proyectos/andina-art')}) — workplace-risk insurance site (andinaart.com.ar)
 - [AG Valores](${absoluteUrl('/es/proyectos/ag-valores')}) — ALyC / capital-markets site (agvalores.com.ar)
 - [Nonconformist](${absoluteUrl('/es/proyectos/nonconformist')}) — agency site (nonconformist.digital)
 

@@ -105,7 +105,7 @@ export const en: Copy = {
         role: 'Fullstack Senior',
         period: 'Oct 2024 — Present',
         context:
-          'IT consultancy. Andina ART (main site), A3Mercados (site in development), Banco Mariva design system (React MFE), Santander workflow module (Angular/BPMN), Bayer Salesforce maintenance and DGALUM mobile MVP (React Native/Expo).',
+          'IT consultancy. A3Mercados (site in development), Banco Mariva design system (React MFE), Santander workflow module (Angular/BPMN), Bayer Salesforce maintenance and DGALUM mobile MVP (React Native/Expo).',
         current: true,
       },
       {
@@ -353,54 +353,6 @@ export const en: Copy = {
 
   featured: [
     {
-      slug: 'andina-art',
-      title: 'Andina ART',
-      kind: 'product',
-      kindLabel: 'Client · live site',
-      tags: ['NEXT.JS', 'INSURANCE', 'REACT'],
-      summary:
-        'Main Andina ART site: workplace risk insurance and related cover, with institutional information and enquiry capture.',
-      outcome:
-        'The public site shipped at andinaart.com.ar on a React/Next stack with an Express API behind the front.',
-      problem:
-        'The insurer needed a modern web presence that explains the product and channels contact, without dragging a legacy CMS.',
-      role: 'Led development of the main site at Nonconformist.',
-      scope: 'Nonconformist client. Public front and supporting Express layer.',
-      stack: ['React', 'Next.js', 'Express', 'Bootstrap'],
-      constraints: [
-        'Regulated ART copy: clarity over decoration.',
-        'Must work well on mobile — most traffic arrives there.',
-        'Handoff to the agency has to leave a maintainable repo.',
-      ],
-      decisions: [
-        {
-          title: 'Next for the public site',
-          body: 'SSR/SSG where it helps, clear institutional routes and SEO without standing up a full CMS on day one.',
-        },
-        {
-          title: 'Express at the front edge',
-          body: 'Forms and support endpoints live outside the browser bundle so the front does not accumulate secrets or sensitive logic.',
-        },
-      ],
-      contribution: [
-        'Architecture and development of the public site.',
-        'Express integration for contact and data flows.',
-        'Responsive layout and handoff to the agency team.',
-      ],
-      evidence: [
-        'The site is live at https://www.andinaart.com.ar/',
-        'Role and stack are listed under Nonconformist on the CV.',
-      ],
-      demoUrl: 'https://www.andinaart.com.ar/',
-      image: {
-        src: '/work/andina-art.jpg',
-        alt: 'Andina ART site: ART Argentina and workplace risk insurance cover',
-        width: 1600,
-        height: 1000,
-      },
-      plate: 'MODULE 01 — ANDINA',
-    },
-    {
       slug: 'ag-valores',
       title: 'AG Valores',
       kind: 'product',
@@ -446,7 +398,7 @@ export const en: Copy = {
         width: 1600,
         height: 1000,
       },
-      plate: 'MODULE 02 — AG VALORES',
+      plate: 'MODULE 01 — AG VALORES',
     },
     {
       slug: 'nonconformist',
@@ -494,7 +446,7 @@ export const en: Copy = {
         width: 1600,
         height: 1000,
       },
-      plate: 'MODULE 03 — NXC',
+      plate: 'MODULE 02 — NXC',
     },
   ],
 
