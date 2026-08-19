@@ -3,10 +3,11 @@ import { useLocation, useParams, type MetaFunction } from 'react-router'
 import { CaseDocument } from '../../src/components/CaseDocument'
 import { JsonLd } from '../../src/components/JsonLd'
 import { OperatorBar } from '../../src/components/OperatorBar'
-import { Preflight } from '../../src/components/Preflight'
+import { BootGate } from '../../src/components/BootGate'
 import { SceneBoundary } from '../../src/components/SceneBoundary'
 import { ScrollRail } from '../../src/components/ScrollRail'
 import { SkipLink } from '../../src/components/Nav'
+import { WorldNav } from '../../src/components/WorldNav'
 import { StageTreatment } from '../../src/components/StageTreatment'
 import { COPY, findCase, isLocale } from '../../src/content'
 import { useExperience } from '../../src/hooks/useExperience'
@@ -84,7 +85,7 @@ const Case = () => {
         <CaseDocument study={study}>
           <JsonLd schemas={schemas} />
         </CaseDocument>
-        <Preflight />
+        <BootGate />
       </>
     )
   }
@@ -92,6 +93,7 @@ const Case = () => {
   return (
     <>
       <SkipLink />
+      <WorldNav />
 
       <SceneBoundary
         quality={qualityOf(experience)}
@@ -110,7 +112,7 @@ const Case = () => {
         <ScrollRail chapters={chapters} />
       </main>
 
-      <Preflight />
+      <BootGate />
     </>
   )
 }

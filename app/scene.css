@@ -160,6 +160,102 @@
 }
 
 /*
+ * The operator panel, out of the notch.
+ *
+ * It is fixed to the top-right corner, which on a phone in portrait is exactly
+ * where the status bar and the camera cutout are. The inset keeps the sound and
+ * law controls tappable on hardware that has a corner taken out of it, and the
+ * `max()` means nothing moves on a screen that has no inset to report.
+ */
+.operator-bar {
+  top: max(1rem, env(safe-area-inset-top));
+  right: max(var(--spacing-gutter), env(safe-area-inset-right));
+}
+
+/*
+ * The keyboard index for the 3D routes (`WorldNav`).
+ *
+ * Off-screen at zero size — not `display: none`, which would take it out of the
+ * tab order and defeat the point — and pulled into view the moment anything
+ * inside it is focused. `:focus-within` rather than `:focus` so the whole list
+ * stays visible while the visitor walks down it, instead of flickering one row at
+ * a time.
+ */
+.world-nav {
+  position: fixed;
+  left: max(var(--spacing-gutter), env(safe-area-inset-left));
+  top: max(var(--spacing-gutter), env(safe-area-inset-top));
+  z-index: var(--z-index-boot);
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.world-nav:focus-within {
+  width: min(26rem, calc(100vw - var(--spacing-gutter) * 2));
+  height: auto;
+  max-height: calc(100vh - var(--spacing-gutter) * 2);
+  overflow-y: auto;
+  clip-path: none;
+  padding: 0.75rem;
+  background-color: var(--color-graphite);
+  border: 1px solid var(--color-line-strong);
+}
+
+.world-nav-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.world-nav-list a {
+  display: flex;
+  align-items: center;
+  /* 44px: a control a finger can also find, not only a caret. */
+  min-height: 2.75rem;
+  padding: 0 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.world-nav-list a:focus-visible,
+.world-nav-list a:hover {
+  color: var(--color-ignition);
+}
+
+/*
+ * The closing plate, on the far side of the portal.
+ *
+ * Sits above the canvas and below the operator panel. `opacity` is written per
+ * frame by `FinaleCard` from the swallow position, so this only describes where it
+ * is, never when — which is what keeps the ending reversible.
+ */
+.finale-card {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: var(--z-index-hud);
+  translate: -50% -50%;
+  width: min(34rem, calc(100vw - var(--spacing-gutter) * 2));
+  padding: 0 max(var(--spacing-gutter), env(safe-area-inset-left));
+  text-align: center;
+  /* The portal is behind it and hot; the copy needs its own ground to sit on. */
+  text-shadow: 0 1px 24px var(--color-reactor);
+}
+
+@media (forced-colors: active) {
+  .finale-card {
+    background-color: Canvas;
+    text-shadow: none;
+  }
+}
+
+/*
  * The document column. Gaps between sections stay transparent to the scene, but
  * anything a visitor can act on takes the pointer back.
  */
@@ -172,7 +268,13 @@
 .world-main {
   position: relative;
   z-index: var(--z-index-overlay);
-  min-height: 100vh;
+  /*
+   * `dvh`, not `vh`. On a phone `100vh` is the viewport with the URL bar hidden,
+   * so the rail was always a bar's worth taller than the screen it is measured
+   * against — and every scroll-derived value in the scene, including where the
+   * corridor ends and the swallow begins, is a fraction of that measurement.
+   */
+  min-height: 100dvh;
   pointer-events: none;
 }
 

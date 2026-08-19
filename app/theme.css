@@ -7,17 +7,38 @@
  * WebGL layer can read the very same custom properties (see `sceneColors.ts`).
  * One palette drives DOM and shaders; there is no second source of colour.
  *
- * Contrast rule enforced below: every colour used for informational text clears
- * 4.5:1 against `--color-reactor` (#050608). The dim ramp stops at `ink-dim`
- * (#9A948C, 6.0:1); nothing quieter than that is ever allowed to carry meaning.
+ * Contrast rules enforced below, both measured rather than asserted:
+ *
+ * - Every colour used for informational text clears 4.5:1 against
+ *   `--color-reactor` (#050608). The dim ramp stops at `ink-dim` (#9A948C,
+ *   6.75:1); nothing quieter than that is ever allowed to carry meaning.
+ * - Every hairline that separates content — not merely decorates it — clears the
+ *   3:1 that WCAG 1.4.11 asks of a non-text boundary. `line-strong` and
+ *   `line-signal` are those; `line` is the decorative tier and says so.
+ *
+ * The ink ramp was already comfortable. The hairlines were not: at 12% and 22%
+ * alpha they measured 1.27:1 and 1.75:1 against the base surface, which is to say
+ * the row rules in Experience, the card edges in Work and the plate outlines were
+ * invisible on anything brighter than a dark room. Raising them is most of what
+ * "mejora contrastes" actually needed.
  */
 
 @theme {
   /* Surfaces — carbon and graphite, warm-neutral rather than blue-black. */
+  --color-abyss: #030406;
   --color-reactor: #050608;
   --color-graphite: #0d1117;
   --color-graphite-raised: #151b23;
   --color-graphite-hover: #1d242e;
+
+  /*
+   * Machined metal. The hero shell's facets and the corridor's structures are
+   * lit steel, not tinted carbon, and this was a hard-coded `#8e939a` inside
+   * `src/scene/HeroStage.tsx` — the one colour in the room that the palette did
+   * not own. Cool enough to hold the warm accent off it, dark enough to stay
+   * inside the room's key.
+   */
+  --color-steel: #8e939a;
 
   /* Ink ramp. `ink` for body, `ink-soft` for secondary, `ink-dim` for metadata. */
   --color-ink: #f3eee4;
@@ -30,9 +51,16 @@
   --color-ion: #e6c891;
   --color-alert: #ff6b5d;
 
-  /* Hairlines. Alpha so they sit on any surface without a second token. */
-  --color-line: oklch(from var(--color-ink) l c h / 12%);
-  --color-line-strong: oklch(from var(--color-ink) l c h / 22%);
+  /*
+   * Hairlines. Alpha so they sit on any surface without a second token.
+   *
+   * Measured against `--color-reactor`:
+   *   line          20%  ->  1.63:1   decorative only; never the sole separator
+   *   line-strong   42%  ->  3.60:1   structural boundaries, clears 1.4.11
+   *   line-signal   55%  ->  3.95:1   live/selected state
+   */
+  --color-line: oklch(from var(--color-ink) l c h / 20%);
+  --color-line-strong: oklch(from var(--color-ink) l c h / 42%);
   --color-line-signal: oklch(from var(--color-ignition) l c h / 55%);
 
   --font-display: "Bricolage Grotesque", "Outfit", system-ui, sans-serif;
@@ -96,6 +124,31 @@
     /* Removes the 300ms tap delay without disabling pinch zoom. */
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /*
+   * The boot reveal.
+   *
+   * `app/root.tsx` stamps `data-boot="hold"` before the body is parsed and an
+   * inline style holds the body at `opacity: 0`; `src/components/BootGate.tsx`
+   * flips it to `open` once the scene has presented settled frames. The
+   * transition lives here rather than inline because it is the only part of the
+   * sequence that is not needed before first paint.
+   *
+   * Short and eased-out on purpose: this is a reveal, not a curtain. Anything
+   * longer starts to read as the loading screen the hold exists to avoid.
+   */
+  html[data-boot='open'] body {
+    animation: boot-reveal 420ms var(--ease-signal) both;
+  }
+
+  @keyframes boot-reveal {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   /* Anchored sections must clear the fixed nav when scrolled into view. */
@@ -172,10 +225,16 @@
 
 /* Type roles ------------------------------------------------------------- */
 
+/*
+ * Instrumentation type had a flat 0.75rem — 12px of uppercase mono at 0.18em
+ * tracking, which is under the floor on a phone held at arm's length and is the
+ * label carrying every section's number and name. The clamps below hold the
+ * authored size on a wide screen and lift the floor where it matters.
+ */
 @utility text-eyebrow {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
-  line-height: 1.35;
+  font-size: clamp(0.8125rem, 0.77rem + 0.2vw, 0.875rem);
+  line-height: 1.4;
   font-weight: 500;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -184,8 +243,8 @@
 
 @utility text-meta {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
-  line-height: 1.4;
+  font-size: clamp(0.8125rem, 0.77rem + 0.2vw, 0.875rem);
+  line-height: 1.45;
   font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -194,15 +253,15 @@
 }
 
 @utility text-lead {
-  font-size: 1.125rem;
+  font-size: clamp(1.0625rem, 1rem + 0.45vw, 1.1875rem);
   line-height: 1.62;
   color: var(--color-ink-soft);
   max-width: 62ch;
 }
 
 @utility text-body {
-  font-size: 1rem;
-  line-height: 1.65;
+  font-size: clamp(1rem, 0.97rem + 0.15vw, 1.0625rem);
+  line-height: 1.68;
   color: var(--color-ink-soft);
   max-width: 68ch;
 }

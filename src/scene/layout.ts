@@ -1,5 +1,7 @@
 import * as THREE from "three";
+import { COPY } from "../content";
 import { PHASE_BOUNDARIES } from "./sceneState";
+import { portraitAmount } from "./viewportFit";
 import type { SectionWindow } from "./ui/sectionRanges";
 
 /**
@@ -13,17 +15,42 @@ import type { SectionWindow } from "./ui/sectionRanges";
  */
 
 /**
- * Side-entry dolly: approach from port, pass through the hero core, then settle
- * into the corridor lane. Early points are denser so scroll owns the traversal.
+ * The dolly: swing onto the optic's axis, fly *through* it, then take the corridor.
+ *
+ * This used to graze the shell from port — the old control point at
+ * (-1.55, 1.75, 5.35) carried the comment "never park the lens inside opaque
+ * debris" — and the shell was faded out by build 0.18, just before the camera
+ * would have arrived. So the first circle opened and disappeared beside the
+ * viewer rather than around them, which wasted the one object the room is built
+ * to introduce.
+ *
+ * The lens now passes dead through the shell's centre. That is only survivable
+ * because of what `HeroStage` does with the timing below: the aperture is fully
+ * open before transit, so the camera goes through a hole rather than through
+ * panels, and the facets are already sweeping *toward* the lens along this same
+ * axis — flying through them reads as passing between opening iris blades.
+ *
+ * The approach is deliberately head-on rather than oblique. An angled entry into
+ * a sphere clips the limb on the way in; square-on, the aperture is a circle and
+ * the transit is a tunnel.
  */
 export const CAMERA_PATH = new THREE.CatmullRomCurve3(
   [
-    new THREE.Vector3(-5.4, 2.05, 8.4),
-    new THREE.Vector3(-3.1, 1.85, 6.5),
-    // Graze the shell from port — never park the lens inside opaque debris.
-    new THREE.Vector3(-1.55, 1.75, 5.35),
-    new THREE.Vector3(0.35, 1.65, 3.7),
-    new THREE.Vector3(-1.2, 1.95, 1.7),
+    // Establishing: off to port and above, so the optic reads as an object in a
+    // room. Close enough in that the approach is a shot rather than a commute —
+    // every metre here is scroll the corridor does not get.
+    new THREE.Vector3(-3.95, 2.24, 8.55),
+    // Swinging onto the axis.
+    new THREE.Vector3(-2.15, 1.94, 7.1),
+    // Almost centred, closing on the aperture.
+    new THREE.Vector3(-0.5, 1.71, 6.0),
+    // Through the middle of the shell. Same point as REACTOR_CORE below.
+    new THREE.Vector3(0, 1.62, 5.15),
+    // Just past it, still inside the housing's wake.
+    new THREE.Vector3(0.1, 1.6, 4.15),
+    // Clear of the optic; the corridor takes over from here.
+    new THREE.Vector3(0.35, 1.66, 3.1),
+    new THREE.Vector3(-1.2, 1.95, 1.4),
     new THREE.Vector3(1.5, 2.35, -2.2),
     new THREE.Vector3(-0.9, 1.55, -6.0),
     new THREE.Vector3(0, 1.7, -10.4),
@@ -33,14 +60,42 @@ export const CAMERA_PATH = new THREE.CatmullRomCurve3(
   0.35,
 );
 
-/** Where the camera looks, one beat ahead of where it is. */
+/**
+ * How much of the dolly's side-to-side weave survives at this viewport.
+ *
+ * The path deliberately swings between x ≈ -1.6 and x ≈ +1.5, which is what makes
+ * the corridor read as a space being travelled rather than a tunnel being flown
+ * down. On a portrait phone it is a liability: a console is placed at a fixed
+ * world point framed for the camera pose at the middle of its own hold, so while
+ * the camera is still arriving it is looking at that plate from up to a metre and
+ * a half off to the side — around 45% of the frame's width at reading distance.
+ * The plate's leading edge simply left the screen.
+ *
+ * Flattening the weave on a narrow frame trades the corridor's lateral drama for
+ * copy that stays inside the viewport, which on a phone is not a close call. Both
+ * `Rig` (where the camera goes) and `placement` (where a plate is put) multiply by
+ * this, so the two can never disagree about where the lane is.
+ */
+export const corridorLateral = (aspect: number) =>
+  1 - portraitAmount(aspect) * 0.92;
+
+/**
+ * Where the camera looks, one beat ahead of where it is.
+ *
+ * Locked onto the optic's axis for the whole approach: the aperture has to be
+ * the centre of frame while the visitor is flying at it, or the transit reads as
+ * drifting past something rather than entering it. The lateral weave only starts
+ * once the shell is behind the lens.
+ */
 export const TARGET_PATH = new THREE.CatmullRomCurve3(
   [
-    new THREE.Vector3(0, 1.55, 5.0),
-    new THREE.Vector3(-0.15, 1.5, 4.2),
-    new THREE.Vector3(0.25, 1.45, 2.4),
-    new THREE.Vector3(0.15, 1.35, 0.05),
-    new THREE.Vector3(0, 1.3, -1.6),
+    new THREE.Vector3(0, 1.64, 6.7),
+    new THREE.Vector3(0, 1.63, 5.7),
+    new THREE.Vector3(0.02, 1.62, 4.7),
+    new THREE.Vector3(0.05, 1.6, 3.5),
+    new THREE.Vector3(0.1, 1.54, 2.3),
+    new THREE.Vector3(0.14, 1.44, 0.6),
+    new THREE.Vector3(0, 1.34, -1.6),
     new THREE.Vector3(0, 1.35, -5.0),
     new THREE.Vector3(0, 1.25, -8.8),
     new THREE.Vector3(0, 1.45, -13.6),
@@ -60,18 +115,38 @@ export interface ArtifactPlacement {
 }
 
 /**
- * Three featured modules, alternating sides of the corridor.
+ * Corridor bays for the featured modules, alternating sides of the lane.
  *
  * There used to be six, each the same size, which made the gallery a slalom with
  * no hierarchy and loaded six full-resolution textures for a scene the visitor
- * scrolls through in seconds. Three modules match the three featured cases, give
- * each one a real beat, and cut texture memory by half.
+ * scrolls through in seconds. A handful of well-spaced bays give each module a
+ * real beat and cut texture memory by half.
+ *
+ * This is the slot *table*, not the gallery. `ARTIFACTS` below is the table cut
+ * to however many featured cases actually exist, because everything downstream
+ * treats a slot as a module that is there: `cameraBeatProgresses` puts a dwell
+ * beat at each one, and `artifactGroupWindows` rescales the gallery across their
+ * span. A hard-coded three outlived the third featured case, so the camera kept
+ * easing down at a bay with nothing in it and the gallery's pacing was stretched
+ * across a module that had been deleted. Slots past the last case stay inert
+ * until a case arrives to fill them.
  */
-export const ARTIFACTS: ArtifactPlacement[] = [
+const ARTIFACT_SLOTS: ArtifactPlacement[] = [
   { position: [-2.15, 1.55, 4.6], yaw: 0.6, pitch: -0.12, scale: 1.18 },
   { position: [2.2, 1.6, 0.4], yaw: -0.62, pitch: -0.13, scale: 1.14 },
   { position: [-2.1, 1.52, -3.8], yaw: 0.64, pitch: -0.12, scale: 1.2 },
+  // Starboard bay, clear of the About portrait's lane on the port side.
+  { position: [2.15, 1.58, -7.6], yaw: -0.6, pitch: -0.12, scale: 1.16 },
 ];
+
+/**
+ * Featured cases are the same length in both locales — `tests/unit/content.test.ts`
+ * holds that — so either one answers how many bays the corridor needs.
+ */
+export const ARTIFACTS: ArtifactPlacement[] = ARTIFACT_SLOTS.slice(
+  0,
+  Math.min(COPY.es.featured.length, ARTIFACT_SLOTS.length),
+);
 
 /**
  * Corridor slots for the three featured modules.
@@ -146,15 +221,88 @@ const buildAtDepth = (() => {
 })();
 
 /**
+ * Where along the *path* the lens reaches the centre of the hero optic.
+ *
+ * Derived from the control points rather than authored, so moving one cannot
+ * silently put the camera inside a closed object.
+ */
+const HERO_TRANSIT_PATH = buildAtDepth(REACTOR_CORE[2]);
+
+/**
+ * How much *scroll* the approach is allowed to cost.
+ *
+ * These are two different quantities and conflating them was a real pacing bug.
+ * The camera path is parameterised by arc length, and the swing onto the optic's
+ * axis is about a third of the room's total length — so mapping scroll straight
+ * onto the path spent a third of the entire page on one shot, roughly six
+ * viewport-heights of wheel before the first console could exist. Meanwhile the
+ * rail gave the hero chapter 170vh out of ~1780, so the document and the camera
+ * disagreed about the same beat by a factor of three.
+ *
+ * The approach is a shot: it should cost about a screen and a half of scroll and
+ * no more. `cameraPacing` below is the remap that buys that, and because it is
+ * piecewise linear it is exactly invertible — which matters, because everything
+ * that reasons about "where is the camera at this charge" has to be able to ask
+ * the question in reverse.
+ */
+export const HERO_BUILD = 0.11;
+
+/**
+ * Scroll → position along the camera path.
+ *
+ * Monotonic and invertible. Deliberately no easing: the cinematic micro-holds are
+ * `cameraProgressFor`'s job, layered on top, and putting a second curve here
+ * would make the inverse below approximate rather than exact.
+ */
+export const cameraPacing = (build: number): number => {
+  const progress = THREE.MathUtils.clamp(build, 0, 1);
+  if (progress <= HERO_BUILD) {
+    return (progress / HERO_BUILD) * HERO_TRANSIT_PATH;
+  }
+  return (
+    HERO_TRANSIT_PATH +
+    ((progress - HERO_BUILD) / (1 - HERO_BUILD)) * (1 - HERO_TRANSIT_PATH)
+  );
+};
+
+/** The inverse: a point on the path → the charge that puts the camera there. */
+export const buildForPath = (pathT: number): number => {
+  const t = THREE.MathUtils.clamp(pathT, 0, 1);
+  if (t <= HERO_TRANSIT_PATH) {
+    return (t / HERO_TRANSIT_PATH) * HERO_BUILD;
+  }
+  return (
+    HERO_BUILD +
+    ((t - HERO_TRANSIT_PATH) / (1 - HERO_TRANSIT_PATH)) * (1 - HERO_BUILD)
+  );
+};
+
+/**
+ * Where the corridor's own sequence begins.
+ *
+ * The opening is a shot, not a slot: consoles must not start assembling while the
+ * visitor is still flying through the shell. `placement` slices its exclusive
+ * reading beats from here to the end, and this sits far enough past the transit
+ * for the optic to be behind the lens and faded.
+ */
+export const CORRIDOR_START = HERO_BUILD + 0.02;
+
+/**
  * Scroll stays continuous, but camera speed eases down at each module and at the
  * portrait. These are soft dwell points, not stops: everything else keeps
  * following real scroll progress while the eye gets a moment to read.
  */
 const cameraBeatProgresses = (() => {
+  /*
+   * In scroll space, via `buildForPath`. `buildAtDepth` answers in path units, and
+   * `cameraHoldFor` is handed a charge value — before the pacing remap existed the
+   * two happened to be the same number, and afterwards they are not. Comparing
+   * them directly would have put every dwell beat at the wrong moment.
+   */
   const beats = [
     0,
-    ...ARTIFACTS.map(({ position }) => buildAtDepth(position[2])),
-    buildAtDepth(ABOUT_PORTRAIT.position[2]),
+    ...ARTIFACTS.map(({ position }) => buildForPath(buildAtDepth(position[2]))),
+    buildForPath(buildAtDepth(ABOUT_PORTRAIT.position[2])),
     1,
   ].sort((left, right) => left - right);
 
@@ -194,10 +342,12 @@ export const cameraProgressFor = (build: number) => {
     const start = cameraBeatProgresses[index - 1];
     const span = Math.max(end - start, 0.0001);
     const local = THREE.MathUtils.clamp((progress - start) / span, 0, 1);
-    return THREE.MathUtils.lerp(start, end, easeDwell(local));
+    // Eased in scroll space, then handed to the pacing remap — the two compose,
+    // and the result is still monotonic, so scrubbing stays exact.
+    return cameraPacing(THREE.MathUtils.lerp(start, end, easeDwell(local)));
   }
 
-  return progress;
+  return cameraPacing(progress);
 };
 
 /**

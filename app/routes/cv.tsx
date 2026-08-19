@@ -3,10 +3,11 @@ import { type MetaFunction } from 'react-router'
 import { CvDocument } from '../../src/components/CvDocument'
 import { JsonLd } from '../../src/components/JsonLd'
 import { OperatorBar } from '../../src/components/OperatorBar'
-import { Preflight } from '../../src/components/Preflight'
+import { BootGate } from '../../src/components/BootGate'
 import { SceneBoundary } from '../../src/components/SceneBoundary'
 import { ScrollRail } from '../../src/components/ScrollRail'
 import { SkipLink } from '../../src/components/Nav'
+import { WorldNav } from '../../src/components/WorldNav'
 import { StageTreatment } from '../../src/components/StageTreatment'
 import { COPY, isLocale } from '../../src/content'
 import { useExperience } from '../../src/hooks/useExperience'
@@ -57,7 +58,7 @@ const Cv = () => {
         <CvDocument>
           <JsonLd schemas={schemas} />
         </CvDocument>
-        <Preflight />
+        <BootGate />
       </>
     )
   }
@@ -65,6 +66,7 @@ const Cv = () => {
   return (
     <>
       <SkipLink />
+      <WorldNav />
 
       <SceneBoundary
         quality={qualityOf(experience)}
@@ -82,7 +84,7 @@ const Cv = () => {
         <ScrollRail chapters={chapters} />
       </main>
 
-      <Preflight />
+      <BootGate />
     </>
   )
 }

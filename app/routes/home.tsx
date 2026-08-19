@@ -3,10 +3,12 @@ import { useLocation, type MetaFunction } from 'react-router'
 import { HomeDocument } from '../../src/components/HomeDocument'
 import { JsonLd } from '../../src/components/JsonLd'
 import { OperatorBar } from '../../src/components/OperatorBar'
-import { Preflight } from '../../src/components/Preflight'
+import { BootGate } from '../../src/components/BootGate'
+import { FinaleCard } from '../../src/components/FinaleCard'
 import { SceneBoundary } from '../../src/components/SceneBoundary'
 import { ScrollRail } from '../../src/components/ScrollRail'
 import { SkipLink } from '../../src/components/Nav'
+import { WorldNav } from '../../src/components/WorldNav'
 import { StageTreatment } from '../../src/components/StageTreatment'
 import { homeRailChapters } from '../../src/lib/sceneRoutes'
 import { COPY, isLocale } from '../../src/content'
@@ -72,6 +74,7 @@ const Home = () => {
         process: copy.process.heading,
         about: copy.about.heading,
         contact: copy.contact.title,
+        finale: copy.hud.finaleLabel,
       }),
     [copy],
   )
@@ -95,7 +98,7 @@ const Home = () => {
         <HomeDocument>
           <JsonLd schemas={homeSchema(copy.locale)} />
         </HomeDocument>
-        <Preflight />
+        <BootGate />
       </>
     )
   }
@@ -109,6 +112,7 @@ const Home = () => {
         real DOM: a skip link into the rail, and the operator's own panel.
       */}
       <SkipLink />
+      <WorldNav />
 
       <SceneBoundary
         quality={qualityOf(experience)}
@@ -119,13 +123,14 @@ const Home = () => {
 
       <StageTreatment />
       <OperatorBar />
+      <FinaleCard />
 
       <main id="main" tabIndex={-1} className="world-main focus-visible:outline-none">
         <JsonLd schemas={homeSchema(copy.locale)} />
         <ScrollRail chapters={chapters} moduleCount={copy.featured.length} />
       </main>
 
-      <Preflight />
+      <BootGate />
     </>
   )
 }

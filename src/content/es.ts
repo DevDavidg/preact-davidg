@@ -71,6 +71,11 @@ export const es: Copy = {
       'AUDIO',
       'REACTOR',
     ],
+    finaleLabel: 'Colapso del reactor',
+    finaleBody:
+      'Final del recorrido. Si seguís scrolleando, el portal se traga la sala entera; si frenás, se queda donde está, y si scrolleás para arriba vuelve a salir.',
+    finaleClose: 'DAVID GUILLEN · dev.davidg@gmail.com',
+    finaleReturn: 'SCROLLEÁ PARA ARRIBA PARA VOLVER',
   },
 
   hero: {
@@ -88,9 +93,9 @@ export const es: Copy = {
 
   work: {
     label: '01 — PROYECTOS',
-    heading: 'Tres sitios en producción que construí',
+    heading: 'Dos sitios en producción que construí',
     intro:
-      'Trabajo entregado a cliente, con URL pública. Cada uno responde a un dominio distinto: seguros, mercado de capitales y la web de la agencia.',
+      'Trabajo entregado a cliente, con URL pública: el sitio de un ALyC del mercado de capitales y la web de la consultora donde trabajo.',
     featuredLabel: 'Casos destacados',
     labLabel: 'Lab',
     labIntro:
@@ -528,6 +533,111 @@ export const es: Copy = {
         height: 1000,
       },
       plate: 'LAB — REACTOR',
+    },
+    {
+      slug: 'proyecto-bam',
+      title: 'Proyecto BAM',
+      kind: 'experiment',
+      kindLabel: 'Experimento · código público',
+      tags: ['WEBGL', 'THREE.JS', 'ECS'],
+      summary:
+        'Juego de estrategia y base-building isométrico que corre en el navegador: grilla de construcción, economía de recursos por ticks y combate, sin motor comercial.',
+      outcome:
+        'La simulación quedó separada del render: el core es TypeScript puro, el estado vive en Zustand, las entidades se sincronizan por ECS y Three.js solo dibuja lo que ese estado dice.',
+      problem:
+        'Un base-builder tiene cientos de entidades cambiando en cada tick. Si la simulación vive dentro de los componentes que dibujan, cada tick vuelve a recorrer el árbol de React y el frame se cae.',
+      role: 'Diseño técnico y desarrollo completo.',
+      scope: 'Proyecto propio. Código público con licencia MIT.',
+      stack: [
+        'React 19',
+        'TypeScript',
+        'Three.js',
+        'React Three Fiber',
+        'bitECS',
+        'Zustand',
+        'Vite',
+      ],
+      constraints: [
+        'Local-first: el progreso se guarda en el navegador, sin servidor detrás.',
+        'Los edificios se generan por geometría procedural, no con sprites.',
+        'La simulación por ticks no puede depender del ciclo de render.',
+      ],
+      decisions: [
+        {
+          title: 'El core no sabe que existe Three.js',
+          body: 'Grilla, reglas de emplazamiento, catálogos y balance son TypeScript puro. La capa de render lee ese estado y nunca lo escribe, así las reglas se pueden probar sin montar una escena.',
+        },
+        {
+          title: 'ECS entre el estado y la escena',
+          body: 'Las entidades se sincronizan por componentes en lugar de por props: un tick que mueve cien unidades no vuelve a renderizar cien componentes.',
+        },
+      ],
+      contribution: [
+        'Motor de grilla, reglas de emplazamiento y economía de recursos por ticks.',
+        'Capa ECS de sincronización entre simulación y escena.',
+        'Visuales 3D procedurales por familia de edificio, con estados de daño y escala por nivel.',
+        'Cámara isométrica, raycast de hover y colocación, y persistencia local del progreso.',
+      ],
+      evidence: [
+        'El repositorio es público y la arquitectura por capas está documentada en el README.',
+        'La licencia es MIT y el historial de commits se puede leer entero.',
+      ],
+      repoUrl: 'https://github.com/DevDavidg/proyectobam',
+      image: {
+        src: '/work/proyecto-bam.jpg',
+        alt: 'Proyecto BAM: vista isométrica en 3D de una aldea con el ayuntamiento en el centro, HUD de recursos a la izquierda y panel de aldea a la derecha',
+        width: 1600,
+        height: 1000,
+      },
+      plate: 'LAB — BAM',
+    },
+    {
+      slug: 'muscly',
+      title: 'Muscly',
+      kind: 'experiment',
+      kindLabel: 'Experimento · demo pública',
+      tags: ['NEXT.JS', 'WEB AUDIO', 'SUPABASE'],
+      summary:
+        'Reproductor de una biblioteca de beats que analiza el audio mientras suena: medidores de sub, bass, medios y agudos alimentados por la pista real.',
+      outcome:
+        'La visualización sale del propio audio en tiempo real, no de una animación en loop: los medidores se mueven con lo que está sonando y se quedan quietos cuando no suena nada.',
+      problem:
+        'Una lista de tracks en un reproductor genérico no dice nada del material. Quería que la interfaz mostrara la forma del sonido mientras se escucha.',
+      role: 'Desarrollo completo.',
+      scope: 'Proyecto propio con catálogo real de pistas. Demo pública.',
+      stack: ['Next.js', 'React', 'TypeScript', 'Meyda', 'Supabase', 'Tailwind CSS'],
+      constraints: [
+        'El análisis de audio corre en el navegador y no puede comerse el frame de la interfaz.',
+        'Las pistas son WAV: la carga tiene que ser por demanda, no toda de entrada.',
+      ],
+      decisions: [
+        {
+          title: 'Análisis en vivo, no animación pregrabada',
+          body: 'Los medidores se alimentan de las features que Meyda extrae del nodo de audio, así lo que se ve es la pista y no un bucle decorativo encima.',
+        },
+        {
+          title: 'El catálogo vive fuera del bundle',
+          body: 'Las pistas y sus metadatos se sirven desde Supabase, así sumar material no implica volver a construir la aplicación.',
+        },
+      ],
+      contribution: [
+        'Reproductor con cola, selección de pista y estados de carga.',
+        'Cadena de análisis de audio y medidores por banda de frecuencia.',
+        'Interfaz de biblioteca con los controles de drive, warmth, brightness y motion.',
+      ],
+      evidence: [
+        'La demo es pública: los medidores se mueven con la pista que suena.',
+        'El repositorio es público.',
+      ],
+      demoUrl: 'https://muscly-lake.vercel.app/',
+      repoUrl: 'https://github.com/DevDavidg/muscly',
+      image: {
+        src: '/work/muscly.jpg',
+        alt: 'Muscly: reproductor de beats en pantalla oscura, con medidores de sub, bass, medios y agudos a la izquierda y el listado de pistas a la derecha',
+        width: 1600,
+        height: 1000,
+      },
+      plate: 'LAB — MUSCLY',
     },
     {
       slug: 'launch-flow',

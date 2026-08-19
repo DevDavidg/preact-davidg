@@ -75,4 +75,10 @@ export interface ConsoleBuildInput {
   windows: SectionWindows
   quality: Quality
   fit: number
+  /**
+   * Viewport aspect. Placement needs it as well as `fit`, because whether the
+   * corridor has a side lane at all is a question about shape, not about scale:
+   * a portrait phone has no "either side of the lens" no matter how tall it is.
+   */
+  aspect: number
 }

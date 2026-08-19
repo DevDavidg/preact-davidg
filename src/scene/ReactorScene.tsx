@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { CaseStudy, Copy } from "../content";
@@ -23,7 +23,12 @@ import { SignalConduits } from "./SignalConduits";
 import { Structures } from "./Structures";
 import { advancePulse, setPulseDepth } from "./pulse";
 import { refreshSceneColors, sceneColors } from "./sceneColors";
-import { livePowerFor, sceneState, useSceneStore } from "./sceneState";
+import {
+  livePowerFor,
+  sceneState,
+  swallowShape,
+  useSceneStore,
+} from "./sceneState";
 import "./silenceClockWarning";
 import { WorldConsoles } from "./consoles/WorldConsoles";
 import type { SceneMode } from "./ui/ReactorType";
@@ -51,16 +56,27 @@ const DPR: Record<"full" | "reduced" | "minimal", [number, number]> = {
 
 
 /**
- * Reports the first presented frame, so the preflight overlay can clear on real
- * readiness rather than on a timer, and the document knows when the voxel portrait
- * is genuinely drawing.
+ * Reports that the room is genuinely on screen, so the boot hold can lift on real
+ * readiness rather than on a timer.
+ *
+ * Deliberately not the *first* frame. Frame one is shader compilation and texture
+ * upload finishing; the glyph atlas has usually not resolved yet, so the room it
+ * shows is a partly-built version of itself. Since `BootGate` reveals the page on
+ * this signal, reporting too early trades a flash of the document for a flash of
+ * an unfinished scene. A short run of consecutive frames means the pipeline is
+ * warm and what gets revealed is the room as authored.
  */
+const READY_FRAMES = 4;
+
 const ReadySignal = () => {
   const setSceneReady = useSceneStore((state) => state.setSceneReady);
+  const frames = useRef(0);
   const reported = useRef(false);
 
   useFrame(() => {
     if (reported.current) return;
+    frames.current += 1;
+    if (frames.current < READY_FRAMES) return;
     reported.current = true;
     setSceneReady(true);
   });
@@ -171,31 +187,62 @@ const ClearColour = () => {
  * nothing. That is the difference between a phone idling at 0% GPU and one heating
  * up on a static image.
  */
+/**
+ * Seconds of frames to run before anything has happened.
+ *
+ * A demand loop that has produced exactly one frame has not warmed a single
+ * shader, has not seen the glyph atlas resolve, and — because `BootGate` lifts
+ * the boot hold on `ReadySignal`, which needs a short run of consecutive frames
+ * — would leave the page held until its failsafe timeout. Every phone gets
+ * `lite`, so that was the mobile first-load: a blank hold, then a hard cut to a
+ * cold scene. The warm-up is the fix, and it is self-sustaining: one requested
+ * frame runs the loop below, which requests the next.
+ */
+const WARM_UP_SECONDS = 1.6;
+/** Frames to keep running after the last change so damped motion can land. */
+const SETTLE_SECONDS = 0.6;
+
 const DemandDriver = () => {
   const invalidate = useThree((state) => state.invalidate);
   const last = useRef(-1);
-  const settle = useRef(0);
+  const settle = useRef(WARM_UP_SECONDS);
 
-  useFrame(() => {
+  useFrame((_state, delta) => {
     if (sceneState.build !== last.current) {
       last.current = sceneState.build;
-      // Keep rendering briefly after the last change so damped motion can land.
-      settle.current = 0.6;
+      settle.current = Math.max(settle.current, SETTLE_SECONDS);
     }
     if (settle.current > 0) {
-      settle.current -= 1 / 60;
+      // Real delta, not a hardcoded 1/60: on a device rendering at 30fps the
+      // fixed step made the settle window twice as long as it was written to be.
+      settle.current -= delta;
       invalidate();
     }
   });
 
   useEffect(() => {
-    const request = () => invalidate();
+    /*
+     * Lenis scrolls the document for real rather than transforming a wrapper, so
+     * native scroll events do fire and this is a live signal during a flick. The
+     * settle above is what covers the tail, where Lenis is still travelling but
+     * the browser has stopped emitting.
+     */
+    const request = () => {
+      settle.current = Math.max(settle.current, SETTLE_SECONDS);
+      invalidate();
+    };
     window.addEventListener("scroll", request, { passive: true });
     window.addEventListener("resize", request);
+    window.addEventListener("orientationchange", request);
+    // Touch has no hover, but a finger down is still intent — and on a phone this
+    // is the only signal that arrives before the scroll does.
+    window.addEventListener("pointerdown", request, { passive: true });
     request();
     return () => {
       window.removeEventListener("scroll", request);
       window.removeEventListener("resize", request);
+      window.removeEventListener("orientationchange", request);
+      window.removeEventListener("pointerdown", request);
     };
   }, [invalidate]);
 
@@ -286,6 +333,64 @@ const IgnitionFlare = () => {
   );
 };
 
+/**
+ * The swallow.
+ *
+ * Everything the corridor is built out of hangs under here, and the ending is one
+ * transform: the whole room is scaled toward the portal's position, twisted about
+ * the corridor axis and stretched along it, so it is drawn into the aperture as a
+ * single object rather than each component being taught to leave separately.
+ *
+ * Two nested groups because the scale has to happen *about the portal*, not about
+ * the world origin. The outer group is parked at `PORTAL_POSITION` and owns the
+ * scale and the twist; the inner one undoes that offset so its children keep the
+ * world coordinates they were authored in. Collapsing the outer scale therefore
+ * converges every vertex on the aperture.
+ *
+ * It reads `sceneState.swallow` and does nothing else — no springs, no
+ * accumulators, no latch. Stop scrolling and it holds; scroll up and the room
+ * comes back out of the portal along exactly the path it went in. That is what
+ * makes the ending scrubbable rather than a cutscene that fires on arrival.
+ */
+const SwallowField = ({ children }: { children: ReactNode }) => {
+  const pivot = useRef<THREE.Group>(null);
+
+  useFrame(() => {
+    const node = pivot.current;
+    if (!node) return;
+
+    const { amount, pull, grip } = swallowShape(sceneState.swallow);
+
+    if (amount <= 0.0005) {
+      // The overwhelming common case: the corridor, untouched.
+      if (node.scale.x !== 1) {
+        node.scale.setScalar(1);
+        node.rotation.z = 0;
+        node.visible = true;
+      }
+      return;
+    }
+
+    const collapse = 1 - pull * 0.94;
+    // Held longer along the corridor axis than across it, so the room elongates
+    // toward the aperture on its way in instead of merely getting smaller.
+    node.scale.set(collapse, collapse, collapse * (1 + grip * 1.8));
+    node.rotation.z = grip * Math.PI * 1.15;
+    // Past this there is nothing left to draw but the portal's own light.
+    node.visible = amount < 0.995;
+  });
+
+  return (
+    <group ref={pivot} position={PORTAL_POSITION}>
+      <group
+        position={[-PORTAL_POSITION[0], -PORTAL_POSITION[1], -PORTAL_POSITION[2]]}
+      >
+        {children}
+      </group>
+    </group>
+  );
+};
+
 interface ReactorSceneProps {
   quality: Quality;
   copy: Copy;
@@ -340,25 +445,32 @@ export const ReactorScene = ({
 
         <Atmosphere quality={quality} />
         <Rig quality={quality} />
-        <GridFloor quality={quality} />
-        <Lattice quality={quality} />
-        <Structures quality={quality} />
-        <HeroStage quality={quality} cue={copy.hero.cue} />
-        <ReactorCore quality={quality} />
-        <WorldConsoles
-          copy={copy}
-          featured={featured}
-          quality={quality}
-          windows={windows}
-          mode={mode}
-          study={study}
-        />
-        {/* Causality: the light reaches a bay before the project does. Only the
-            home corridor has modules to wire. */}
-        {mode === "home" ? <SignalConduits quality={quality} /> : null}
-        {mode === "home" ? (
-          <AboutPortrait quality={quality} windows={windows} />
-        ) : null}
+
+        {/* The room. Everything in here is what the portal takes in. */}
+        <SwallowField>
+          <GridFloor quality={quality} />
+          <Lattice quality={quality} />
+          <Structures quality={quality} />
+          <HeroStage quality={quality} cue={copy.hero.cue} />
+          <ReactorCore quality={quality} />
+          <WorldConsoles
+            copy={copy}
+            featured={featured}
+            quality={quality}
+            windows={windows}
+            mode={mode}
+            study={study}
+          />
+          {/* Causality: the light reaches a bay before the project does. Only the
+              home corridor has modules to wire. */}
+          {mode === "home" ? <SignalConduits quality={quality} /> : null}
+          {mode === "home" ? (
+            <AboutPortrait quality={quality} windows={windows} />
+          ) : null}
+        </SwallowField>
+
+        {/* Outside the field: the thing doing the swallowing does not swallow
+            itself, and the atmosphere is the room's air rather than its matter. */}
         <FinaleGate />
 
         {/* The probe is the room's answer to "can I touch this", so it only

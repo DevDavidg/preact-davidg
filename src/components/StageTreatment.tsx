@@ -5,7 +5,7 @@ import {
   reactorControl,
   subscribeControl,
 } from '../scene/control/reactorControl'
-import { livePowerFor, sceneState } from '../scene/sceneState'
+import { livePowerFor, sceneState, swallowShape } from '../scene/sceneState'
 
 /**
  * Screen-space atmosphere only: vignette, grain, ignition wash — and the two
@@ -42,7 +42,16 @@ export const StageTreatment = () => {
     return addTick(() => {
       const root = document.documentElement
 
-      const glow = (livePowerFor(sceneState.build) * 0.1).toFixed(3)
+      /*
+       * The ignition wash carries the swallow as well as the charge. By the time
+       * the room is gone the aperture is most of what is on screen, and the
+       * screen-space glow is what makes its light spill past its own geometry.
+       */
+      const swallow = swallowShape(sceneState.swallow)
+      const glow = (
+        livePowerFor(sceneState.build) * 0.1 +
+        swallow.grip * 0.5
+      ).toFixed(3)
       if (ignition.current && glow !== lastIgnition) {
         lastIgnition = glow
         ignition.current.style.opacity = glow

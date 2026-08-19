@@ -23,7 +23,7 @@ import { mergeBoxes, type Box } from './kit/chassis'
 import { PORTAL_POSITION } from './layout'
 import { ReconstructMaterial } from './ReconstructMaterial'
 import { sceneColors } from './sceneColors'
-import { livePowerFor, sceneState, clamp01 } from './sceneState'
+import { livePowerFor, sceneState, swallowShape, clamp01 } from './sceneState'
 import { toShards } from './shardGeometry'
 import { createStudioEquirect } from './studioEnv'
 import { softAssemble } from './ui/assembleDrama'
@@ -162,6 +162,7 @@ uniform float uTime;
 uniform float uPower;
 uniform float uHandshake;
 uniform float uOpacity;
+uniform float uSwallow;
 uniform vec3 uInner;
 uniform vec3 uOuter;
 
@@ -174,6 +175,8 @@ void main() {
   float radius = length(point);
   if (radius > 1.0) discard;
 
+  float angle = atan(point.y, point.x);
+
   // Held open by the ring: the field falls off before it reaches the collar
   // rather than being cut off by the geometry's edge.
   float aperture = smoothstep(1.0, 0.82, radius);
@@ -184,13 +187,44 @@ void main() {
   float travel = sin((radius * 13.0 - uTime * 1.15) * 3.14159265) * 0.5 + 0.5;
   travel = pow(travel, 3.0);
 
-  float core = exp(-radius * radius * 3.4);
+  /*
+   * The accretion swirl, and why it is here.
+   *
+   * Concentric rings alone say "a field is being held open". They do not say
+   * "this is taking something in", because inward travel with no rotation reads
+   * as a pulse. Winding the angle with the radius gives the field a direction of
+   * spin, and tying that spin to the swallow means the mouth visibly starts
+   * turning at the moment the room begins to go into it.
+   */
+  float swirlPhase = angle * 3.0 - uTime * (0.35 + uSwallow * 2.6) + radius * 7.5;
+  float swirl = pow(sin(swirlPhase) * 0.5 + 0.5, 2.4);
+  swirl *= smoothstep(0.05, 0.55, radius) * (0.25 + uSwallow * 1.15);
+
+  /*
+   * The horizon.
+   *
+   * A ring that tightens as the swallow deepens, so the aperture reads as having
+   * an edge that things fall past rather than as an evenly bright disc. It closes
+   * toward the centre, which is what gives the last stretch of the ending its
+   * "the room went in there" beat.
+   */
+  float horizonAt = mix(0.72, 0.16, uSwallow);
+  float horizon =
+    exp(-pow((radius - horizonAt) * mix(9.0, 26.0, uSwallow), 2.0)) *
+    (0.18 + uSwallow * 1.35);
+
+  float core = exp(-radius * radius * mix(3.4, 1.1, uSwallow));
   float body =
-    core * (0.22 + uPower * 0.42) +
+    core * (0.22 + uPower * 0.42 + uSwallow * 0.75) +
     travel * (0.1 + uPower * 0.2) +
+    swirl * 0.5 +
+    horizon +
     uHandshake * (core * 0.45 + travel * 0.3);
 
   vec3 tint = mix(uOuter, uInner, clamp(core * 1.1 + uHandshake * 0.3, 0.0, 1.0));
+  // The mouth runs hotter as it feeds: the centre pushes toward the inner tone
+  // while the rim keeps the accent, which separates near from far in the field.
+  tint = mix(tint, uInner, uSwallow * 0.45 * (1.0 - radius));
   vec3 colour = tint * (0.5 + body * 0.9);
 
   /*
@@ -257,6 +291,7 @@ export const FinaleGate = () => {
           uPower: { value: 0 },
           uHandshake: { value: 0 },
           uOpacity: { value: 0 },
+          uSwallow: { value: 0 },
           uInner: { value: sceneColors.ink.clone() },
           uOuter: { value: sceneColors.accent.clone() },
         },
@@ -274,11 +309,14 @@ export const FinaleGate = () => {
     [geometries, material, portalMaterial, envMap],
   )
 
-  useFrame((state, delta) => {
+  useFrame((state) => {
     const build = sceneState.build
     const power = livePowerFor(build)
+    const swallow = swallowShape(sceneState.swallow)
     const enter = clamp01((build - 0.7) / 0.24)
-    const ease = softAssemble(enter)
+    // Assembled by the corridor, then held fully assembled for the whole ending:
+    // the gate cannot still be arriving while it is taking the room in.
+    const ease = Math.max(softAssemble(enter), swallow.amount)
     /*
      * The gate is the *consequence* of the handshake, not a second control.
      *
@@ -298,25 +336,52 @@ export const FinaleGate = () => {
     })
     material.sync({
       build,
-      live: Math.max(power, handshake),
-      focus: ease * 0.45 + handshake * 0.5,
+      live: Math.max(power, handshake, swallow.amount),
+      focus: ease * 0.45 + handshake * 0.5 + swallow.pull * 0.5,
       time,
       velocity: sceneState.velocity,
       assembleAt: ease * 0.88,
     })
+    /*
+     * The columns are the last thing to go.
+     *
+     * Everything else the room is made of is inside `SwallowField` and is drawn
+     * in bodily; the gate is the mouth, so it stays until the very end and then
+     * fades rather than travelling. `beyond` is the final stretch of the swallow,
+     * after the corridor has already gone.
+     */
     material.uniforms.uOpacity.value =
-      ease * (0.5 + power * 0.35 + handshake * 0.3)
+      ease *
+      (0.5 + power * 0.35 + handshake * 0.3 + swallow.pull * 0.25) *
+      (1 - swallow.beyond * 0.92)
 
-    // The stator turns, and turns harder as the field takes hold.
-    spin.current += delta * (0.12 + power * 0.4 + handshake * 2.2)
-    if (ring.current) ring.current.rotation.z = spin.current
+    /*
+     * The stator turns, and turns harder as the field takes hold.
+     *
+     * The rotation used to accumulate `delta` into a ref, which meant the one part
+     * of the finale with any visible motion could not be scrubbed: scrolling back
+     * up ran the room backwards while the ring kept turning the same way, and the
+     * position it held depended on how long the page had been open. It is a pure
+     * function of scroll now, with only the idle drift left on the clock — so
+     * reversing the wheel reverses the mechanism, which is the entire point of
+     * this ending.
+     */
+    spin.current = time * 0.12 + swallow.amount * Math.PI * 5.5
+    if (ring.current) {
+      ring.current.rotation.z =
+        spin.current + power * 0.6 + handshake * 1.4
+    }
 
     portalMaterial.uniforms.uTime.value = time
-    portalMaterial.uniforms.uPower.value = power
+    portalMaterial.uniforms.uPower.value = Math.max(power, swallow.pull)
     portalMaterial.uniforms.uHandshake.value = handshake
+    portalMaterial.uniforms.uSwallow.value = swallow.amount
     // The field only exists once there is a ring to hold it.
     portalMaterial.uniforms.uOpacity.value =
-      THREE.MathUtils.smoothstep(ease, 0.45, 0.95) * (0.35 + power * 0.65)
+      Math.max(
+        THREE.MathUtils.smoothstep(ease, 0.45, 0.95) * (0.35 + power * 0.65),
+        swallow.amount,
+      )
     portalMaterial.uniforms.uInner.value
       .copy(sceneColors.signal)
       .lerp(sceneColors.ink, 0.3 + handshake * 0.25)
@@ -327,7 +392,16 @@ export const FinaleGate = () => {
     const root = group.current
     if (root) {
       root.visible = ease > 0.02
-      root.scale.setScalar(0.9 + ease * 0.12 + power * 0.05 + handshake * 0.06)
+      /*
+       * The mouth opens toward the lens as the swallow deepens. Scaling the whole
+       * gate rather than only the aperture is what makes it read as the visitor
+       * being drawn *into* it: the structure grows past the frame, which is what a
+       * doorway does when you fall through it.
+       */
+      root.scale.setScalar(
+        (0.9 + ease * 0.12 + power * 0.05 + handshake * 0.06) *
+          (1 + swallow.pull * 1.35 + swallow.beyond * 2.2),
+      )
     }
   })
 

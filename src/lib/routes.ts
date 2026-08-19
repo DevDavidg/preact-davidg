@@ -33,6 +33,13 @@ export const SECTION_IDS = [
   'process',
   'about',
   'contact',
+  /*
+   * The finale is scroll past the end of the story rather than a section of it:
+   * the corridor is finished at `contact`, and this stretch is what the portal
+   * consumes the room across. It is a real chapter with a real id because it has
+   * to be scrollable and reachable, but nothing assembles in it.
+   */
+  'finale',
 ] as const
 
 export type SectionId = (typeof SECTION_IDS)[number]

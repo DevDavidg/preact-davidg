@@ -34,7 +34,7 @@ import {
 } from "./control/reactorControl";
 import { buildHeroShell, TRIS_PER_SHARD } from "./heroShell";
 import { applyLinePeel, applyLitPeel, createPeelUniforms } from "./heroPeel";
-import { CAMERA_PATH, REACTOR_CORE } from "./layout";
+import { CAMERA_PATH, HERO_BUILD, REACTOR_CORE } from "./layout";
 import { scrollByPixels } from "../motion/ticker";
 import { idleAmount, pulse, pulseAt, sectionPhase } from "./pulse";
 import { sceneColors } from "./sceneColors";
@@ -42,11 +42,39 @@ import { clamp01, sceneState } from "./sceneState";
 import { createStudioEquirect } from "./studioEnv";
 import { computeViewportFit, heroSizeFit } from "./viewportFit";
 
-const HERO_FADE_START = 0.055;
-const HERO_FADE_END = 0.18;
+/*
+ * Every window below is expressed against `HERO_BUILD` — the charge value at
+ * which the lens actually reaches the centre of the shell. They used to be hand-tuned constants that happened to fade
+ * the optic out at 0.18, just *before* the old path drew alongside it; the shell
+ * therefore opened and vanished next to the viewer instead of around them.
+ *
+ * The order the transit needs:
+ *   1. the aperture is fully open a beat *before* the lens arrives, so the camera
+ *      passes through a hole rather than through panels;
+ *   2. the shell holds full presence *through* the transit;
+ *   3. it fades only once it is behind the lens, where the fade cannot be seen as
+ *      a dissolve — it is simply gone when you next look back, and scrubbing back
+ *      up brings it straight back because none of this integrates.
+ */
+
 /** The aperture commits on the first scroll pixel — no dead zone before it moves. */
 const OPEN_START = 0.008;
-const OPEN_END = 0.155;
+/** Clear before arrival, with room to spare. */
+const OPEN_END = HERO_BUILD * 0.78;
+/** Nothing fades until the lens is past the middle of the shell. */
+const HERO_FADE_START = HERO_BUILD * 1.06;
+const HERO_FADE_END = HERO_BUILD * 1.42;
+
+/**
+ * The transit itself, as a 0 → 1 → 0 pulse centred on `HERO_BUILD`.
+ *
+ * Used for the beat that sells passing through: the interior flares, the seams
+ * run hot, and the housing's glow shells brighten as they wrap the lens. Being a
+ * pure function of scroll, it plays backwards exactly as well as forwards.
+ */
+const TRANSIT_WIDTH = HERO_BUILD * 0.34;
+const transitPulse = (build: number) =>
+  1 - clamp01(Math.abs(build - HERO_BUILD) / TRANSIT_WIDTH);
 const BASE_SEPARATION = 0.022;
 const SHELL_RADIUS = 0.78;
 
@@ -103,6 +131,11 @@ const _zAxis = new THREE.Vector3(0, 0, 1);
 const _structural = new THREE.Color();
 const _hoverPoint = new THREE.Vector3();
 const _shardPoint = new THREE.Vector3();
+const _shellCentre = new THREE.Vector3(...REACTOR_CORE);
+
+/** Local radii of the two atmosphere shells, mirrored from the geometry below. */
+const GLOW_NEAR_RADIUS = 1.16;
+const GLOW_FAR_RADIUS = 1.95;
 
 /**
  * The axis the shell opens along: from the shell toward where the camera starts.
@@ -122,7 +155,7 @@ const heroViewAxis = () => {
 };
 
 /**
- * Machined graphite — deliberately *not* derived from the palette's ink.
+ * Machined steel — deliberately *not* derived from the palette's ink.
  *
  * At metalness ~0.96 the base colour multiplies every reflection, so it is not a
  * pigment, it is a filter over the whole studio. Tinting it with the site's warm
@@ -132,11 +165,14 @@ const heroViewAxis = () => {
  * A neutral, very slightly cool body is what lets the champagne arrive purely as
  * *light* — key, rim, env streak — which is the whole difference between a
  * machined part standing in a warm room and a part painted gold.
+ *
+ * It used to be a hard-coded literal right here, which made it the one colour in
+ * the room `app/theme.css` did not own: a palette change moved every surface
+ * except the object the visitor looks at first. It is now `--color-steel`, read
+ * live through `sceneColors` like everything else.
  */
-const STEEL = new THREE.Color("#8e939a");
-
 const structuralColor = (target: THREE.Color) =>
-  target.copy(sceneColors.base).lerp(STEEL, 0.15);
+  target.copy(sceneColors.base).lerp(sceneColors.steel, 0.15);
 
 /**
  * The studio the optic is reflecting, drawn once as an equirect and prefiltered
@@ -430,12 +466,12 @@ export const HeroStage = ({
       // Two shells: a tight one that hugs the limb, a wide one that gives the
       // optic a bed of atmosphere to sit in.
       glowNear: new THREE.SphereGeometry(
-        1.16,
+        GLOW_NEAR_RADIUS,
         cinema ? 48 : 28,
         cinema ? 32 : 20,
       ),
       glowFar: new THREE.SphereGeometry(
-        1.95,
+        GLOW_FAR_RADIUS,
         cinema ? 40 : 24,
         cinema ? 28 : 16,
       ),
@@ -766,7 +802,45 @@ export const HeroStage = ({
 
     // Straight with scroll: the aperture is the scroll value, undamped.
     const open = clamp01((build - OPEN_START) / (OPEN_END - OPEN_START));
-    const fling = THREE.MathUtils.smoothstep(build, 0.07, 0.18) ** 0.7;
+    const fling =
+      THREE.MathUtils.smoothstep(build, OPEN_END * 0.45, HERO_FADE_START) ** 0.7;
+    /*
+     * The transit beat. Squared so it stays out of the way until the lens is
+     * genuinely close, then arrives hard — the moment of passing through should be
+     * the brightest thing that has happened so far, and the only one.
+     */
+    const transit = transitPulse(build) ** 2;
+    /*
+     * How far outside the optic's own atmosphere the lens is, 0 → 1.
+     *
+     * The limb glow is a pair of back-faced fresnel shells. Seen from outside they
+     * are exactly right — light sitting *around* the instrument. Seen from inside,
+     * a back-faced sphere fills the entire frame, and flying through the optic
+     * turned the whole screen into a flat orange wash with a few facets floating
+     * in it. You do not see a limb from inside the limb.
+     *
+     * Measured from the camera rather than inferred from scroll, because the lens
+     * is damped and parallaxed: the only authority on whether the eye is inside
+     * this sphere is where the eye actually is.
+     */
+    const camDistance = state.camera.position.distanceTo(_shellCentre);
+    /*
+     * Gone well before the lens is inside it.
+     *
+     * The atmosphere shells are much larger than the optic — 1.16 and 1.95 local
+     * against the shell's 0.78 — so on the way in they are what the camera meets
+     * first. Fading only once the eye was inside them meant approaching the shell
+     * put a two-metre tan sphere across the frame and hid the instrument the shot
+     * exists to show. The glow is now fully out by the time the lens reaches the
+     * outer shell and only fully present at a distance where it reads as
+     * atmosphere around an object.
+     */
+    const glowFade = GLOW_FAR_RADIUS * stageScale;
+    const exterior = THREE.MathUtils.smoothstep(
+      camDistance,
+      glowFade * 1.05,
+      glowFade * 2.6,
+    );
     // Ornament yields to the scroll read the instant the visitor moves.
     const idle = idleAmount(1 - open);
 
@@ -895,10 +969,13 @@ export const HeroStage = ({
       .lerp(sceneColors.accent, rimPulse * 0.6);
     // The rim follows the same rule as the emissive: a cold instrument has a
     // faint edge, a charging one has a hot one.
-    peel.uRimGain.value = (0.05 + open * 0.34 + rimPulse * 0.12 * idle) * live;
+    // The rim is a fresnel term, so from inside the shell it lights every inner
+    // cap at once. A little is the glint of an aperture going past; a lot is a wash.
+    peel.uRimGain.value =
+      (0.05 + open * 0.34 + rimPulse * 0.12 * idle + transit * 0.14) * live;
 
     structuralColor(_structural);
-    materials.face.color.copy(_structural).lerp(STEEL, master * 0.05);
+    materials.face.color.copy(_structural).lerp(sceneColors.steel, master * 0.05);
     materials.face.emissive
       .copy(sceneColors.accent)
       .lerp(sceneColors.signal, master * 0.55);
@@ -914,8 +991,14 @@ export const HeroStage = ({
      * Now it is effectively off while the optic is shut, and the glow arrives as
      * the aperture does — light escaping from inside, which is what it is.
      */
+    /*
+     * Cold shut, hot on the way through. The transit term is what makes the
+     * inside of the optic a place rather than the back of a shell: from within,
+     * the facets' inner caps are the only surfaces in frame, so if they stay dark
+     * the transit is a black frame.
+     */
     materials.face.emissiveIntensity =
-      (0.005 + open * 0.085 + master * 0.015 * idle) * live;
+      (0.005 + open * 0.085 + master * 0.015 * idle + transit * 0.11) * live;
     materials.face.envMapIntensity = 1.5 + master * 0.2;
     materials.face.opacity = live;
     materials.face.depthWrite = open < 0.18;
@@ -930,10 +1013,12 @@ export const HeroStage = ({
      * that is the moment they stop being panel gaps and start being the way out.
      */
     materials.wire.color
-      .copy(STEEL)
+      .copy(sceneColors.steel)
       .lerp(sceneColors.accent, 0.18 + open * 0.55 + rimPulse * 0.12);
     materials.wire.opacity =
-      (0.1 + open * 0.4 + rimPulse * 0.1 * idle) * live * (1 - fling * 0.7);
+      (0.1 + open * 0.4 + rimPulse * 0.1 * idle + transit * 0.5) *
+      live *
+      (1 - fling * 0.7);
 
     if (rootNode) {
       const idleYaw = Math.sin(time * 0.045) * 0.12 * idle;
@@ -1071,8 +1156,14 @@ export const HeroStage = ({
     materials.core.color
       .copy(sceneColors.signal)
       .lerp(sceneColors.accent, corePulse);
+    /*
+     * The core sits exactly on the transit line, so the lens passes through it.
+     * An additive sphere at zero distance is a white screen; it opens out of the
+     * way as the eye arrives instead.
+     */
+    const coreClear = clamp01((camDistance - 0.42 * stageScale) / (0.5 * stageScale));
     materials.core.opacity =
-      (0.16 + corePulse * 0.14 * idle + coreReveal * 0.68) * live;
+      (0.16 + corePulse * 0.14 * idle + coreReveal * 0.68) * live * coreClear;
 
     // The limb wraps the shell rather than sitting behind it, so it breathes on
     // the master clock and widens as the aperture lets more light out.
@@ -1082,9 +1173,12 @@ export const HeroStage = ({
       .lerp(sceneColors.signal, 0.35);
     nearUniforms.uOuter.value.copy(sceneColors.signal);
     nearUniforms.uIntensity.value =
-      (0.32 + master * 0.13 * idle + coreReveal * 0.58) * live;
+      (0.32 + master * 0.13 * idle + coreReveal * 0.58) * live * exterior;
     if (glowNear.current) {
       glowNear.current.scale.setScalar(1 + master * 0.012 * idle + open * 0.42);
+      // A back-faced sphere at 2% opacity still costs a full-screen fill; absent
+      // is cheaper than nearly invisible.
+      glowNear.current.visible = exterior > 0.02;
     }
 
     const farUniforms = materials.glowFar.uniforms;
@@ -1093,9 +1187,10 @@ export const HeroStage = ({
       .copy(sceneColors.accent)
       .lerp(sceneColors.signal, 0.6);
     farUniforms.uIntensity.value =
-      (0.1 + master * 0.05 * idle + coreReveal * 0.18) * live;
+      (0.1 + master * 0.05 * idle + coreReveal * 0.18) * live * exterior;
     if (glowFar.current) {
       glowFar.current.scale.setScalar(1 + master * 0.02 * idle + open * 0.62);
+      glowFar.current.visible = exterior > 0.02;
     }
 
     // ---- cue ---------------------------------------------------------------
@@ -1128,7 +1223,7 @@ export const HeroStage = ({
       // Ambient stays neutral. Every warm photon in this shot should come from a
       // source you could point at — the key, the rim, the core — not from the
       // air, or the object is simply tinted rather than lit.
-      hemi.current.color.copy(STEEL);
+      hemi.current.color.copy(sceneColors.steel);
       hemi.current.groundColor.copy(sceneColors.base);
       hemi.current.intensity = (0.34 + master * 0.1) * live;
     }
@@ -1136,7 +1231,7 @@ export const HeroStage = ({
       // Mostly neutral with a warm cast. The champagne belongs to the softbox in
       // the env map, which reflects as a shaped streak; a warm punctual light
       // just tints whatever facet it happens to hit.
-      keyLight.current.color.copy(STEEL).lerp(sceneColors.accent, 0.3);
+      keyLight.current.color.copy(sceneColors.steel).lerp(sceneColors.accent, 0.3);
       // Deliberately small now that the studio env carries the read. On flat
       // facets a punctual lobe is all-or-nothing — every pixel shares a normal,
       // so the facet is either unlit or solid white with no gradient across it.
@@ -1151,7 +1246,7 @@ export const HeroStage = ({
     if (fillLight.current) {
       // Cool fill against the warm key. Two warm sources give a flat wash; the
       // temperature split is what makes a curved metal surface turn.
-      fillLight.current.color.copy(STEEL);
+      fillLight.current.color.copy(sceneColors.steel);
       fillLight.current.intensity = (0.22 + pulse.counter * 0.16) * live;
     }
     if (rimLight.current) {

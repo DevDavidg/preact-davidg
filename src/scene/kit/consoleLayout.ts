@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import type { FontRole, GlyphAtlas } from '../ui/glyphAtlas'
 import { glyphKey } from '../ui/glyphAtlas'
 import type { TextBlock } from '../ui/glyphLayout'
+import { worldEmForPixels } from '../viewportFit'
 
 /**
  * Lays declarative console rows into TextBlocks that sit inside a plate's
@@ -53,6 +54,24 @@ export interface ConsolePlacement {
   exitSpan: number
 }
 
+/**
+ * Everything needed to turn an authored em into a size on screen.
+ *
+ * `scale` is the type multiplier (see `typeFit`) — kept separate from the plate's
+ * own scale on purpose. The rest is the projection: without the distance, the
+ * lens and the viewport height there is no way to know whether 0.24 world units
+ * is a headline or a hairline.
+ */
+export interface TypeMetrics {
+  scale: number
+  /** Metres from the eye to the plate. */
+  distance: number
+  /** Vertical field of view in degrees. */
+  fov: number
+  /** Viewport height in CSS pixels. */
+  heightPx: number
+}
+
 const KIND_DEFAULTS: Record<
   ConsoleRowKind,
   {
@@ -67,18 +86,18 @@ const KIND_DEFAULTS: Record<
 > = {
   eyebrow: {
     role: 'mono',
-    em: 0.11,
+    em: 0.125,
     tracking: 0.12,
-    leading: 1.2,
+    leading: 1.25,
     form: 'flat',
     priority: 3,
-    weight: 0.85,
+    weight: 0.9,
   },
   title: {
     role: 'display',
-    em: 0.22,
+    em: 0.24,
     tracking: -0.02,
-    leading: 1.08,
+    leading: 1.1,
     // Flat atlas plates stay sharp at console scale; voxels read as noise here.
     form: 'flat',
     priority: 5,
@@ -86,31 +105,48 @@ const KIND_DEFAULTS: Record<
   },
   lead: {
     role: 'mono',
-    em: 0.115,
+    em: 0.135,
     tracking: 0.02,
-    leading: 1.28,
+    leading: 1.4,
     form: 'flat',
     priority: 4,
-    weight: 0.95,
+    weight: 1,
   },
   data: {
     role: 'mono',
-    em: 0.1,
+    em: 0.12,
     tracking: 0.06,
-    leading: 1.3,
+    leading: 1.38,
     form: 'flat',
     priority: 2,
-    weight: 0.8,
+    weight: 0.95,
   },
   action: {
     role: 'mono',
-    em: 0.1,
+    em: 0.115,
     tracking: 0.1,
     leading: 1.2,
     form: 'flat',
     priority: 4,
     weight: 1,
   },
+}
+
+/**
+ * Per-role legibility floors, in CSS pixels of em height on screen.
+ *
+ * World type has no intrinsic size, so "is this readable" cannot be answered from
+ * the em alone — it depends on the plate's distance and the lens. These are the
+ * floors `layoutConsoleRows` solves for through `worldEmForPixels`, and they are
+ * what stops a narrow viewport from quietly shrinking the copy to nothing. A
+ * title on a phone was measuring about 8 px per em before this.
+ */
+const MIN_PIXELS: Record<ConsoleRowKind, number> = {
+  eyebrow: 13,
+  title: 28,
+  lead: 16,
+  data: 14,
+  action: 14,
 }
 
 const advanceOf = (
@@ -171,10 +207,16 @@ const wrapToEm = (
   return lines
 }
 
+/**
+ * Line budget per row kind. `lead` gets a fourth line because the portrait plate
+ * is now nearly twice as tall as it was — that height exists to be read into.
+ * The layout still drops lines when a plate genuinely runs out of room, so this
+ * is a ceiling rather than a promise.
+ */
 const MAX_LINES: Record<ConsoleRowKind, number> = {
   eyebrow: 1,
   title: 3,
-  lead: 3,
+  lead: 4,
   data: 2,
   action: 1,
 }
@@ -192,7 +234,7 @@ export const layoutConsoleRows = (
   rect: ConsoleContentRect,
   placement: ConsolePlacement,
   atlas: GlyphAtlas,
-  fit = 1,
+  type: TypeMetrics,
 ): TextBlock[] => {
   const pad = rect.pad ?? 0.14
   // Keep a clear band for ActionPlates so copy never collides with CTAs.
@@ -201,7 +243,7 @@ export const layoutConsoleRows = (
   const contentH = Math.max(rect.height - pad * 2 - actionBand, 0.45)
   const topY = contentH / 2 + actionBand * 0.5
   let cursorY = topY
-  const gap = 0.055 * fit
+  const gap = 0.055 * type.scale
   const blocks: TextBlock[] = []
 
   const localNormal = new THREE.Vector3(0, 0, 1).applyQuaternion(placement.quaternion)
@@ -213,7 +255,22 @@ export const layoutConsoleRows = (
 
     const defaults = KIND_DEFAULTS[row.kind]
     const role = row.role ?? defaults.role
-    const em = (row.em ?? defaults.em) * fit
+    /*
+     * The authored em, then the floor.
+     *
+     * `worldEmForPixels` answers what this row would have to measure in world
+     * units to land at its minimum readable height on *this* screen, and the em
+     * is whichever of the two is larger. On a laptop the authored value wins and
+     * nothing changes; on a phone the floor takes over, which is the whole point
+     * — the copy stops shrinking with the frame.
+     */
+    const floorEm = worldEmForPixels(
+      MIN_PIXELS[row.kind],
+      type.heightPx,
+      type.distance,
+      type.fov,
+    )
+    const em = Math.max((row.em ?? defaults.em) * type.scale, floorEm)
     const tracking = row.tracking ?? defaults.tracking
     const leading = defaults.leading
     const maxEm = contentW / em

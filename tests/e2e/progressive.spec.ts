@@ -19,6 +19,16 @@ const CHAPTERS = [
   'contact',
 ]
 
+/**
+ * The scroll past the end of the corridor, where the portal takes the room in.
+ *
+ * Deliberately not in `CHAPTERS`: that list is asserted on the paths where the
+ * *document* renders instead of the rail, and the document has no finale because
+ * there is no scene there to swallow. It is a chapter of the reactor, not of the
+ * portfolio, so it is asserted only where a canvas exists.
+ */
+const FINALE_CHAPTER = 'finale'
+
 test.describe('reduced motion', () => {
   test.beforeEach(async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
@@ -162,6 +172,65 @@ test.describe('cinema path', () => {
     await page.goto('/es')
     await expect(page.locator('canvas')).toHaveCount(1, { timeout: 8000 })
     await expect(page.locator('.stage')).toBeAttached()
+
+    /*
+     * The rail has to be longer than the story.
+     *
+     * `runtime.ts` measures `#finale` to decide where the corridor ends and the
+     * swallow begins; with no such chapter the corridor's share stays at 1 and the
+     * ending is unreachable however far the visitor scrolls. This is the assertion
+     * that the extra scroll exists at all.
+     */
+    const finale = page.locator(`#${FINALE_CHAPTER}`)
+    await expect(finale).toBeAttached()
+    const room = await finale.evaluate(
+      (node) => node.getBoundingClientRect().height / window.innerHeight,
+    )
+    expect(room).toBeGreaterThan(1)
+  })
+
+  test('holds the document until the scene is up', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'desktop project only')
+
+    /*
+     * The bug this covers: the prerendered document painted in full — headline,
+     * project cards and all — and the canvas replaced it a beat later. The hold is
+     * stamped by an inline script before the body is parsed, so by the time any
+     * assertion can run it must already be present, and it must clear.
+     */
+    await page.goto('/es', { waitUntil: 'commit' })
+    const stamped = await page.evaluate(
+      () => document.documentElement.dataset.boot ?? 'absent',
+    )
+    expect(['hold', 'open']).toContain(stamped)
+
+    // And it always lifts — on the scene's first settled frames, or on the
+    // inline failsafe. Nobody is ever left looking at an empty background.
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => document.documentElement.dataset.boot ?? 'absent'),
+        { timeout: 9000 },
+      )
+      .toBe('open')
+  })
+
+  test('never holds a page that has no scene coming', async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, 'desktop project only')
+
+    // The language picker and the 404 are pure documents. Holding them meant a
+    // blank background until the failsafe fired, with nothing to wait for.
+    for (const path of ['/', '/404']) {
+      await page.goto(path)
+      expect(
+        await page.evaluate(
+          () => document.documentElement.dataset.boot ?? 'absent',
+        ),
+      ).toBe('absent')
+    }
   })
 
   test('leaves a usable page if the governor abandons the scene', async ({

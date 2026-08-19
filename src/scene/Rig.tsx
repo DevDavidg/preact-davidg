@@ -7,15 +7,15 @@ import { reactorControl } from './control/reactorControl'
 import {
   cameraFovFor,
   cameraHoldFor,
+  cameraPacing,
   cameraProgressFor,
+  corridorLateral,
   CAMERA_PATH,
+  PORTAL_POSITION,
   TARGET_PATH,
 } from './layout'
-import { sceneState } from './sceneState'
-import { computeViewportFit, fovCompensation } from './viewportFit'
-
-/** Matches the Canvas default; the standby breath oscillates around this. */
-const BASE_FOV = 46
+import { sceneState, swallowShape } from './sceneState'
+import { BASE_FOV, computeViewportFit, fovCompensation } from './viewportFit'
 
 /**
  * The camera.
@@ -34,12 +34,21 @@ export const Rig = ({ quality }: { quality: Quality }) => {
   const cinema = quality === 'cinema'
   const fit = computeViewportFit(aspect, heightPx)
   const fovBump = fovCompensation(fit)
+  /** Portrait flies straight down the lane; see `corridorLateral`. */
+  const lane = corridorLateral(aspect)
 
   const vectors = useMemo(
     () => ({
       position: new THREE.Vector3(),
       target: new THREE.Vector3(),
       smoothTarget: new THREE.Vector3(0, 1.25, 4.2),
+      /** Just short of the aperture: where the lens is pulled to as the room goes in. */
+      mouth: new THREE.Vector3(
+        PORTAL_POSITION[0],
+        PORTAL_POSITION[1],
+        PORTAL_POSITION[2] + 2.6,
+      ),
+      portal: new THREE.Vector3(...PORTAL_POSITION),
     }),
     [],
   )
@@ -47,9 +56,16 @@ export const Rig = ({ quality }: { quality: Quality }) => {
 
   useFrame((state, delta) => {
     const scrollBuild = sceneState.build
-    // Only cinema gets the dwell curve; the lighter quality keeps predictable
-    // framing rather than paying for pacing it cannot fully show.
-    const build = cinema ? cameraProgressFor(scrollBuild) : scrollBuild
+    /*
+     * Both qualities go through the pacing remap — it is what decides how much
+     * scroll the hero transit costs, and a phone flying through the same shell
+     * has to reach it at the same charge value the consoles were sequenced
+     * against. Only the *dwell* easing on top is cinema-only: that is pacing
+     * luxury, and it is the part a demand-driven loop cannot really show.
+     */
+    const build = cinema
+      ? cameraProgressFor(scrollBuild)
+      : cameraPacing(scrollBuild)
     const hold = cinema ? cameraHoldFor(scrollBuild) : 0
     const parallax = cinema ? 1 : 0
     const pointerX = sceneState.pointerX * parallax
@@ -61,6 +77,7 @@ export const Rig = ({ quality }: { quality: Quality }) => {
     const breath = Math.sin(time * 0.35) * standby
 
     CAMERA_PATH.getPointAt(build, vectors.position)
+    vectors.position.x *= lane
     vectors.position.x += pointerX * 0.85
     vectors.position.y -= pointerY * 0.45
     // Fast scrolling pulls the camera back a little, which reads as weight.
@@ -69,9 +86,31 @@ export const Rig = ({ quality }: { quality: Quality }) => {
     vectors.position.z += Math.cos(time * 0.28) * 0.05 * standby
 
     TARGET_PATH.getPointAt(build, vectors.target)
+    vectors.target.x *= lane
     vectors.target.x += pointerX * 0.36
     vectors.target.y -= pointerY * 0.2
     vectors.target.y += breath * 0.012
+
+    /*
+     * The swallow takes the lens too.
+     *
+     * The room is collapsing into the aperture; a camera that stayed parked at the
+     * end of the corridor would watch that happen from outside, which is a
+     * different and much weaker idea than going in with it. So the eye is drawn
+     * down the axis to the mouth of the gate as the pull builds, and pushed
+     * *through* it over the last stretch — by which point the corridor has already
+     * gone and the aperture's own light is the only thing left in frame.
+     *
+     * `lerp` toward a target derived from scroll, not an added velocity: the
+     * damping below still smooths it, but the destination is a pure function of
+     * scroll position, so scrolling back up walks the lens straight back out.
+     */
+    const swallow = swallowShape(sceneState.swallow)
+    if (swallow.amount > 0.0005) {
+      vectors.position.lerp(vectors.mouth, swallow.pull)
+      vectors.position.z -= swallow.beyond * 5.4
+      vectors.target.lerp(vectors.portal, Math.min(1, swallow.pull * 1.4))
+    }
 
     // Extra damping around each dwell beat: fast wheel flicks feel weighted
     // without freezing the reconstruction happening behind them.
@@ -120,7 +159,12 @@ export const Rig = ({ quality }: { quality: Quality }) => {
         (cinema ? cameraFovFor(scrollBuild, BASE_FOV) : BASE_FOV) +
         breath * 0.5 +
         fovBump
-      const targetFov = THREE.MathUtils.lerp(base, 42 + fovBump * 0.55, standby)
+      // The lens opens up as it falls through the aperture — a wider angle is what
+      // sells "going in" rather than "arriving at".
+      const swallowFov = swallowShape(sceneState.swallow)
+      const targetFov =
+        THREE.MathUtils.lerp(base, 42 + fovBump * 0.55, standby) +
+        swallowFov.grip * 14
       // The kick reaches the lens as well as the body — a punch-in of a couple
       // of degrees is what turns a nudge into an impact.
       camera.fov =

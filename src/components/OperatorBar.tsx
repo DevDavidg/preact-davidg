@@ -48,7 +48,9 @@ export const OperatorBar = () => {
   return (
     <div
       data-print-hide
-      className="fixed right-gutter top-4 z-nav flex items-center gap-2"
+      // Positioning lives in `app/scene.css` (`.operator-bar`) so it can use
+      // `env(safe-area-inset-*)`, which utilities cannot express.
+      className="operator-bar fixed z-nav flex items-center gap-2"
     >
       {engaged.length ? (
         <p

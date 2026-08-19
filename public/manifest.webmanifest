@@ -10,7 +10,10 @@
   "display": "standalone",
   "background_color": "#050608",
   "theme_color": "#050608",
-  "categories": ["portfolio", "developer"],
+  "categories": [
+    "portfolio",
+    "developer"
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.png",

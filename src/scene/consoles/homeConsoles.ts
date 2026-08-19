@@ -11,6 +11,14 @@ import type { ConsoleSpec } from './types'
 /**
  * Home corridor: one console per beat, reserved Z slots, trimmed copy.
  * Long paragraphs live on /case and /cv — not here.
+ *
+ * The trim limits here are a *ceiling on the source*, not the line budget. They
+ * used to be tight enough to cut mid-sentence on every viewport — a lead clipped
+ * at 62 characters before the layout had even measured the plate — so the copy
+ * was truncated twice, once here and once again by `layoutConsoleRows`. Only the
+ * layout knows how wide the plate is and how big the type ended up, so it is the
+ * one that should decide; these now only keep a genuinely long paragraph from
+ * being handed to a console at all.
  */
 
 export const homeConsoleSpecs = (
@@ -37,8 +45,8 @@ export const homeConsoleSpecs = (
         // document keeps the LinkedIn line; this is the machine's own label for
         // the person operating it.
         { kind: 'eyebrow', text: copy.hud.operator },
-        { kind: 'title', text: trimTitle(copy.hero.headline, 40), em: 0.2 },
-        { kind: 'lead', text: trimLead(copy.hero.lead, 62) },
+        { kind: 'title', text: trimTitle(copy.hero.headline, 52) },
+        { kind: 'lead', text: trimLead(copy.hero.lead, 112) },
         { kind: 'data', text: copy.hero.factStack },
         { kind: 'data', text: copy.hero.factAvailability },
       ],
@@ -106,8 +114,8 @@ export const homeConsoleSpecs = (
             String(index + 1).padStart(2, '0'),
           ),
         },
-        { kind: 'title', text: trimTitle(study.title, 28), em: 0.2 },
-        { kind: 'lead', text: trimLead(study.summary, 62) },
+        { kind: 'title', text: trimTitle(study.title, 28) },
+        { kind: 'lead', text: trimLead(study.summary, 108) },
         {
           kind: 'data',
           text: `${study.kindLabel.toUpperCase()}  ·  ${study.tags
@@ -148,8 +156,8 @@ export const homeConsoleSpecs = (
       rise: 0.12,
       rows: [
         { kind: 'eyebrow', text: copy.hud.sectorLabel },
-        { kind: 'title', text: trimTitle(copy.work.labLabel, 24), em: 0.2 },
-        { kind: 'lead', text: trimLead(copy.work.labIntro, 62) },
+        { kind: 'title', text: trimTitle(copy.work.labLabel, 24) },
+        { kind: 'lead', text: trimLead(copy.work.labIntro, 108) },
         {
           kind: 'data',
           text: [...copy.lab, ...copy.archive]
@@ -169,8 +177,8 @@ export const homeConsoleSpecs = (
       rise: 0.1,
       rows: [
         { kind: 'eyebrow', text: copy.experience.label },
-        { kind: 'title', text: trimTitle(copy.experience.heading, 42), em: 0.2 },
-        { kind: 'lead', text: trimLead(copy.experience.intro, 44) },
+        { kind: 'title', text: trimTitle(copy.experience.heading, 42) },
+        { kind: 'lead', text: trimLead(copy.experience.intro, 96) },
         // Roles as telemetry, not as a résumé list: a filled marker is a live
         // channel, a hollow one is a closed log entry.
         //
@@ -204,8 +212,8 @@ export const homeConsoleSpecs = (
       rise: 0.1,
       rows: [
         { kind: 'eyebrow', text: copy.services.label },
-        { kind: 'title', text: trimTitle(copy.services.heading, 40), em: 0.2 },
-        { kind: 'lead', text: trimLead(copy.services.intro, 44) },
+        { kind: 'title', text: trimTitle(copy.services.heading, 40) },
+        { kind: 'lead', text: trimLead(copy.services.intro, 96) },
         ...copy.services.items.slice(0, 3).map((item, i) => ({
           kind: 'data' as const,
           priority: 4,
@@ -224,7 +232,7 @@ export const homeConsoleSpecs = (
       rise: 0.12,
       rows: [
         { kind: 'eyebrow', text: copy.process.label },
-        { kind: 'title', text: trimTitle(copy.process.heading, 40), em: 0.2 },
+        { kind: 'title', text: trimTitle(copy.process.heading, 40) },
         ...copy.process.steps.map((step) => ({
           kind: 'data' as const,
           priority: 4,
@@ -243,10 +251,10 @@ export const homeConsoleSpecs = (
       rise: 0.14,
       rows: [
         { kind: 'eyebrow', text: copy.about.label },
-        { kind: 'title', text: trimTitle(copy.about.heading, 40), em: 0.2 },
+        { kind: 'title', text: trimTitle(copy.about.heading, 40) },
         {
           kind: 'lead',
-          text: trimLead(copy.about.quote.replace(/[«»]/g, ''), 44),
+          text: trimLead(copy.about.quote.replace(/[«»]/g, ''), 96),
         },
         ...copy.about.spec.slice(0, 3).map((entry) => ({
           kind: 'data' as const,
@@ -269,8 +277,8 @@ export const homeConsoleSpecs = (
         // The mail address is not a footer button here — it is the frequency the
         // machine transmits on once it reaches ignition.
         { kind: 'eyebrow', text: copy.hud.uplinkReady, accent: 0.4 },
-        { kind: 'title', text: trimTitle(copy.contact.title, 42), accent: 0.2, em: 0.2 },
-        { kind: 'lead', text: trimLead(copy.contact.lead, 62) },
+        { kind: 'title', text: trimTitle(copy.contact.title, 42), accent: 0.2 },
+        { kind: 'lead', text: trimLead(copy.contact.lead, 108) },
         { kind: 'data', text: copy.contact.responseTime },
       ],
       actions: [

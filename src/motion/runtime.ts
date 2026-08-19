@@ -1,7 +1,12 @@
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
-import { phaseFor, sceneState, useSceneStore } from '../scene/sceneState'
+import {
+  clamp01,
+  phaseFor,
+  sceneState,
+  useSceneStore,
+} from '../scene/sceneState'
 import { onLayoutRefresh, runTicks, setScroller } from './ticker'
 
 /**
@@ -50,9 +55,47 @@ export const startMotionRuntime = ({
       }),
   })
 
+  /*
+   * Where the corridor ends and the swallow begins, as a fraction of total scroll.
+   *
+   * Measured from the rail rather than configured, so the split cannot drift from
+   * the chapter heights in `HOME_CHAPTER_VH`. Routes without a finale chapter —
+   * the CV and the case studies — measure 1, which is exactly right: their whole
+   * rail is corridor and `swallow` stays at zero for the entire page.
+   */
+  let corridorShare = 1
+
+  const measureSplit = () => {
+    const node = document.getElementById('finale')
+    const limit = Math.max(
+      1,
+      document.documentElement.scrollHeight - window.innerHeight,
+    )
+    if (!node) {
+      corridorShare = 1
+      return
+    }
+    // The corridor is finished the moment the finale chapter reaches the top of
+    // the viewport; everything after that is the ending.
+    const top = node.getBoundingClientRect().top + window.scrollY
+    corridorShare = clamp01(top / limit) || 1
+  }
+  measureSplit()
+
   const handleScroll = () => {
     const progress = Number.isFinite(lenis.progress) ? lenis.progress : 0
-    sceneState.build = Math.min(1, Math.max(0, progress))
+    const clamped = clamp01(progress)
+    /*
+     * One scroll position, two axes. `build` is stretched back out over the
+     * corridor's own share so the story still occupies a full 0 → 1 — that is
+     * what lets the finale be added without re-timing a single authored window —
+     * and the remainder drives the swallow.
+     */
+    sceneState.build = clamp01(clamped / corridorShare)
+    sceneState.swallow =
+      corridorShare >= 1
+        ? 0
+        : clamp01((clamped - corridorShare) / (1 - corridorShare))
     sceneState.velocity = lenis.velocity
     setPhase(phaseFor(sceneState.build))
     ScrollTrigger.update()
@@ -110,7 +153,18 @@ export const startMotionRuntime = ({
   const stopRefresh = onLayoutRefresh(() => {
     lenis.resize()
     ScrollTrigger.refresh()
+    measureSplit()
+    handleScroll()
   })
+
+  // The rail's height moves with the viewport, so the split has to be remeasured
+  // whenever it does — otherwise a rotated phone puts the swallow in the wrong place.
+  const handleResize = () => {
+    measureSplit()
+    handleScroll()
+  }
+  window.addEventListener('resize', handleResize)
+  window.addEventListener('orientationchange', handleResize)
 
   // A hidden tab must cost nothing: stop the clock rather than idle it.
   const handleVisibility = () => {
@@ -123,6 +177,8 @@ export const startMotionRuntime = ({
   document.addEventListener('visibilitychange', handleVisibility)
 
   return () => {
+    window.removeEventListener('resize', handleResize)
+    window.removeEventListener('orientationchange', handleResize)
     document.removeEventListener('visibilitychange', handleVisibility)
     stopRefresh()
     focusTriggers.forEach((trigger) => trigger.kill())

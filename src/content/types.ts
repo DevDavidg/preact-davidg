@@ -141,6 +141,16 @@ export interface Copy {
     uplinkDone: string
     /** Preflight telemetry, ticked off as each subsystem actually reports. */
     bootLines: string[]
+    /**
+     * The finale chapter: the scroll past the end of the corridor, where the
+     * portal takes the room in. Screen-reader and crawler copy only — the beat
+     * itself is entirely in the scene.
+     */
+    finaleLabel: string
+    finaleBody: string
+    /** Shown on the closing plate once the room is gone. */
+    finaleClose: string
+    finaleReturn: string
   }
   hero: {
     eyebrow: string

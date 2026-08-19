@@ -16,18 +16,24 @@ import * as THREE from "three";
 
 const TOKENS = {
   base: "--color-reactor",
+  /** Deepest ground. The far end of the corridor sits on this, not on `base`. */
+  abyss: "--color-abyss",
   ink: "--color-ink",
   accent: "--color-ignition",
   signal: "--color-ion",
+  /** Machined metal, for anything the room is built out of rather than lit by. */
+  steel: "--color-steel",
 } as const;
 
 type TokenName = keyof typeof TOKENS;
 
 const FALLBACK: Record<TokenName, string> = {
   base: "#050608",
+  abyss: "#030406",
   ink: "#f3eee4",
   accent: "#ffb454",
   signal: "#e6c891",
+  steel: "#8e939a",
 };
 
 /**
@@ -36,11 +42,20 @@ const FALLBACK: Record<TokenName, string> = {
  */
 export const sceneColors = {
   base: new THREE.Color(FALLBACK.base),
+  /**
+   * A shade below `base`, for fog and for whatever the corridor is receding into.
+   * Fogging toward the clear colour makes distance read as *absence*: the far end
+   * of the room and the empty frame around it are the same value, so depth has
+   * nothing to separate. One step darker is enough to give the corridor a back.
+   */
+  abyss: new THREE.Color(FALLBACK.abyss),
   ink: new THREE.Color(FALLBACK.ink),
   /** Ignition amber: primary action, portal, focused module. */
   accent: new THREE.Color(FALLBACK.accent),
   /** Champagne telemetry: conduits and secondary glow — warm, never cool blue. */
   signal: new THREE.Color(FALLBACK.signal),
+  /** Structural metal: shell facets, columns, chassis. Cool against the accent. */
+  steel: new THREE.Color(FALLBACK.steel),
   revision: 0,
 };
 
@@ -90,8 +105,10 @@ const readToken = (name: TokenName): string => {
 /** Pulls the palette out of the document. */
 export const refreshSceneColors = () => {
   sceneColors.base.set(readToken("base"));
+  sceneColors.abyss.set(readToken("abyss"));
   sceneColors.ink.set(readToken("ink"));
   sceneColors.accent.set(readToken("accent"));
   sceneColors.signal.set(readToken("signal"));
+  sceneColors.steel.set(readToken("steel"));
   sceneColors.revision += 1;
 };

@@ -12,13 +12,22 @@ import * as THREE from 'three'
 
 export type FontRole = 'display' | 'body' | 'mono'
 
-/** Rasterization height for one em. Big enough to read at hero scale. */
-const RASTER = 72
+/**
+ * Rasterization height for one em.
+ *
+ * Raised from 72. The shader now resolves edges from the texture's own gradient
+ * rather than from a fixed threshold, which means extra texels actually buy
+ * sharpness instead of being thrown away — and the console titles this feeds have
+ * grown, so a magnified glyph has more of the atlas to magnify. The cost is
+ * atlas area, which is why `ATLAS_MAX_HEIGHT` grew to match: the packer reports
+ * `complete: false` rather than dropping glyphs if a build ever outgrows it.
+ */
+const RASTER = 96
 
 /** Transparent gutter around each glyph so bilinear sampling never bleeds. */
 const PADDING = 5
 
-const ATLAS_WIDTH = 1024
+const ATLAS_WIDTH = 2048
 const ATLAS_MAX_HEIGHT = 2048
 
 const ROLE_WEIGHT: Record<FontRole, number> = {
@@ -295,7 +304,14 @@ export const buildGlyphAtlas = async (
   texture.minFilter = THREE.LinearMipmapLinearFilter
   texture.magFilter = THREE.LinearFilter
   texture.generateMipmaps = true
-  texture.anisotropy = 4
+  /*
+   * Consoles are yawed toward the lens rather than perfectly square to it, so
+   * every glyph plate is sampled at an angle — the exact case anisotropic
+   * filtering exists for, and the case where 4 taps still leaves the far edge of
+   * a line smeared. The renderer clamps this to whatever the GPU actually
+   * supports, so asking for 16 is safe everywhere.
+   */
+  texture.anisotropy = 16
   texture.needsUpdate = true
 
   // Snapshot before the texture owns the canvas — voxels sample ink on the CPU.

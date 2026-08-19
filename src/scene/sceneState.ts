@@ -26,8 +26,28 @@ export const clamp01 = (value: number) => Math.min(1, Math.max(0, value))
  * through the store.
  */
 export const sceneState = {
-  /** Document scroll progress, 0 → 1. Drives the whole reconstruction. */
+  /**
+   * Progress through the *corridor*, 0 → 1. Drives the whole reconstruction.
+   *
+   * Deliberately not raw scroll progress any more. The rail carries one extra
+   * chapter past the end of the story — the finale, where the portal takes the
+   * room in — and if that stretch were folded into `build` then every authored
+   * window, every console beat and the camera path itself would have been
+   * compressed to make room for it. `build` still means exactly what it always
+   * meant and still reaches 1 at the end of the corridor; the finale gets its own
+   * axis below.
+   */
   build: 0,
+  /**
+   * Progress through the swallow, 0 → 1. Zero for the whole corridor.
+   *
+   * A pure function of scroll position, like `build`, and for the same reason:
+   * the visitor has to be able to stop it by stopping, run it forward by scrolling
+   * down and run it backward by scrolling up. Nothing may integrate this — no
+   * springs, no accumulators, no one-way latches — or the ending stops being
+   * scrubbable and becomes an animation that merely starts when you arrive.
+   */
+  swallow: 0,
   /** Smoothed scroll velocity. Feeds camera weight and shard jitter. */
   velocity: 0,
   /** Pointer in normalised device coordinates, -1 → 1. */
@@ -39,6 +59,7 @@ export const sceneState = {
 
 export const resetSceneMotion = () => {
   sceneState.build = 0
+  sceneState.swallow = 0
   sceneState.velocity = 0
   sceneState.pointerX = 0
   sceneState.pointerY = 0
@@ -70,6 +91,32 @@ export const livePowerFor = (build: number) => {
       (1 - PHASE_BOUNDARIES.transmitEnd),
   )
   return live * live * (3 - 2 * live)
+}
+
+/**
+ * The swallow, shaped.
+ *
+ * One curve, read by every layer that takes part in the ending, so the room, the
+ * camera, the fog and the portal's own field can never disagree about how far in
+ * the collapse is.
+ *
+ * `pull` is eased in — the first pixels of scroll past the corridor should read as
+ * a tug rather than a lurch — while `grip` is a later, sharper curve for the
+ * things that should only happen once the room is genuinely going: the twist, the
+ * lens dropping through the aperture, the screen washing to the portal's light.
+ *
+ * Both are pure functions of their input, which is the whole contract of this
+ * ending: scroll up and every one of them runs backwards, exactly.
+ */
+export const swallowShape = (swallow: number) => {
+  const s = clamp01(swallow)
+  return {
+    amount: s,
+    pull: s * s,
+    grip: s * s * s,
+    /** The last stretch, where the room is gone and only the light is left. */
+    beyond: clamp01((s - 0.82) / 0.18),
+  }
 }
 
 /** Scroll speed normalised for shard jitter (matches ReconstructMaterial). */

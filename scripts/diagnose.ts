@@ -107,7 +107,18 @@ const check = async (browser: Browser, target: string): Promise<number> => {
       webgl2,
       webgl2Error,
       canvases: document.querySelectorAll('canvas').length,
-      preflightDone: Boolean(document.querySelector('[data-done="true"]')),
+      /*
+       * The boot hold, not the old preflight overlay.
+       *
+       * This probed `[data-done="true"]`, which was an attribute on the telemetry
+       * overlay `Preflight` used to render. That component is gone — the hold is
+       * now an attribute on `<html>` set before the body is parsed — so the probe
+       * had become a constant `false` and would have reported a healthy page as a
+       * page whose loader never cleared. `open` means the document was revealed;
+       * `hold` means it is still waiting; absent means it was never held at all,
+       * which is correct for a crawler or a metered connection.
+       */
+      boot: document.documentElement.dataset.boot ?? 'absent',
       h1: document.querySelector('h1')?.textContent ?? null,
       lang: document.documentElement.lang,
       hardwareConcurrency: navigator.hardwareConcurrency,

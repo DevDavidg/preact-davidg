@@ -1,13 +1,21 @@
 import * as THREE from 'three'
 import type { Quality } from '../capability'
 import {
+  cameraPacing,
   cameraProgressFor,
+  corridorLateral,
   CAMERA_PATH,
+  CORRIDOR_START,
   TARGET_PATH,
 } from '../layout'
-import type { SectionWindow } from '../ui/sectionRanges'
+import type { SectionWindow, SectionWindows } from '../ui/sectionRanges'
 import type { BuiltConsole, ConsoleBuildInput, ConsoleSpec } from './types'
-import { consoleDistanceFor, lateralFit } from '../viewportFit'
+import {
+  consoleDistanceFor,
+  consoleRiseFor,
+  lateralFit,
+  portraitAmount,
+} from '../viewportFit'
 
 const WORLD_UP = new THREE.Vector3(0, 1, 0)
 
@@ -64,10 +72,18 @@ const frameConsole = (
   centre: number,
   quality: Quality,
   fit: number,
+  aspect: number,
 ): { position: THREE.Vector3; quaternion: THREE.Quaternion } => {
-  const cameraBuild = quality === 'cinema' ? cameraProgressFor(centre) : centre
+  // Same remap the camera itself uses, or the plate is framed for a pose the
+  // camera never takes.
+  const cameraBuild =
+    quality === 'cinema' ? cameraProgressFor(centre) : cameraPacing(centre)
   const eye = CAMERA_PATH.getPointAt(THREE.MathUtils.clamp(cameraBuild, 0, 1))
   const target = TARGET_PATH.getPointAt(THREE.MathUtils.clamp(cameraBuild, 0, 1))
+  // Same flattening the camera itself applies — see `corridorLateral`.
+  const lane = corridorLateral(aspect)
+  eye.x *= lane
+  target.x *= lane
 
   const forward = target.clone().sub(eye).normalize()
   const right = forward.clone().cross(WORLD_UP).normalize()
@@ -79,16 +95,24 @@ const frameConsole = (
   // The side lane only opens on a viewport wide enough to read as a corridor —
   // on a phone every card collapses back to dead-centre instead of sitting
   // half off-axis with nowhere for the other lane to go.
-  const lateral = (spec.lateral ?? 0.55 * sideSign) * lateralFit(fit) * 0.85
-  const rise = (spec.rise ?? 0.05) * fit
+  const lateral = (spec.lateral ?? 0.55 * sideSign) * lateralFit(fit, aspect) * 0.85
+  const rise = consoleRiseFor(fit, aspect, spec.rise ?? 0.05)
 
   const position = eye
     .clone()
     .addScaledVector(forward, distance)
     .addScaledVector(right, lateral)
     .addScaledVector(up, rise)
-  // Soft corridor slot only — a hard z pull used to yank plates into the lens.
-  position.z = THREE.MathUtils.lerp(position.z, spec.z, 0.12)
+  /*
+   * Soft corridor slot only — a hard z pull used to yank plates into the lens.
+   *
+   * The pull also moves the plate off the camera's own axis, because it changes
+   * depth without changing the lateral offset that depth was computed for. On a
+   * narrow frame there is no margin for that, so portrait keeps far more of the
+   * on-axis placement and gives up some of the corridor's sense of slotting.
+   */
+  const slotPull = 0.12 * (1 - portraitAmount(aspect) * 0.75)
+  position.z = THREE.MathUtils.lerp(position.z, spec.z, slotPull)
 
   // Enforce a floor distance after the slot blend.
   const fromEye = position.clone().sub(eye)
@@ -106,41 +130,107 @@ const frameConsole = (
 }
 
 /**
- * Force exclusive reading beats: console N is mostly gone before N+1 locks.
- * Prevents the debris-cloud pileup seen in the scroll audit.
+ * Reading beats, cut from the rail the visitor is actually scrolling.
+ *
+ * The previous version threw the measured section windows away and sliced the
+ * whole corridor into N equal parts. That guaranteed exclusivity — its stated
+ * purpose — but it meant the scroll rail had no influence at all on when anything
+ * happened. Two consequences, both visible:
+ *
+ * - The chapter heights in `HOME_CHAPTER_VH` were decoration. Work was authored at
+ *   340vh and Process at 210vh, and both got exactly the same beat.
+ * - Anchors lied. `#services` scrolls to the Services chapter of the rail, but the
+ *   Services console was shown at whatever slice its index happened to land on, so
+ *   following the link put the visitor at the wrong moment in the story.
+ *
+ * Beats now come from each console's own section window, split evenly when a
+ * section carries more than one console (Work carries the featured modules), and
+ * clamped so consecutive sections cannot overlap — section windows deliberately
+ * start a viewport early, which is right for "am I entering this" and wrong as a
+ * slot boundary. The even slicing survives as the fallback for the frames before
+ * the DOM has been measured.
  */
-const serializeTimings = (built: TimedConsole[]): TimedConsole[] => {
+const SEQUENCE_END = 0.985
+
+interface Slot {
+  from: number
+  to: number
+}
+
+/** Turns one slot into the assemble / hold / exit shape a console reads. */
+const beatIn = (entry: TimedConsole, slot: Slot): TimedConsole => {
+  const span = Math.max(slot.to - slot.from, 0.02)
+  // Longer hold, shorter assemble — copy should read locked, not mid-flight.
+  const assembleSpan = Math.min(0.03, span * 0.2)
+  const exitSpan = Math.min(0.026, span * 0.14)
+  const gap = Math.min(0.008, span * 0.06)
+  const hold = Math.max(0.015, span - assembleSpan - exitSpan - gap)
+
+  return {
+    ...entry,
+    enter: slot.from,
+    span: assembleSpan,
+    exit: slot.from + assembleSpan + hold,
+    exitSpan,
+  }
+}
+
+/** The fallback: exclusive, evenly spaced, no rail required. */
+const sequenceEvenly = (ordered: TimedConsole[]): TimedConsole[] => {
+  const span = (SEQUENCE_END - CORRIDOR_START) / ordered.length
+  return ordered.map((entry, index) =>
+    beatIn(entry, {
+      from: CORRIDOR_START + index * span,
+      to: CORRIDOR_START + (index + 1) * span,
+    }),
+  )
+}
+
+const sequenceTimings = (
+  built: TimedConsole[],
+  windows: SectionWindows,
+): TimedConsole[] => {
   if (built.length <= 1) return built
 
-  const ordered = [...built].sort((a, b) => a.enter - b.enter || a.spec.z - b.spec.z)
-  const n = ordered.length
-  // Reserve the first viewport for the cinematic product shot. Every console
-  // then gets a proportional, exclusive reading slice.
-  // Short cinematic beat — avoid a long empty void after the hero sphere.
-  const INTRO_END = 0.07
-  const END = 0.98
-  const slice = (END - INTRO_END) / n
-  // Longer hold, shorter assemble — copy should read locked, not mid-flight.
-  const assembleSpan = Math.min(0.035, slice * 0.22)
-  const exitSpan = Math.min(0.028, slice * 0.14)
-  const gap = Math.min(0.01, slice * 0.08)
-  const holdEach = Math.max(0.02, slice - assembleSpan - exitSpan - gap)
+  // Corridor order, which is the order the specs are authored in.
+  const ordered = [...built].sort(
+    (a, b) => b.spec.z - a.spec.z || a.enter - b.enter,
+  )
 
-  let cursor = INTRO_END
+  /*
+   * Section order comes from the consoles themselves rather than from
+   * `SECTION_IDS`: a route's specs are the authority on which chapters exist and
+   * in what order (the CV and case corridors have their own).
+   */
+  const sections: string[] = []
+  for (const entry of ordered) {
+    if (!sections.includes(entry.spec.section)) sections.push(entry.spec.section)
+  }
 
-  const sequenced = ordered.map((entry) => {
-    const enter = cursor
-    const span = assembleSpan
-    const exit = enter + span + holdEach
-    cursor = exit + exitSpan + gap
+  const starts = sections.map((section) => windows[section]?.enter)
+  if (starts.some((value) => value === undefined)) return sequenceEvenly(ordered)
 
-    return {
-      ...entry,
-      enter,
-      span,
-      exit,
-      exitSpan,
-    }
+  const sequenced: TimedConsole[] = []
+  let cursor = CORRIDOR_START
+
+  sections.forEach((section, index) => {
+    const group = ordered.filter((entry) => entry.spec.section === section)
+    // The next section's own start is this section's hard boundary, so a window
+    // that begins a viewport early cannot eat into its neighbour's beat.
+    const nextStart = starts[index + 1] ?? SEQUENCE_END
+    const from = Math.max(cursor, starts[index] as number)
+    const to = Math.max(nextStart, from + 0.02 * group.length)
+    const step = (to - from) / group.length
+
+    group.forEach((entry, position) => {
+      sequenced.push(
+        beatIn(entry, {
+          from: from + position * step,
+          to: from + (position + 1) * step,
+        }),
+      )
+    })
+    cursor = to
   })
 
   return sequenced
@@ -172,7 +262,7 @@ export const buildPlacedConsoles = (
     if (beat) timed.push(beat)
   }
 
-  const sequenced = serializeTimings(timed)
+  const sequenced = sequenceTimings(timed, input.windows)
   assertNoOverlap(sequenced)
 
   return sequenced.map((entry) => {
@@ -185,6 +275,7 @@ export const buildPlacedConsoles = (
       centre,
       input.quality,
       input.fit,
+      input.aspect,
     )
     return { ...entry, position, quaternion }
   })

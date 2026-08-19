@@ -61,6 +61,63 @@ export const links: LinksFunction = () => [
   { rel: 'me', href: 'https://www.linkedin.com/in/david-guillen-5074281b8' },
 ]
 
+/**
+ * The boot hold.
+ *
+ * The prerendered HTML *is* the complete document, which means it paints — the
+ * headline, the project cards, all of it — the moment it arrives, before any
+ * script has run. The 3D scene then replaced it a beat later, and that swap is
+ * the "primero carga el portfolio y luego lo 3d" bug. No effect, layout or
+ * otherwise, can run earlier than a paint that happens before JavaScript does,
+ * so the hold has to be stated in the markup.
+ *
+ * This is a parser-blocking inline script in `<head>`: it stamps
+ * `data-boot="hold"` on `<html>` before `<body>` is parsed, and the inline style
+ * below keeps the body transparent over the reactor background for as long as
+ * the stamp is there. `src/components/BootGate.tsx` releases it — on the first
+ * settled frame of the scene, or immediately for visitors who are never getting
+ * one.
+ *
+ * Three properties this shape has and a JS-only solution does not:
+ * - Scripting off, or the bundle failing to load: the attribute is never
+ *   stamped, so the document is simply visible. There is no cover to get stuck.
+ * - It writes an ATTRIBUTE on an element React already owns, never a new node.
+ *   A foreign child of `<html>` breaks hydration here (see the note in
+ *   `src/scene/sceneColors.ts`); an extra attribute is left alone.
+ * - The failsafe timeout is armed by this script, not by React, so it fires even
+ *   if hydration never happens.
+ *
+ * Visitors who are getting the document anyway are not held at all, and neither
+ * are pages that never mount a scene. Three cheap tests, in order:
+ *
+ * - The path. Only the localised routes — home, the case studies and the CV —
+ *   bring up a reactor. `/` is the language picker and `/404` is a message; both
+ *   are pure documents, and holding them meant a blank background until the
+ *   failsafe fired 2.6 seconds later, because no `BootGate` was there to release
+ *   them earlier.
+ * - Data saver, and a connection slow enough that a 3D payload would be hostile.
+ * - A crawler, which needs to see content rather than a canvas.
+ *
+ * Those last two are the cheap half of `detectQuality`; the WebGL probe is
+ * deliberately left out, because a context allocation is not something to put on
+ * the parser's critical path.
+ */
+const BOOT_HOLD_STYLE = [
+  'html[data-boot="hold"]{background-color:#050608}',
+  'html[data-boot="hold"] body{opacity:0!important}',
+  // Nothing should be burning frames behind the hold.
+  'html[data-boot="hold"] body *{animation-play-state:paused!important}',
+].join('')
+
+const BOOT_HOLD_SCRIPT = `(function(){try{
+var d=document.documentElement,n=navigator,c=n.connection||{};
+if(!/^\\/(es|en)(\\/|$)/.test(location.pathname))return;
+if(c.saveData||c.effectiveType==='slow-2g'||c.effectiveType==='2g')return;
+if(/bot|crawler|spider|preview|slurp|facebookexternalhit|linkedinbot|whatsapp|telegrambot|discordbot|gptbot|claudebot|perplexity|bytespider|applebot|bingpreview|duckduckbot|yandex|baiduspider/i.test(n.userAgent||''))return;
+d.setAttribute('data-boot','hold');
+setTimeout(function(){if(d.getAttribute('data-boot')==='hold')d.setAttribute('data-boot','open')},2600);
+}catch(e){}})()`
+
 export const Layout = ({ children }: { children: React.ReactNode }) => {
   const { pathname } = useLocation()
   const locale = localeFromPath(pathname)
@@ -75,6 +132,13 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         <meta name="theme-color" content="#050608" />
         <meta name="application-name" content="David Guillen" />
         <meta name="author" content="David Guillen" />
+        {/*
+          Inline rather than in `theme.css`: the hold has to be in force for the
+          very first paint, and a stylesheet is a separate request that the
+          browser is free to still be fetching when the body arrives.
+        */}
+        <style dangerouslySetInnerHTML={{ __html: BOOT_HOLD_STYLE }} />
+        <script dangerouslySetInnerHTML={{ __html: BOOT_HOLD_SCRIPT }} />
         <Meta />
         <Links />
       </head>

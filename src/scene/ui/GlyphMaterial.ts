@@ -38,6 +38,8 @@ varying float vWeight;
 varying float vFog;
 varying float vVoxel;
 varying float vGlyphFace;
+/** How far this glyph is into being locked at home, 0 → 1. */
+varying float vLock;
 
 vec4 quatFromAxisAngle(vec3 axis, float angle) {
   float halfAngle = angle * 0.5;
@@ -68,16 +70,30 @@ void main() {
 
   // Soft settle in; leave fades in place — no explode cloud.
   float settled = arrive * (1.0 - leaving);
-  // Lock home earlier so copy reads while still gathering.
-  // GHOST reopens that lock rather than adding a second motion on top: the type
-  // travels back down the exact path it arrived by, so releasing the key puts
-  // every letter home again with no snap.
-  float lock = smoothstep(0.18, 0.72, arrive) * (1.0 - uGhost * 0.85);
+  /*
+   * Lock home early, and be finished long before the glyph is fully opaque.
+   *
+   * This used to be smoothstep(0.18, 0.72, arrive), which meant a letter was
+   * still travelling, still rotating and still drifting through the middle of
+   * its own fade-in — the visitor was being asked to read a moving target, and
+   * on a phone that is most of the time a console is on screen at all. Landing
+   * the position first and revealing second is the difference between copy that
+   * assembles and copy that flickers.
+   *
+   * GHOST reopens the lock rather than adding a second motion on top: the type
+   * travels back down the exact path it arrived by, so releasing the key puts
+   * every letter home again with no snap.
+   */
+  float lock = smoothstep(0.02, 0.38, arrive) * (1.0 - uGhost * 0.85);
   float loose = (1.0 - lock) * (1.0 - leaving);
   float speed = clamp(abs(uVelocity) * 0.004, 0.0, 0.5) * loose;
+  vLock = lock * (1.0 - leaving);
 
   vec3 local = position * aSize;
-  vec4 spin = quatFromAxisAngle(aAxis, loose * (0.35 + aSeed * 0.55) * (1.0 + speed * 0.2));
+  // Flat plates are the readable form, so they tumble far less on the way in:
+  // a letter spinning about its own centre is unreadable at any size.
+  float spinScale = mix(0.34, 1.0, step(0.5, aStyle.z));
+  vec4 spin = quatFromAxisAngle(aAxis, loose * (0.35 + aSeed * 0.55) * (1.0 + speed * 0.2) * spinScale);
   vec4 orient = quatMul(aQuat, spin);
   vec3 rotated = applyQuat(local, orient);
   vec3 rotatedN = applyQuat(normal, orient);
@@ -126,6 +142,7 @@ varying float vWeight;
 varying float vFog;
 varying float vVoxel;
 varying float vGlyphFace;
+varying float vLock;
 
 layout(location = 0) out vec4 fragColor;
 
@@ -158,12 +175,44 @@ void main() {
     // Locked letters: drop the back face (DoubleSide + no depthWrite = ghost).
     if (vSettled > 0.8 && !gl_FrontFacing) discard;
     float coverage = texture(uAtlas, vAtlasUv).a;
-    float ink = smoothstep(0.36, 0.5, coverage);
-    if (ink < 0.02) discard;
-    // Flat readable ink — bright enough for CTA labels on dark plates.
-    shade = tint * (0.88 + key * 0.12);
-    // Invisible until arriving — chaos-parked glyphs were debris from other modules.
-    alpha = ink * smoothstep(0.04, 0.55, vSettled);
+    /*
+     * Adaptive edge, not a fixed threshold.
+     *
+     * This was smoothstep(0.36, 0.5, coverage) — a constant band applied to a
+     * *bitmap* atlas, and it was the single biggest reason world copy looked
+     * broken. Two failures at once:
+     *
+     * - Magnified, a constant band is narrower than one screen pixel, so the
+     *   rasteriser's own antialiasing was thrown away and every curve came back
+     *   as stair-steps.
+     * - Minified — which is the normal case, since the atlas rasterises at
+     *   RASTER px per em and a console em lands well under that — mipmapping
+     *   lowers a thin stroke's peak alpha *below* the 0.5 ceiling of the band.
+     *   The strokes did not merely soften, they were clipped out of existence:
+     *   hairlines in the display face and the thin stems of the mono face simply
+     *   vanished at distance.
+     *
+     * fwidth() is the width of one screen pixel measured in coverage units, so
+     * the band below is always exactly as wide as the pixel it is being drawn
+     * into: crisp when magnified, smoothly antialiased when minified. Dropping
+     * the centre of the band as that pixel gets larger is what gives a minified
+     * stroke back the weight mipmapping took off it.
+     */
+    float edge = fwidth(coverage);
+    float band = max(edge, 0.008);
+    float centre = mix(0.5, 0.24, clamp(edge * 3.2, 0.0, 1.0));
+    float ink = smoothstep(centre - band, centre + band, coverage);
+    if (ink < 0.015) discard;
+    /*
+     * Flat readable ink. vWeight shapes *brightness* here rather than alpha:
+     * the row weights are 0.9–1.0 for secondary copy, and multiplying those into
+     * alpha made metadata a partly transparent overlay on the plate — a contrast
+     * cut applied to the smallest type on screen, which is precisely backwards.
+     * Emphasis is a tone; legibility is opacity.
+     */
+    shade = tint * (0.86 + key * 0.12) * (0.82 + clamp(vWeight, 0.0, 1.2) * 0.18);
+    // Revealed only once it is home, so nothing is read while still in flight.
+    alpha = ink * smoothstep(0.08, 0.5, vLock);
   } else {
     // Relief / stack matter: darken side facets so elongated depth reads like
     // bay columns, not a flat grid of cubes.
@@ -172,7 +221,13 @@ void main() {
     shade += tint * key * vGlyphFace * 0.12 * lit;
   }
 
-  alpha *= vWeight * uOpacity;
+  /*
+   * Voxel matter still fades by weight; flat type has already spent its weight as
+   * tone, so all it takes from vWeight is the envelope — a soft ramp rather than a
+   * step, because vWeight is also how a leaving block decays and a hard step would
+   * pop the copy off screen mid-exit.
+   */
+  alpha *= mix(clamp(vWeight, 0.0, 1.0), smoothstep(0.0, 0.3, vWeight), 1.0 - vVoxel) * uOpacity;
   // Fog barely touches locked type — corridor depth used to wash CTA labels.
   alpha *= 1.0 - vFog * mix(0.55, 0.06, smoothstep(0.55, 1.0, vSettled));
   if (alpha < 0.02) discard;

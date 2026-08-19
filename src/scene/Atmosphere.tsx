@@ -5,7 +5,7 @@ import type { Quality } from './capability'
 import { FOG_DENSITY, PORTAL_POSITION } from './layout'
 import { idleAmount, objectPhase, pulse, pulseAt, sectionPhase } from './pulse'
 import { sceneColors } from './sceneColors'
-import { livePowerFor, sceneState } from './sceneState'
+import { livePowerFor, sceneState, swallowShape } from './sceneState'
 
 /**
  * A soft radial falloff, generated rather than shipped as an asset. A flat
@@ -216,10 +216,26 @@ export const Atmosphere = ({ quality }: { quality: Quality }) => {
       (1 - THREE.MathUtils.smoothstep(sceneState.build, 0.9, 0.98) * 0.35)
 
     if (fog.current) {
-      fog.current.color.copy(sceneColors.base)
+      /*
+       * Fogging toward `abyss` rather than toward the clear colour.
+       *
+       * They used to be the same value, which made distance read as absence: the
+       * far end of the corridor and the empty frame around it were identical, so
+       * there was nothing for depth to separate. One step darker gives the room a
+       * back wall made of air.
+       */
+      fog.current.color.copy(sceneColors.abyss)
       // Ignition opens the end of the room a touch; the change stays restrained
       // so it reads as power coming on, not as the scene losing its depth.
-      fog.current.density = FOG_DENSITY * (1 - power * 0.16)
+      /*
+       * The swallow thickens the air. As the room is drawn into the aperture the
+       * space it left has to close behind it, or the ending reads as objects
+       * shrinking inside a room that is still there.
+       */
+      const swallowAir = swallowShape(sceneState.swallow)
+      fog.current.density =
+        FOG_DENSITY * (1 - power * 0.16) * (1 + swallowAir.pull * 2.4)
+      fog.current.color.lerp(sceneColors.accent, swallowAir.grip * 0.4)
     }
     // The portal is the far end of the same room, so it breathes on the room's
     // clock. It used to run its own 0.8 Hz sine, which put the destination

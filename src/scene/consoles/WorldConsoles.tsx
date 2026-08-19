@@ -7,7 +7,7 @@ import { useCopy } from '../../lib/locale'
 import type { Quality } from '../capability'
 import { publishBeats } from '../control/reactorControl'
 import { Console } from '../kit/Console'
-import { layoutConsoleRows } from '../kit/consoleLayout'
+import { layoutConsoleRows, type TypeMetrics } from '../kit/consoleLayout'
 import { createStudioEquirect } from '../studioEnv'
 import { GlyphField } from '../ui/GlyphField'
 import { buildGlyphAtlas, type GlyphAtlas } from '../ui/glyphAtlas'
@@ -21,7 +21,18 @@ import { buildPlacedConsoles } from './placement'
 import { resolveAction } from './resolveAction'
 import { TelemetryStrip } from './TelemetryStrip'
 import type { BuiltConsole, ConsoleActionSpec } from './types'
-import { computeViewportFit, consoleSizeFit, lateralFit } from '../viewportFit'
+import {
+  BASE_FOV,
+  computeViewportFit,
+  consoleDistanceFor,
+  consoleHeightFit,
+  consoleSizeFit,
+  consoleWidthFit,
+  fovCompensation,
+  lateralFit,
+  typeFit,
+  worldEmForPixels,
+} from '../viewportFit'
 
 const BUDGET: Record<Quality, number> = { cinema: 22000, lite: 9000 }
 
@@ -37,6 +48,9 @@ interface WorldConsolesProps {
 const actionLabelBlocks = (
   built: BuiltConsole[],
   sizeFit: number,
+  widthFit: number,
+  heightFit: number,
+  type: TypeMetrics,
   resolve: (action: ConsoleActionSpec) => void,
 ): { blocks: TextBlock[]; binders: Array<{ action: ConsoleActionSpec; console: BuiltConsole; index: number }> } => {
   const blocks: TextBlock[] = []
@@ -49,8 +63,8 @@ const actionLabelBlocks = (
   for (const entry of built) {
     const actions = entry.spec.actions ?? []
     if (!actions.length) continue
-    const height = entry.spec.height * sizeFit
-    const gap = Math.min(1.35, (entry.spec.width * sizeFit * 0.9) / Math.max(actions.length, 1))
+    const height = entry.spec.height * heightFit
+    const gap = Math.min(1.35, (entry.spec.width * widthFit * 0.9) / Math.max(actions.length, 1))
     const actionY = -height / 2 + 0.24 * sizeFit
     const actionStartX = actions.length <= 1 ? 0 : -((actions.length - 1) * gap) / 2
     /*
@@ -62,8 +76,15 @@ const actionLabelBlocks = (
      * beside it. The plates share the row's width, so the em has to come from
      * how much of that width each label actually needs.
      */
-    const plateWidth = Math.min(1.2, gap * 0.9, entry.spec.width * sizeFit * 0.42)
-    const baseEm = 0.11 * sizeFit
+    const plateWidth = Math.min(1.2, gap * 0.9, entry.spec.width * widthFit * 0.42)
+    const baseEm = 0.115 * type.scale
+    /*
+     * A control the visitor is meant to press cannot be the smallest type on the
+     * plate. The width-fitting below is still what keeps a long label inside its
+     * own outline, but it now fits down to a measured floor rather than to an
+     * arbitrary fraction of the base size.
+     */
+    const floorEm = worldEmForPixels(14, type.heightPx, type.distance, type.fov)
     /**
      * Each label is sized to its own plate, not to the longest one in the row.
      * Sizing the row to its worst case shrank "EN" to fit "ESCRIBIME POR MAIL";
@@ -72,7 +93,7 @@ const actionLabelBlocks = (
      */
     const emFor = (label: string) =>
       Math.max(
-        baseEm * 0.62,
+        floorEm,
         Math.min(baseEm, (plateWidth * 0.86) / (Math.max(label.length, 1) * 0.68)),
       )
 
@@ -131,6 +152,28 @@ export const WorldConsoles = ({
   const heightPx = useThree((state) => state.size.height)
   const fit = computeViewportFit(aspect, heightPx)
   const sizeFit = consoleSizeFit(fit)
+  /** Narrower than the plate scale on portrait — see `consoleWidthFit`. */
+  const widthFit = consoleWidthFit(fit, aspect)
+  /*
+   * Plate height is its own answer now: a tall, narrow frame has vertical room to
+   * spare, and giving it to the plate is what stops the copy being clipped on a
+   * phone. See `consoleHeightFit`.
+   */
+  const heightFit = consoleHeightFit(fit, aspect)
+  /*
+   * The projection the type system needs. Distance and lens are the same values
+   * `placement.ts` and `Rig.tsx` use, so a row's measured size on screen is the
+   * size it actually gets.
+   */
+  const typeMetrics = useMemo<TypeMetrics>(
+    () => ({
+      scale: typeFit(fit, aspect),
+      distance: consoleDistanceFor(fit),
+      fov: BASE_FOV + fovCompensation(fit),
+      heightPx,
+    }),
+    [fit, aspect, heightPx],
+  )
 
   /*
    * One shared studio for every project frame — cinema only, so a budget
@@ -193,8 +236,8 @@ export const WorldConsoles = ({
   }, [copy, featured, locale, mode, study, windows])
 
   const placed = useMemo(
-    () => buildPlacedConsoles(specs, { windows, quality, fit }),
-    [specs, windows, quality, fit],
+    () => buildPlacedConsoles(specs, { windows, quality, fit, aspect }),
+    [specs, windows, quality, fit, aspect],
   )
 
   /*
@@ -205,7 +248,7 @@ export const WorldConsoles = ({
    * to dead-centre, and a project shot beside a centred plate would simply be
    * off the side of the screen.
    */
-  const bays = quality === 'cinema' && lateralFit(fit) > 0.45
+  const bays = quality === 'cinema' && lateralFit(fit, aspect) > 0.45
 
   /*
    * Republish the beats.
@@ -258,8 +301,8 @@ export const WorldConsoles = ({
           entry.spec.id,
           entry.spec.rows,
           {
-            width: entry.spec.width * sizeFit,
-            height: entry.spec.height * sizeFit,
+            width: entry.spec.width * widthFit,
+            height: entry.spec.height * heightFit,
             pad: 0.2 * sizeFit,
             // A plate with nothing to press gets its full height back.
             actionBand: entry.spec.actions?.length ? 0.36 : 0.08,
@@ -273,14 +316,21 @@ export const WorldConsoles = ({
             exitSpan: entry.exitSpan,
           },
           atlas,
-          fit,
+          typeMetrics,
         ),
       )
     }
-    const { blocks: labels } = actionLabelBlocks(placed, sizeFit, handleAction)
+    const { blocks: labels } = actionLabelBlocks(
+      placed,
+      sizeFit,
+      widthFit,
+      heightFit,
+      typeMetrics,
+      handleAction,
+    )
     blocks.push(...labels)
     return blocks
-  }, [atlas, placed, fit, sizeFit, handleAction])
+  }, [atlas, placed, sizeFit, widthFit, heightFit, typeMetrics, handleAction])
 
   const instances = useMemo(
     () => (atlas ? layoutBlocks(textBlocks, atlas, BUDGET[quality]) : null),
@@ -294,8 +344,8 @@ export const WorldConsoles = ({
       {placed.map((entry) => (
         <Console
           key={entry.spec.id}
-          width={entry.spec.width * sizeFit}
-          height={entry.spec.height * sizeFit}
+          width={entry.spec.width * widthFit}
+          height={entry.spec.height * heightFit}
           position={entry.position.toArray() as [number, number, number]}
           quaternion={entry.quaternion}
           enter={entry.enter}
@@ -321,7 +371,7 @@ export const WorldConsoles = ({
         />
       ))}
       <GlyphField instances={instances} atlas={atlas.texture} />
-      <TelemetryStrip consoles={placed} />
+      <TelemetryStrip consoles={placed} heightFit={heightFit} widthFit={widthFit} />
     </>
   )
 }

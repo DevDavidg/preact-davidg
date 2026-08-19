@@ -21,13 +21,28 @@ import type { BuiltConsole } from './types'
 
 interface TelemetryStripProps {
   consoles: BuiltConsole[]
+  /**
+   * The multiplier the plates were actually rendered at.
+   *
+   * The strip is parked a fixed distance above its console's top edge, and it was
+   * computing that edge from the *spec* height — the authored number, before the
+   * viewport scaled it. Once portrait plates grew taller than their spec, the
+   * strip was no longer above the plate at all: it landed inside it, printing the
+   * charge readout straight through the project title.
+   */
+  heightFit: number
+  widthFit: number
 }
 
 /** Two rows of monospace at a comfortable texel density. */
 const STRIP_WIDTH = 512
 const STRIP_HEIGHT = 96
 
-export const TelemetryStrip = ({ consoles }: TelemetryStripProps) => {
+export const TelemetryStrip = ({
+  consoles,
+  heightFit,
+  widthFit,
+}: TelemetryStripProps) => {
   const { copy } = useCopy()
   const phase = useSceneStore((state) => state.phase)
   const mesh = useRef<THREE.Mesh>(null)
@@ -104,13 +119,18 @@ export const TelemetryStrip = ({ consoles }: TelemetryStripProps) => {
       texture.needsUpdate = true
     }
 
-    const local = new THREE.Vector3(0, active.spec.height / 2 + 0.2, 0.05)
+    const local = new THREE.Vector3(
+      0,
+      (active.spec.height * heightFit) / 2 + 0.22,
+      0.05,
+    )
     local.applyQuaternion(active.quaternion)
     node.position.copy(active.position).add(local)
     node.quaternion.copy(active.quaternion)
+    const stripWidth = active.spec.width * widthFit * 0.48
     node.scale.set(
-      active.spec.width * 0.46,
-      ((active.spec.width * 0.46) / STRIP_WIDTH) * STRIP_HEIGHT,
+      stripWidth,
+      (stripWidth / STRIP_WIDTH) * STRIP_HEIGHT,
       1,
     )
 

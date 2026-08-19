@@ -61,6 +61,11 @@ export const en: Copy = {
       'AUDIO',
       'REACTOR',
     ],
+    finaleLabel: 'Reactor collapse',
+    finaleBody:
+      'End of the run. Keep scrolling and the portal takes the whole room in; stop and it holds where it is; scroll back up and it comes out again.',
+    finaleClose: 'DAVID GUILLEN · dev.davidg@gmail.com',
+    finaleReturn: 'SCROLL UP TO COME BACK',
   },
 
   hero: {
@@ -78,9 +83,9 @@ export const en: Copy = {
 
   work: {
     label: '01 — WORK',
-    heading: 'Three production sites I shipped',
+    heading: 'Two production sites I shipped',
     intro:
-      'Client work with a public URL. Each one sits in a different domain: insurance, capital markets and the agency site itself.',
+      'Client work with a public URL: the site of a capital-markets broker, and the consultancy I work at.',
     featuredLabel: 'Featured cases',
     labLabel: 'Lab',
     labIntro:
@@ -518,6 +523,111 @@ export const en: Copy = {
         height: 1000,
       },
       plate: 'LAB — REACTOR',
+    },
+    {
+      slug: 'proyecto-bam',
+      title: 'Proyecto BAM',
+      kind: 'experiment',
+      kindLabel: 'Experiment · public code',
+      tags: ['WEBGL', 'THREE.JS', 'ECS'],
+      summary:
+        'An isometric base-building strategy game that runs in the browser: a build grid, tick-based resource economy and combat, with no commercial engine under it.',
+      outcome:
+        'Simulation ended up separated from rendering: the core is plain TypeScript, state lives in Zustand, entities sync through an ECS, and Three.js only draws what that state says.',
+      problem:
+        'A base builder has hundreds of entities changing every tick. If the simulation lives inside the components that draw, every tick walks the React tree again and the frame budget goes.',
+      role: 'Technical design and full development.',
+      scope: 'Personal project. Public code under the MIT licence.',
+      stack: [
+        'React 19',
+        'TypeScript',
+        'Three.js',
+        'React Three Fiber',
+        'bitECS',
+        'Zustand',
+        'Vite',
+      ],
+      constraints: [
+        'Local-first: progress is saved in the browser, with no server behind it.',
+        'Buildings are generated as procedural geometry rather than sprites.',
+        'The tick simulation cannot depend on the render loop.',
+      ],
+      decisions: [
+        {
+          title: 'The core does not know Three.js exists',
+          body: 'Grid, placement rules, catalogues and balance are plain TypeScript. The render layer reads that state and never writes it, so the rules can be tested without mounting a scene.',
+        },
+        {
+          title: 'An ECS between state and scene',
+          body: 'Entities sync through components instead of props: a tick that moves a hundred units does not re-render a hundred components.',
+        },
+      ],
+      contribution: [
+        'Grid engine, placement rules and tick-based resource economy.',
+        'ECS layer syncing simulation to scene.',
+        'Procedural 3D visuals per building family, with damage states and per-tier scaling.',
+        'Isometric camera, hover/placement raycasting and local persistence of progress.',
+      ],
+      evidence: [
+        'The repository is public and the layered architecture is documented in the README.',
+        'The licence is MIT and the whole commit history is readable.',
+      ],
+      repoUrl: 'https://github.com/DevDavidg/proyectobam',
+      image: {
+        src: '/work/proyecto-bam.jpg',
+        alt: 'Proyecto BAM: an isometric 3D view of a village with the town hall at its centre, a resource HUD on the left and a village panel on the right',
+        width: 1600,
+        height: 1000,
+      },
+      plate: 'LAB — BAM',
+    },
+    {
+      slug: 'muscly',
+      title: 'Muscly',
+      kind: 'experiment',
+      kindLabel: 'Experiment · public demo',
+      tags: ['NEXT.JS', 'WEB AUDIO', 'SUPABASE'],
+      summary:
+        'A beat-library player that analyses the audio as it plays: sub, bass, mid and high meters driven by the actual track.',
+      outcome:
+        'The visualisation comes out of the audio in real time rather than from a looping animation: the meters move with whatever is playing and sit still when nothing is.',
+      problem:
+        'A track list in a generic player says nothing about the material. I wanted the interface to show the shape of the sound while you listen to it.',
+      role: 'Full development.',
+      scope: 'Personal project with a real track catalogue. Public demo.',
+      stack: ['Next.js', 'React', 'TypeScript', 'Meyda', 'Supabase', 'Tailwind CSS'],
+      constraints: [
+        'Audio analysis runs in the browser and cannot eat the interface frame budget.',
+        'The tracks are WAV files, so loading has to be on demand rather than all at once.',
+      ],
+      decisions: [
+        {
+          title: 'Live analysis, not a prerecorded animation',
+          body: 'The meters are fed by the features Meyda extracts from the audio node, so what you see is the track and not a decorative loop on top of it.',
+        },
+        {
+          title: 'The catalogue lives outside the bundle',
+          body: 'Tracks and their metadata are served from Supabase, so adding material does not mean rebuilding the application.',
+        },
+      ],
+      contribution: [
+        'Player with a queue, track selection and loading states.',
+        'Audio analysis chain and per-frequency-band meters.',
+        'Library interface with the drive, warmth, brightness and motion controls.',
+      ],
+      evidence: [
+        'The demo is public: the meters move with the track that is playing.',
+        'The repository is public.',
+      ],
+      demoUrl: 'https://muscly-lake.vercel.app/',
+      repoUrl: 'https://github.com/DevDavidg/muscly',
+      image: {
+        src: '/work/muscly.jpg',
+        alt: 'Muscly: a beat player on a dark screen, with sub, bass, mid and high meters on the left and the track listing on the right',
+        width: 1600,
+        height: 1000,
+      },
+      plate: 'LAB — MUSCLY',
     },
     {
       slug: 'launch-flow',

@@ -13,10 +13,43 @@
  */
 import { copyFile, mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { findCase, isLocale, LOCALES } from '../src/content/index'
+import { COPY, findCase, isLocale, LOCALES } from '../src/content/index'
 import { NOT_FOUND_PATH, staticPaths, translatePath } from '../src/lib/routes'
 import { OG_IMAGE } from '../src/lib/seo'
 import { absoluteUrl, PERSON, SITE_ORIGIN, SITE_REVISED } from '../src/lib/site'
+
+/**
+ * The work index, derived from the content model.
+ *
+ * This used to be two hand-written lines. When a case was removed from
+ * `src/content`, this file still advertised it — and when cases were added, they
+ * were invisible here. A file whose whole purpose is telling a machine what the
+ * site contains cannot be maintained by hand.
+ */
+const workIndex = (): string => {
+  const groups: { title: string; cases: (typeof COPY)['es']['featured'] }[] = [
+    { title: 'Client sites in production', cases: COPY.es.featured },
+    { title: 'Lab — concepts and experiments, no client behind them', cases: COPY.es.lab },
+    { title: 'Archive — kept for reference, not current work', cases: COPY.es.archive },
+  ]
+
+  return groups
+    .filter((group) => group.cases.length > 0)
+    .map((group) => {
+      const lines = group.cases.map((study) => {
+        const host = study.demoUrl
+          ? new URL(study.demoUrl).host.replace(/^www\./, '')
+          : study.repoUrl
+            ? 'source only'
+            : 'no public demo'
+        return `- [${study.title}](${absoluteUrl(
+          `/es/proyectos/${study.slug}`,
+        )}) — ${study.summary.split('. ')[0].replace(/\.$/, '')} (${host})`
+      })
+      return `${group.title}:\n\n${lines.join('\n')}`
+    })
+    .join('\n\n')
+}
 
 const OUT_DIR = join(process.cwd(), 'build', 'client')
 
@@ -154,10 +187,7 @@ The site is available in Spanish (\`/es\`) and English (\`/en\`). \`/\` is the l
 
 ## Work
 
-Client sites in production:
-
-- [AG Valores](${absoluteUrl('/es/proyectos/ag-valores')}) — ALyC / capital-markets site (agvalores.com.ar)
-- [Nonconformist](${absoluteUrl('/es/proyectos/nonconformist')}) — agency site (nonconformist.digital)
+${workIndex()}
 
 English siblings live under \`/en/work/{slug}\`.
 
