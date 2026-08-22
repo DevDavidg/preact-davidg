@@ -43,14 +43,17 @@ export const StageTreatment = () => {
       const root = document.documentElement
 
       /*
-       * The ignition wash carries the swallow as well as the charge. By the time
-       * the room is gone the aperture is most of what is on screen, and the
-       * screen-space glow is what makes its light spill past its own geometry.
+       * The ignition wash carries the swallow as well as the charge, but only a
+       * little of it. The finale is a black hole now, and the defining feature of
+       * one is that the middle of the frame is the *darkest* thing in it. A strong
+       * screen-space wash lifted the whole image, the event horizon along with it,
+       * and turned the well into a bright disc. Enough to spill the aperture's
+       * light past its own geometry, and no more.
        */
       const swallow = swallowShape(sceneState.swallow)
       const glow = (
         livePowerFor(sceneState.build) * 0.1 +
-        swallow.grip * 0.5
+        swallow.grip * 0.24
       ).toFixed(3)
       if (ignition.current && glow !== lastIgnition) {
         lastIgnition = glow

@@ -36,14 +36,20 @@ import type { SectionWindow } from "./ui/sectionRanges";
  */
 export const CAMERA_PATH = new THREE.CatmullRomCurve3(
   [
-    // Establishing: off to port and above, so the optic reads as an object in a
-    // room. Close enough in that the approach is a shot rather than a commute —
-    // every metre here is scroll the corridor does not get.
-    new THREE.Vector3(-3.95, 2.24, 8.55),
-    // Swinging onto the axis.
-    new THREE.Vector3(-2.15, 1.94, 7.1),
-    // Almost centred, closing on the aperture.
-    new THREE.Vector3(-0.5, 1.71, 6.0),
+    /*
+     * Establishing.
+     *
+     * Only slightly off the axis now — enough for a three-quarter read on the
+     * optic and some parallax on the way in, not enough to throw it off frame.
+     * Centring the sphere is `TARGET_PATH`'s job, not this one: the shot is
+     * centred by where the lens *looks*, which leaves the position free to be
+     * interesting. The previous opening sat 4 m to port, and combined with a
+     * look-at aimed 1.5 m in front of the shell it put the object the whole room
+     * exists to introduce down in a corner.
+     */
+    new THREE.Vector3(-1.62, 1.94, 10.6),
+    new THREE.Vector3(-1.12, 1.83, 8.55),
+    new THREE.Vector3(-0.46, 1.7, 6.5),
     // Through the middle of the shell. Same point as REACTOR_CORE below.
     new THREE.Vector3(0, 1.62, 5.15),
     // Just past it, still inside the housing's wake.
@@ -89,9 +95,18 @@ export const corridorLateral = (aspect: number) =>
  */
 export const TARGET_PATH = new THREE.CatmullRomCurve3(
   [
-    new THREE.Vector3(0, 1.64, 6.7),
-    new THREE.Vector3(0, 1.63, 5.7),
-    new THREE.Vector3(0.02, 1.62, 4.7),
+    /*
+     * Locked on the optic's centre for the whole approach.
+     *
+     * These three points *are* the sphere's position. Aiming at it is what puts
+     * it in the middle of the frame, and it stays there for the entire approach
+     * however the dolly moves — which is the only reliable way to centre an
+     * object in a moving shot. Aiming at a point in front of it, as this used to,
+     * frames the empty space the visitor is about to fly through instead.
+     */
+    new THREE.Vector3(0, 1.62, 5.15),
+    new THREE.Vector3(0, 1.62, 5.15),
+    new THREE.Vector3(0, 1.62, 4.9),
     new THREE.Vector3(0.05, 1.6, 3.5),
     new THREE.Vector3(0.1, 1.54, 2.3),
     new THREE.Vector3(0.14, 1.44, 0.6),

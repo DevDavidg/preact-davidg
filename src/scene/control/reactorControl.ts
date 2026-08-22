@@ -64,18 +64,86 @@ export interface LawProfile {
   agitation: number
   /** Colour push toward the accent, 0 → 1. */
   heat: number
+
+  /*
+   * The three fields below are what make a law a different *rendering* rather
+   * than a different amount of the same one.
+   *
+   * The laws used to be multipliers only — spread, jitter, drift — so all three
+   * produced the same picture with more or less noise in it. Switching law
+   * changed how agitated the room was and nothing else. These fields let each law
+   * be built out of a different substance:
+   *
+   *   VACUUM   solid, unlined, matte. Pure 3D: no edges drawn at all, matter with
+   *            nothing to say about how it was made.
+   *   VISCOUS  solid with its structure visible. 3D *with* its triangulation —
+   *            the authored look, matter in the middle of being assembled. Every
+   *            one of its values is 1 or 0 by definition: it is the baseline the
+   *            other two are departures from.
+   *   CHAOS    no matter at all. Pure UI: every object collapses to the drawing
+   *            of itself, flat, unlit, hot — a schematic of a room rather than a
+   *            room.
+   */
+  /** How much the barycentric edge read *replaces* the shaded one, 0 → 1. */
+  wire: number
+  /**
+   * Gain on the edge term inside the normal read.
+   *
+   * Distinct from `wire`, and the distinction matters: `wire` promotes the
+   * drawing over the object, while this decides how visible the object's own
+   * triangulation is while it is still an object. It is what separates "solid
+   * matter with no lines on it" from "solid matter you can see the construction
+   * of" — two of the three laws differ in exactly this and nothing else.
+   */
+  edge: number
+  /** Multiplies the shaded face's presence. Above 1 is denser than authored. */
+  solid: number
+  /** Flattens lighting toward an unlit UI read, 0 → 1. */
+  flat: number
+  /**
+   * How badly the medium fails to carry sound, 0 → 1.
+   *
+   * The laws are the room's physics, and the room has an instrument in it
+   * (`src/audio/reactorSound.ts`) whose whole premise is that every voice belongs
+   * to something physical. A law that changes what matter *is* has to change what
+   * the room sounds like, or the two halves of the same idea disagree: VACUUM
+   * looked airless and sounded exactly as full-bodied as VISCOUS.
+   */
+  airless: number
 }
 
 export const LAW_PROFILES: Record<LawId, LawProfile> = {
+  /**
+   * VACUUM — pure 3D, no lines.
+   *
+   * Nothing holds matter together and nothing draws it either: the room is
+   * finished, matte, and floating. Shards barely spread because there is no
+   * medium to push them through, and the edge read goes to zero, which is what
+   * makes this feel like a product render rather than a construction site.
+   */
   VACUUM: {
-    spread: 1.55,
-    jitter: 1.3,
-    drift: 1.15,
+    spread: 0.42,
+    jitter: 0.22,
+    drift: 0.85,
     damping: 0.55,
     magnet: 0.45,
-    agitation: 0.7,
-    heat: 0.08,
+    agitation: 0.35,
+    heat: 0.06,
+    wire: 0,
+    edge: 0.3,
+    solid: 1.35,
+    flat: 0,
+    // No medium: the body of the room drops away and only the thin, high signal
+    // is left. This is the law you *hear* the absence of.
+    airless: 1,
   },
+  /**
+   * VISCOUS — 3D with its structure showing.
+   *
+   * The authored law and the default: matter suspended in something, edges
+   * visible because the object is still being made. Every other law is a
+   * departure from this one, which is why all its multipliers are exactly 1.
+   */
   VISCOUS: {
     spread: 1,
     jitter: 1,
@@ -84,20 +152,46 @@ export const LAW_PROFILES: Record<LawId, LawProfile> = {
     magnet: 2.6,
     agitation: 1,
     heat: 0,
+    wire: 0,
+    edge: 1,
+    solid: 1,
+    flat: 0,
+    airless: 0,
   },
+  /**
+   * CHAOS — pure UI.
+   *
+   * The room stops being matter and becomes its own schematic: no shaded faces,
+   * no light, only hot lines and the copy. It is the most violent of the three
+   * physically — everything is flying — and the calmest optically, because a
+   * blueprint has no highlights to blow out.
+   */
   CHAOS: {
-    spread: 2.1,
-    jitter: 2.4,
-    drift: 1.35,
+    spread: 2.3,
+    jitter: 2.6,
+    drift: 1.4,
     damping: 1.5,
     magnet: 1.4,
-    agitation: 2.6,
-    heat: 0.85,
+    agitation: 2.8,
+    heat: 0.95,
+    wire: 1,
+    edge: 1.7,
+    solid: 0.12,
+    flat: 1,
+    // A medium, but a violent one: the room still has a body, it is just being
+    // driven past what it can carry cleanly.
+    airless: 0.12,
   },
 }
 
 /** The law currently in force, interpolated. Read this, not `LAW_PROFILES`. */
 export const liveLaw: LawProfile = { ...LAW_PROFILES.VISCOUS }
+
+/**
+ * Every field of a profile, so the interpolation below cannot miss one.
+ * Derived from VISCOUS because it is the law whose every value is authored.
+ */
+const LAW_KEYS = Object.keys(LAW_PROFILES.VISCOUS) as (keyof LawProfile)[]
 
 /* Modes -------------------------------------------------------------------- */
 
@@ -439,37 +533,28 @@ export const advanceControl = (delta: number) => {
     )
   }
 
-  // Blend the profiles rather than switching them: a law change is a physical
-  // transition the visitor should be able to watch happen.
+  /*
+   * Blend the profiles rather than switching them: a law change is a physical
+   * transition the visitor should be able to watch happen — matter losing its
+   * lines, or a solid room dissolving into its own drawing.
+   *
+   * Written over the profile's own keys rather than as one line per field. The
+   * previous version named all seven fields three times each, which is precisely
+   * the shape where a newly added field silently never gets interpolated: it
+   * would sit at whatever VISCOUS initialised it to and the law would appear to
+   * have no effect on it.
+   */
   let total = 0
-  let spread = 0
-  let jitter = 0
-  let drift = 0
-  let damping = 0
-  let magnet = 0
-  let agitation = 0
-  let heat = 0
+  for (const key of LAW_KEYS) liveLaw[key] = 0
   for (const law of LAWS) {
     const weight = control.lawMix[law]
     if (weight < 1e-4) continue
     const profile = LAW_PROFILES[law]
     total += weight
-    spread += profile.spread * weight
-    jitter += profile.jitter * weight
-    drift += profile.drift * weight
-    damping += profile.damping * weight
-    magnet += profile.magnet * weight
-    agitation += profile.agitation * weight
-    heat += profile.heat * weight
+    for (const key of LAW_KEYS) liveLaw[key] += profile[key] * weight
   }
   const norm = total > 1e-4 ? 1 / total : 1
-  liveLaw.spread = spread * norm
-  liveLaw.jitter = jitter * norm
-  liveLaw.drift = drift * norm
-  liveLaw.damping = damping * norm
-  liveLaw.magnet = magnet * norm
-  liveLaw.agitation = agitation * norm
-  liveLaw.heat = heat * norm
+  for (const key of LAW_KEYS) liveLaw[key] *= norm
 
   for (const mode of MODES) {
     control.modeAmount[mode] = damp(

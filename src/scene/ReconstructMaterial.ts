@@ -100,8 +100,14 @@ uniform sampler2D uMap;
 uniform float uHasMap;
 /** 1 when the mesh is a console plate that has to back world type opaquely. */
 uniform float uSolidFill;
-/** WIRE mode: the corridor as a blueprint rather than as matter. */
+/** WIRE mode *or* the CHAOS law: the corridor as a blueprint rather than as matter. */
 uniform float uWire;
+/** Law: how present the shaded face is. VACUUM densifies it, CHAOS removes it. */
+uniform float uLawSolid;
+/** Law: flattens lighting toward an unlit UI read. CHAOS is 1. */
+uniform float uLawFlat;
+/** Law: how visible the object's own triangulation is. VACUUM erases it. */
+uniform float uLawEdge;
 /** Live loudness, 0 → 1. The room lights on what the visitor is hearing. */
 uniform float uAudio;
 /** Law heat, 0 → 1. CHAOS runs the whole corridor hotter. */
@@ -142,7 +148,8 @@ void main() {
   // Textured panels keep a readable face while tumbling, so a project enters as
   // photo-debris rather than an empty wireframe.
   float solidShot = mix(0.42, 1.0, smoothstep(0.04, 0.68, vAssembled));
-  float solid = mix(solidArch, solidShot, uHasMap);
+  // VACUUM densifies matter, CHAOS removes it entirely.
+  float solid = clamp(mix(solidArch, solidShot, uHasMap) * uLawSolid, 0.0, 1.0);
   float lit = smoothstep(0.48, 0.78, uBuild);
   float liveAccent = smoothstep(0.72, 0.84, uBuild) * uLive;
   // Photo shards keep triangulation until they nearly lock; then bury the mesh.
@@ -161,6 +168,19 @@ void main() {
   float fill = max(dot(normal, fillLight), 0.0) * 0.35;
   float fresnel = pow(1.0 - max(dot(normal, view), 0.0), 2.6);
   float spec = pow(max(dot(reflect(-keyLight, normal), view), 0.0), 42.0);
+
+  /*
+   * The law decides what this object is made of.
+   *
+   * Flattening is done here, once, on the light itself rather than at each of the
+   * dozen places light is used below: under CHAOS the room is a schematic, and a
+   * schematic has no key light, no fill and no specular — every surface reads at
+   * one value. Holding the terms and flattening them keeps every downstream
+   * expression identical across the three laws.
+   */
+  key = mix(key, 0.5, uLawFlat);
+  fill = mix(fill, 0.12, uLawFlat);
+  spec *= 1.0 - uLawFlat;
 
   vec3 face = uInk * (0.05 + key * 0.17 + fill * 0.1);
   // A console surface needs to sit a little above pure black or the plate reads
@@ -189,7 +209,8 @@ void main() {
   // Loose photo shards outline in their own colour so debris matches the lattice
   // language without waiting for a solid plate.
   edgeTint = mix(edgeTint, mix(shot, uAccent, 0.22), uHasMap * (0.55 + 0.35 * (1.0 - vAssembled)));
-  float edgeGlow = edge * (0.26 + wire * 0.6 + uFocus * 0.55 + band * 0.7);
+  // The law decides whether this object shows how it was made.
+  float edgeGlow = edge * (0.26 + wire * 0.6 + uFocus * 0.55 + band * 0.7) * uLawEdge;
   // Keep a thin accent rim on settled shots; bury the interior triangulation.
   edgeGlow *= mix(1.0, 0.18 + uFocus * 0.5, shotMix * smoothstep(0.5, 0.95, vAssembled));
 
@@ -344,6 +365,9 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
         uHasMap: { value: options.map ? 1 : 0 },
         uSolidFill: { value: options.solid ? 1 : 0 },
         uWire: { value: 0 },
+        uLawSolid: { value: 1 },
+        uLawFlat: { value: 0 },
+        uLawEdge: { value: 1 },
         uAudio: { value: 0 },
         uHeat: { value: 0 },
         uEnvMap: { value: blankMap },
@@ -396,7 +420,18 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
     uniforms.uAssembleAt.value = state.assembleAt ?? -1
     uniforms.uAccent.value.copy(sceneColors.accent)
     uniforms.uInk.value.copy(sceneColors.ink)
-    uniforms.uWire.value = reactorControl.modeAmount.wire
+    /*
+     * WIRE the mode and CHAOS the law want the same thing — the object drawn as
+     * its own drawing — so they share the uniform and whichever is stronger wins.
+     * Adding them would double-count when a visitor engages WIRE while CHAOS is
+     * already running, which is exactly the combination someone exploring the
+     * room will try.
+     */
+    const wire = Math.max(reactorControl.modeAmount.wire, liveLaw.wire)
+    uniforms.uWire.value = wire
+    uniforms.uLawSolid.value = liveLaw.solid
+    uniforms.uLawFlat.value = liveLaw.flat
+    uniforms.uLawEdge.value = liveLaw.edge
     uniforms.uAudio.value = reactorControl.audio
     uniforms.uHeat.value = liveLaw.heat
     // Once faces carry the read, real occlusion beats blended transparency.
@@ -410,8 +445,9 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
     // depth lets the corridor show through the copy for a few frames.
     // A blueprint does not occlude: in WIRE the far side of the corridor has to
     // show through the near side, which is the whole point of the mode.
+    // A blueprint does not occlude — whether the blueprint came from the mode or
+    // from the law.
     this.depthWrite =
-      reactorControl.modeAmount.wire < 0.5 &&
-      stage > (mapped ? 0.72 : solid ? 0.45 : 0.55)
+      wire < 0.5 && stage > (mapped ? 0.72 : solid ? 0.45 : 0.55)
   }
 }

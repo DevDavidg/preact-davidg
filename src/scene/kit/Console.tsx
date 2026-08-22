@@ -9,6 +9,7 @@ import {
   softDisassemble,
 } from '../ui/assembleDrama'
 import { ActionPlate } from './ActionPlate'
+import type { ActionSlot } from './actionRow'
 import type { ChassisKind } from './chassis'
 import { ModuleRig } from './ModuleRig'
 import { openFrame } from './panelGeometry'
@@ -18,11 +19,15 @@ import { UplinkGate } from './UplinkGate'
  * Reading console: solid face + softly assembling sharded frame.
  */
 
-export interface ConsoleAction {
-  id: string
-  label: string
-  onActivate: () => void
-}
+/**
+ * A control, with its geometry already decided.
+ *
+ * The plate's size and position come from `layoutActionRow`, not from this file.
+ * They used to be computed here *and* again where the label glyphs are laid out,
+ * from different constants — which is how labels ended up wider than the plates
+ * they were supposed to sit inside. One layout, two consumers.
+ */
+export type ConsoleAction = ActionSlot & { onActivate: () => void }
 
 export interface ConsoleProps {
   width: number
@@ -192,19 +197,6 @@ export const Console = ({
     if (faceNode) faceNode.visible = faceOpacity > 0.02
   })
 
-  const actionY = -height / 2 + 0.24
-  const actionGap = Math.min(
-    1.25,
-    (width * 0.88) / Math.max(actions.length, 1),
-  )
-  const actionWidth = Math.min(
-    1.2,
-    actionGap * 0.9,
-    width * 0.42,
-  )
-  const actionStartX =
-    actions.length <= 1 ? 0 : -((actions.length - 1) * actionGap) / 2
-
   return (
     <group ref={group} position={position} quaternion={quaternion}>
       <mesh ref={face} position={[0, 0, -0.01]} renderOrder={1} visible={false}>
@@ -243,13 +235,13 @@ export const Console = ({
           exitSpan={exitSpan}
         />
       ) : null}
-      {actions.map((action, index) => (
+      {actions.map((action) => (
         <ActionPlate
           key={action.id}
           label={action.label}
-          width={actionWidth}
-          height={0.28}
-          position={[actionStartX + index * actionGap, actionY, 0.05]}
+          width={action.width}
+          height={action.height}
+          position={[action.x, action.y, 0.05]}
           enter={enter + span * 0.35}
           span={span * 0.55}
           exit={exit}

@@ -131,7 +131,21 @@ export const startReactorSound = (): ReactorSound => {
   roomFilter.type = 'lowpass'
   roomFilter.frequency.value = 220
   roomFilter.Q.value = 0.6
-  room.connect(roomFilter).connect(master)
+  /*
+   * The vacuum filter.
+   *
+   * A highpass, in series after the room's lowpass, whose corner rises with the
+   * law's `airless`. Under VACUUM it climbs past the drones and takes the body of
+   * the room with it, leaving a thin ring where a fifth used to be — the sound of
+   * a medium that is not there. Under the other two laws it sits at 20 Hz and is
+   * audibly nothing at all, which is why it can be left in the graph
+   * unconditionally rather than connected and disconnected.
+   */
+  const airFilter = context.createBiquadFilter()
+  airFilter.type = 'highpass'
+  airFilter.frequency.value = 20
+  airFilter.Q.value = 0.5
+  room.connect(roomFilter).connect(airFilter).connect(master)
 
   const drones = [55, 82.5].map((frequency, index) => {
     const oscillator = context.createOscillator()
@@ -281,6 +295,8 @@ export const startReactorSound = (): ReactorSound => {
     // `setTargetAtTime` smooths automatically, so scroll velocity cannot produce
     // zipper noise on the filter.
     const heat = liveLaw.heat
+    const airless = liveLaw.airless
+    const swallow = sceneState.swallow
     // The law opens the room. CHAOS is not a different sound, it is the same
     // room with the lid off — which is exactly what the visuals do too.
     roomFilter.frequency.setTargetAtTime(
@@ -289,6 +305,34 @@ export const startReactorSound = (): ReactorSound => {
       0.3,
     )
     roomFilter.Q.setTargetAtTime(0.6 + heat * 2.4, now, 0.4)
+    /*
+     * VACUUM lifts the floor out of the room. 20 Hz is inaudible; 320 Hz is above
+     * both drones, so the fundamental and the fifth are simply gone and what is
+     * left is the top of the signal chain — which is the point.
+     */
+    airFilter.frequency.setTargetAtTime(20 + airless * 300, now, 0.45)
+    airFilter.Q.setTargetAtTime(0.5 + airless * 1.6, now, 0.5)
+    // And the body itself thins: filtering alone would still leave a full-level
+    // room with its bass removed, which sounds like a small speaker, not a vacuum.
+    room.gain.setTargetAtTime(ROOM_GAIN * (1 - airless * 0.55), now, 0.5)
+
+    /*
+     * The swallow drags the room's pitch down with it.
+     *
+     * A falling fundamental is what the ending sounds like from the inside: the
+     * drones glide down roughly a fifth as the portal takes the corridor in, and
+     * come straight back up if the visitor scrolls out again, because — like
+     * every other layer of that ending — this is a function of scroll position
+     * and not a triggered slide.
+     */
+    drones.forEach((drone, index) => {
+      const base = index === 0 ? 55 : 82.5
+      drone.oscillator.frequency.setTargetAtTime(
+        base * (1 - swallow * 0.34),
+        now,
+        0.25,
+      )
+    })
     ignition.gain.setTargetAtTime(power * IGNITION_GAIN, now, 0.4)
     ignitionUpper.gain.setTargetAtTime(
       power * power * IGNITION_GAIN * 0.55,
@@ -309,9 +353,18 @@ export const startReactorSound = (): ReactorSound => {
     // Overclock is the room saturating, not a new voice — the curve only
     // regenerates when the target has actually moved, so idle frames cost
     // nothing.
-    const targetDrive = reactorControl.modes.overclock
-      ? Math.min(1, 0.35 + heat * 0.65)
-      : 0
+    /*
+     * Saturation follows the law as well as the mode.
+     *
+     * The drive bus used to open only under the OVERCLOCK mode, which meant CHAOS
+     * — the law whose entire character is a room being pushed past what it can
+     * carry — sounded identical to VISCOUS unless the visitor also found a hidden
+     * key. The law is the loud one; the mode adds to it.
+     */
+    const targetDrive = Math.min(
+      1,
+      heat * 0.62 + (reactorControl.modes.overclock ? 0.38 : 0),
+    )
     if (Math.abs(targetDrive - driveAmount) > 0.03) {
       driveAmount = targetDrive
       drive.curve = driveCurve(driveAmount)

@@ -20,21 +20,39 @@ const BUDGETS = {
   /** CSS on the critical path. */
   criticalCss: 20 * 1024,
   /**
-   * The lazily imported 3D scene, including its share of Three.js.
+   * The 3D scene as every visitor who gets one receives it.
    *
-   * Raised from 320 kB when the corridor gained the operator layer: the three
-   * module bays and their chassis, the uplink handshake, the pointer probe, the
-   * signal conduits and the voxel portrait. That work landed at ~319 kB, which
-   * technically still fit — but a budget with 700 bytes of headroom stops being
-   * a guard and becomes a tripwire, so this leaves room to work in.
+   * This is the number that protects a phone. Every device narrower than 1100px
+   * or with a coarse pointer resolves to `lite` (see `src/scene/capability.ts`),
+   * and `lite` never touches the cinema chunk below — so this budget is what a
+   * phone can actually be asked to download, and it does not move.
    *
-   * Note what this number is and is not. It sums *every* chunk that is not on
-   * the critical path, so splitting work into a lazier chunk makes it go up, not
-   * down — per-chunk overhead is real and the sum is unchanged otherwise. It is
-   * a ceiling on how much JavaScript the site can ever ask for, which is the
-   * useful guard; it is not the scene's first payload.
+   * It was previously called `sceneJs` and summed *every* non-critical chunk,
+   * which made it impossible to say "desktop may have more" without also saying
+   * "phones may have more". Splitting the two is what let the advanced animation
+   * stack land at all: the ceiling that matters stayed exactly where it was.
+   *
+   * Note what this number is and is not. It sums every non-cinema chunk off the
+   * critical path, so moving work into a lazier chunk makes it go up, not down —
+   * per-chunk overhead is real and the sum is otherwise unchanged. It is a
+   * ceiling on how much JavaScript a `lite` visitor can ever ask for; it is not
+   * the scene's first payload.
    */
-  sceneJs: 330 * 1024,
+  baseJs: 330 * 1024,
+  /**
+   * The cinema-only layer: post-processing, transmission materials, the Theatre
+   * timeline, the physics solver and the Rive runtime.
+   *
+   * Gated twice over — `quality === 'cinema'` requires a fine pointer and a
+   * viewport at least 1100px wide, and `usePerformanceGovernor` can demote out of
+   * it from measured frame time. A visitor who does not clear both bars never
+   * requests this chunk, which is why it is allowed to be large.
+   *
+   * It is still a real guard rather than a rubber stamp: this stack is heavy
+   * enough that it is easy to add a fifth library without noticing, and the point
+   * of the number is that doing so has to be a decision someone writes down.
+   */
+  cinemaJs: 1_500 * 1024,
   /** All self-hosted fonts together. */
   fonts: 120 * 1024,
   /** Any single project image, in any format. */
@@ -114,12 +132,32 @@ const main = async () => {
   record('critical JS (gzip)', (await measure(criticalJs)).compressed, BUDGETS.criticalJs)
   record('critical CSS (gzip)', (await measure(criticalCss)).compressed, BUDGETS.criticalCss)
 
-  // The scene: every chunk that is not on the critical path.
+  /*
+   * Off the critical path, split by who actually downloads it.
+   *
+   * `cinema-*.js` is pinned by name in `vite.config.ts` — a `manualChunks` entry
+   * rather than a filename guess, because a guess that stops matching would fail
+   * open and silently stop guarding anything.
+   */
   const criticalSet = new Set(criticalJs)
-  const sceneChunks = files.filter(
+  const offCritical = files.filter(
     (file) => file.endsWith('.js') && file.includes('/assets/') && !criticalSet.has(file),
   )
-  record('scene JS (gzip)', (await measure(sceneChunks)).compressed, BUDGETS.sceneJs)
+  const isCinema = (file) => /\/cinema-[^/]*\.js$/.test(file)
+  const cinemaChunks = offCritical.filter(isCinema)
+  const baseChunks = offCritical.filter((file) => !isCinema(file))
+
+  record('base scene JS (gzip)', (await measure(baseChunks)).compressed, BUDGETS.baseJs)
+  record('cinema-only JS (gzip)', (await measure(cinemaChunks)).compressed, BUDGETS.cinemaJs)
+
+  // A cinema chunk that measures zero means the manualChunks entry stopped
+  // matching and its contents are now inside the base budget, unnoticed.
+  if (cinemaChunks.length === 0) {
+    console.warn(
+      'note: no cinema-* chunk was emitted. If the advanced animation layer is ' +
+        'expected, its dependencies are being counted against the base budget.',
+    )
+  }
 
   const fonts = files.filter((file) => file.endsWith('.woff2'))
   // Fonts are already compressed; gzip would misreport them.

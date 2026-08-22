@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { CaseStudy, Copy } from "../content";
@@ -33,6 +33,21 @@ import "./silenceClockWarning";
 import { WorldConsoles } from "./consoles/WorldConsoles";
 import type { SceneMode } from "./ui/ReactorType";
 import { useSectionWindows } from "./ui/useSectionWindows";
+
+/**
+ * The advanced animation stack, behind a lazy boundary.
+ *
+ * `cinema` is the only quality that ever resolves this import, so the
+ * post-processing chain, the transmission material, the Theatre timeline, the
+ * physics solver and the Rive runtime are bytes a phone never asks for. See
+ * `src/scene/cinema/CinemaLayer.tsx` for why that boundary is load-bearing and
+ * `scripts/bundle-budget.mjs` for the budget that holds it honest.
+ */
+const CinemaLayer = lazy(() =>
+  import("./cinema/CinemaLayer").then((module) => ({
+    default: module.CinemaLayer,
+  })),
+);
 
 /**
  * Device pixel ratio per fidelity step.
@@ -478,6 +493,20 @@ export const ReactorScene = ({
         {cinema ? <CursorProbe /> : null}
 
         {fidelity === "minimal" ? null : <IgnitionFlare />}
+
+        {/*
+          The composer takes over rendering, so it is mounted last and only where
+          it is affordable. `minimal` is the fidelity the governor demotes to when
+          the device is already missing the frame budget — adding a full-screen
+          multi-pass chain there would be the opposite of what that demotion is
+          for. A `null` fallback means a slow chunk shows the plain scene rather
+          than nothing.
+        */}
+        {cinema && fidelity !== "minimal" ? (
+          <Suspense fallback={null}>
+            <CinemaLayer fidelity={fidelity} />
+          </Suspense>
+        ) : null}
       </Canvas>
     </div>
   );

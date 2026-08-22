@@ -185,6 +185,22 @@ const structuralColor = (target: THREE.Color) =>
  * surface in the room reflects the same studio) authors a real room rather
  * than a smooth wash.
  */
+/**
+ * The armature's line cage.
+ *
+ * `WireframeGeometry` copies the source's edges into its own buffer, so the
+ * icosahedron it was built from is dead weight the moment it returns — and
+ * `Object.values(geometries).forEach(dispose)` never sees it, because it was
+ * never in that object. One leaked buffer per mount is small and permanent,
+ * which is the worst kind.
+ */
+const armatureWire = (cinema: boolean): THREE.BufferGeometry => {
+  const source = new THREE.IcosahedronGeometry(0.55, cinema ? 2 : 1);
+  const wire = new THREE.WireframeGeometry(source);
+  source.dispose();
+  return wire;
+};
+
 const createStudioEnv = (gl: THREE.WebGLRenderer, cinema: boolean) => {
   const texture = createStudioEquirect(cinema ? 768 : 512, cinema ? 384 : 256);
   const pmrem = new THREE.PMREMGenerator(gl);
@@ -364,6 +380,7 @@ export const HeroStage = ({
   const iris = useRef<THREE.Group>(null);
   const blades = useRef<THREE.InstancedMesh>(null);
   const core = useRef<THREE.Mesh>(null);
+  const armature = useRef<THREE.LineSegments>(null);
   const glowNear = useRef<THREE.Mesh>(null);
   const glowFar = useRef<THREE.Mesh>(null);
   const cueGroup = useRef<THREE.Group>(null);
@@ -400,7 +417,7 @@ export const HeroStage = ({
   const aspect = useThree((state) => state.viewport.aspect);
   const heightPx = useThree((state) => state.size.height);
   const fit = computeViewportFit(aspect, heightPx);
-  const stageScale = heroSizeFit(fit);
+  const stageScale = heroSizeFit(fit, aspect);
 
   const cinema = quality === "cinema";
   const detail = cinema ? 2 : 1;
@@ -463,6 +480,17 @@ export const HeroStage = ({
       spoke: new THREE.BoxGeometry(0.03, 0.3, 0.045),
       blade: createBladeGeometry(),
       core: new THREE.IcosahedronGeometry(0.3, cinema ? 2 : 1),
+      /*
+       * The armature: a cage between the core and the shell.
+       *
+       * The optic used to be hollow — open the aperture and there was a glowing
+       * point and nothing else, so the inside of a precision instrument had less
+       * in it than the outside. A counter-rotating cage gives the interior a
+       * middle distance: something for the core's light to fall across, and a
+       * second rotation the eye can read the first one against. `WireframeGeometry`
+       * is line segments, so the whole thing is one cheap draw call.
+       */
+      armature: armatureWire(cinema),
       // Two shells: a tight one that hugs the limb, a wide one that gives the
       // optic a bed of atmosphere to sit in.
       glowNear: new THREE.SphereGeometry(
@@ -557,6 +585,13 @@ export const HeroStage = ({
       toneMapped: false,
       depthWrite: false,
     });
+    const armatureMat = new THREE.LineBasicMaterial({
+      color: sceneColors.signal.clone(),
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      toneMapped: false,
+    });
     const coreMat = new THREE.MeshBasicMaterial({
       color: sceneColors.signal.clone(),
       transparent: true,
@@ -615,6 +650,7 @@ export const HeroStage = ({
       blade: bladeMat,
       meridian,
       core: coreMat,
+      armature: armatureMat,
       glowNear: glowNearMat,
       glowFar: glowFarMat,
       cueBody,
@@ -680,6 +716,7 @@ export const HeroStage = ({
       materials.blade.dispose();
       materials.meridian.dispose();
       materials.core.dispose();
+      materials.armature.dispose();
       materials.glowNear.dispose();
       materials.glowFar.dispose();
       materials.cueBody.dispose();
@@ -999,7 +1036,17 @@ export const HeroStage = ({
      */
     materials.face.emissiveIntensity =
       (0.005 + open * 0.085 + master * 0.015 * idle + transit * 0.11) * live;
-    materials.face.envMapIntensity = 1.5 + master * 0.2;
+    /*
+     * The env map is the surface.
+     *
+     * At metalness 0.96 there is no diffuse term left, so this — not the lights —
+     * is what decides whether the optic reads as machined metal or as a dark
+     * lump. At 1.5 the shut shell was almost black on a dark ground, which lost
+     * the facets, the seams and the whole point of the object in the opening
+     * shot. Raising it brightens the *reflection*, so it stays metal rather than
+     * becoming paint.
+     */
+    materials.face.envMapIntensity = 2.7 + master * 0.3;
     materials.face.opacity = live;
     materials.face.depthWrite = open < 0.18;
 
@@ -1165,6 +1212,32 @@ export const HeroStage = ({
     materials.core.opacity =
       (0.16 + corePulse * 0.14 * idle + coreReveal * 0.68) * live * coreClear;
 
+    /*
+     * The armature turns the other way.
+     *
+     * Revealed by the aperture rather than by the clock: it is only visible once
+     * the facets have cleared, which is what makes opening the shell feel like
+     * uncovering a mechanism instead of switching on a light. Counter-rotation is
+     * the whole trick — one rotation alone reads as an object spinning, two
+     * opposed rotations read as a machine running.
+     *
+     * It gives way at the same distance the core does, for the same reason: the
+     * lens flies straight through where it is.
+     */
+    const armatureNode = armature.current;
+    if (armatureNode) {
+      const shown = live * coreClear * (0.1 + open * 0.62);
+      materials.armature.opacity = shown * (0.55 + corePulse * 0.45 * idle);
+      materials.armature.color
+        .copy(sceneColors.signal)
+        .lerp(sceneColors.accent, 0.25 + open * 0.4);
+      armatureNode.visible = shown > 0.01;
+      const spin = time * (0.16 + liveLaw.agitation * 0.1);
+      armatureNode.rotation.y = -spin;
+      armatureNode.rotation.x = spin * 0.42;
+      armatureNode.scale.setScalar(1 + open * 0.22);
+    }
+
     // The limb wraps the shell rather than sitting behind it, so it breathes on
     // the master clock and widens as the aperture lets more light out.
     const nearUniforms = materials.glowNear.uniforms;
@@ -1225,7 +1298,7 @@ export const HeroStage = ({
       // air, or the object is simply tinted rather than lit.
       hemi.current.color.copy(sceneColors.steel);
       hemi.current.groundColor.copy(sceneColors.base);
-      hemi.current.intensity = (0.34 + master * 0.1) * live;
+      hemi.current.intensity = (0.46 + master * 0.12) * live;
     }
     if (keyLight.current) {
       // Mostly neutral with a warm cast. The champagne belongs to the softbox in
@@ -1236,7 +1309,7 @@ export const HeroStage = ({
       // facets a punctual lobe is all-or-nothing — every pixel shares a normal,
       // so the facet is either unlit or solid white with no gradient across it.
       // This is here to separate neighbours by a shade, not to light the object.
-      keyLight.current.intensity = (0.42 + master * 0.12) * live;
+      keyLight.current.intensity = (0.62 + master * 0.14) * live;
       keyLight.current.position.set(
         3.1 + Math.sin(time * 0.25) * 0.35 * idle,
         1.35,
@@ -1247,7 +1320,7 @@ export const HeroStage = ({
       // Cool fill against the warm key. Two warm sources give a flat wash; the
       // temperature split is what makes a curved metal surface turn.
       fillLight.current.color.copy(sceneColors.steel);
-      fillLight.current.intensity = (0.22 + pulse.counter * 0.16) * live;
+      fillLight.current.intensity = (0.32 + pulse.counter * 0.18) * live;
     }
     if (rimLight.current) {
       const angle = time * 0.55 * (0.25 + idle * 0.75);
@@ -1435,6 +1508,14 @@ export const HeroStage = ({
           </>
         ) : null}
       </group>
+
+      <lineSegments
+        ref={armature}
+        geometry={geometries.armature}
+        material={materials.armature}
+        frustumCulled={false}
+        renderOrder={1}
+      />
 
       <mesh
         ref={core}

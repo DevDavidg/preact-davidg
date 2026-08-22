@@ -7,6 +7,7 @@ import { useCopy } from '../../lib/locale'
 import type { Quality } from '../capability'
 import { publishBeats } from '../control/reactorControl'
 import { Console } from '../kit/Console'
+import { layoutActionRow, type ActionRowLayout } from '../kit/actionRow'
 import { layoutConsoleRows, type TypeMetrics } from '../kit/consoleLayout'
 import { createStudioEquirect } from '../studioEnv'
 import { GlyphField } from '../ui/GlyphField'
@@ -31,7 +32,6 @@ import {
   fovCompensation,
   lateralFit,
   typeFit,
-  worldEmForPixels,
 } from '../viewportFit'
 
 const BUDGET: Record<Quality, number> = { cinema: 22000, lite: 9000 }
@@ -45,74 +45,65 @@ interface WorldConsolesProps {
   study?: CaseStudy
 }
 
-const actionLabelBlocks = (
+/**
+ * The rows of controls for every console, laid out once.
+ *
+ * Keyed by console id so both consumers — the plates in `Console` and the label
+ * glyphs in the field below — read the *same* geometry. This is the fix for
+ * labels overflowing their own buttons: there is now exactly one answer to how
+ * wide a plate is and how big its label may be, and it is measured against the
+ * atlas the glyphs are drawn from.
+ */
+const buildActionRows = (
   built: BuiltConsole[],
-  sizeFit: number,
   widthFit: number,
   heightFit: number,
+  atlas: GlyphAtlas,
   type: TypeMetrics,
-  resolve: (action: ConsoleActionSpec) => void,
-): { blocks: TextBlock[]; binders: Array<{ action: ConsoleActionSpec; console: BuiltConsole; index: number }> } => {
-  const blocks: TextBlock[] = []
-  const binders: Array<{
-    action: ConsoleActionSpec
-    console: BuiltConsole
-    index: number
-  }> = []
-
+): Map<string, ActionRowLayout> => {
+  const rows = new Map<string, ActionRowLayout>()
   for (const entry of built) {
     const actions = entry.spec.actions ?? []
     if (!actions.length) continue
-    const height = entry.spec.height * heightFit
-    const gap = Math.min(1.35, (entry.spec.width * widthFit * 0.9) / Math.max(actions.length, 1))
-    const actionY = -height / 2 + 0.24 * sizeFit
-    const actionStartX = actions.length <= 1 ? 0 : -((actions.length - 1) * gap) / 2
-    /*
-     * Label size has to answer to the plate it sits on.
-     *
-     * A fixed em meant a three-action console — the finale, with a mail address,
-     * a language switch and a social link — rendered "ESCRIBIME POR MAIL" at the
-     * same size as "EN", overflowing its own outline and colliding with the plate
-     * beside it. The plates share the row's width, so the em has to come from
-     * how much of that width each label actually needs.
-     */
-    const plateWidth = Math.min(1.2, gap * 0.9, entry.spec.width * widthFit * 0.42)
-    const baseEm = 0.115 * type.scale
-    /*
-     * A control the visitor is meant to press cannot be the smallest type on the
-     * plate. The width-fitting below is still what keeps a long label inside its
-     * own outline, but it now fits down to a measured floor rather than to an
-     * arbitrary fraction of the base size.
-     */
-    const floorEm = worldEmForPixels(14, type.heightPx, type.distance, type.fov)
-    /**
-     * Each label is sized to its own plate, not to the longest one in the row.
-     * Sizing the row to its worst case shrank "EN" to fit "ESCRIBIME POR MAIL";
-     * the floor keeps the spread narrow enough that the row still reads as one
-     * set of controls. The 0.68 is a monospace advance plus the tracking below.
-     */
-    const emFor = (label: string) =>
-      Math.max(
-        floorEm,
-        Math.min(baseEm, (plateWidth * 0.86) / (Math.max(label.length, 1) * 0.68)),
-      )
+    rows.set(
+      entry.spec.id,
+      layoutActionRow({
+        actions: actions.map((action) => ({ id: action.id, label: action.label })),
+        consoleWidth: entry.spec.width * widthFit,
+        consoleHeight: entry.spec.height * heightFit,
+        atlas,
+        type,
+      }),
+    )
+  }
+  return rows
+}
 
-    actions.forEach((action, index) => {
-      const local = new THREE.Vector3(
-        actionStartX + index * gap,
-        actionY,
-        0.1,
-      )
+/** The label glyphs, placed on the plates the row layout just decided. */
+const actionLabelBlocks = (
+  built: BuiltConsole[],
+  rows: Map<string, ActionRowLayout>,
+): TextBlock[] => {
+  const blocks: TextBlock[] = []
+
+  for (const entry of built) {
+    const row = rows.get(entry.spec.id)
+    if (!row) continue
+
+    for (const slot of row.slots) {
+      // Slightly proud of the plate so the letters are never coplanar with the
+      // face they sit on.
+      const local = new THREE.Vector3(slot.x, slot.y, 0.1)
       const world = local
         .clone()
         .applyQuaternion(entry.quaternion)
         .add(entry.position)
 
       blocks.push({
-        id: `${entry.spec.id}-action-${action.id}`,
-        text: action.label,
+        id: `${entry.spec.id}-action-${slot.id}`,
+        text: slot.label,
         role: 'mono',
-        em: emFor(action.label),
+        em: slot.em,
         tracking: 0.06,
         align: 'centre',
         position: world,
@@ -128,12 +119,10 @@ const actionLabelBlocks = (
         weight: 1.25,
         priority: 5,
       })
-      binders.push({ action, console: entry, index })
-      void resolve
-    })
+    }
   }
 
-  return { blocks, binders }
+  return blocks
 }
 
 export const WorldConsoles = ({
@@ -292,6 +281,14 @@ export const WorldConsoles = ({
     [navigate, locale, pathname, copy.contact.email],
   )
 
+  const actionRows = useMemo(
+    () =>
+      atlas
+        ? buildActionRows(placed, widthFit, heightFit, atlas, typeMetrics)
+        : new Map<string, ActionRowLayout>(),
+    [atlas, placed, widthFit, heightFit, typeMetrics],
+  )
+
   const textBlocks = useMemo(() => {
     if (!atlas) return [] as TextBlock[]
     const blocks: TextBlock[] = []
@@ -304,8 +301,16 @@ export const WorldConsoles = ({
             width: entry.spec.width * widthFit,
             height: entry.spec.height * heightFit,
             pad: 0.2 * sizeFit,
-            // A plate with nothing to press gets its full height back.
-            actionBand: entry.spec.actions?.length ? 0.36 : 0.08,
+            /*
+             * The band the controls actually need, not a constant.
+             *
+             * It was 0.36 for any console with actions and 0.08 for the rest,
+             * which was wrong in both directions once the row could stack: a
+             * stacked column of three controls needs roughly a metre, and a
+             * single control needs less than a third of one. Reserving the
+             * measured height is what keeps copy from ever landing on a button.
+             */
+            actionBand: actionRows.get(entry.spec.id)?.band ?? 0.08,
           },
           {
             position: entry.position,
@@ -320,17 +325,9 @@ export const WorldConsoles = ({
         ),
       )
     }
-    const { blocks: labels } = actionLabelBlocks(
-      placed,
-      sizeFit,
-      widthFit,
-      heightFit,
-      typeMetrics,
-      handleAction,
-    )
-    blocks.push(...labels)
+    blocks.push(...actionLabelBlocks(placed, actionRows))
     return blocks
-  }, [atlas, placed, sizeFit, widthFit, heightFit, typeMetrics, handleAction])
+  }, [atlas, placed, sizeFit, widthFit, heightFit, typeMetrics, actionRows])
 
   const instances = useMemo(
     () => (atlas ? layoutBlocks(textBlocks, atlas, BUDGET[quality]) : null),
@@ -363,10 +360,14 @@ export const WorldConsoles = ({
                   ?.id
               : undefined
           }
-          actions={(entry.spec.actions ?? []).map((action) => ({
-            id: action.id,
-            label: action.label,
-            onActivate: () => handleAction(action),
+          actions={(actionRows.get(entry.spec.id)?.slots ?? []).map((slot) => ({
+            ...slot,
+            onActivate: () => {
+              const action = entry.spec.actions?.find(
+                (candidate) => candidate.id === slot.id,
+              )
+              if (action) handleAction(action)
+            },
           }))}
         />
       ))}

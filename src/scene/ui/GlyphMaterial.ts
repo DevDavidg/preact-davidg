@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { reactorControl } from '../control/reactorControl'
+import { liveLaw, reactorControl } from '../control/reactorControl'
 import { sceneColors } from '../sceneColors'
 import { FOG_DENSITY } from '../layout'
 import { STAGGER_RATIO } from './fragmentSettle'
@@ -132,6 +132,12 @@ uniform vec3 uAccent;
 uniform vec3 uFogColor;
 uniform float uLive;
 uniform float uOpacity;
+/** Law: 1 under CHAOS, where the room is a schematic and type is pure UI. */
+uniform float uLawFlat;
+/** Law: colour push toward the accent. */
+uniform float uLawHeat;
+/** The reactor ground, for the halo that keeps copy readable off a plate. */
+uniform vec3 uGround;
 
 varying vec2 vAtlasUv;
 varying vec3 vNormalW;
@@ -157,6 +163,13 @@ void main() {
   float fill = max(dot(normal, fillLight), 0.0) * 0.35;
   float fresnel = pow(1.0 - max(dot(normal, view), 0.0), 2.6);
   float spec = pow(max(dot(reflect(-keyLight, normal), view), 0.0), 36.0);
+
+  // The law flattens the light here, once, for the same reason the shard material
+  // does it: a schematic has no key and no highlight, and every term below wants
+  // to stay written the same way across all three laws.
+  key = mix(key, 0.5, uLawFlat);
+  fill = mix(fill, 0.12, uLawFlat);
+  spec *= 1.0 - uLawFlat;
   float lit = mix(0.35, 1.0, vSettled);
   // Bloom loves hot edges — keep settled type matte enough to stay sharp.
   float bloomGuard = mix(1.0, 0.35, smoothstep(0.7, 1.0, vSettled));
@@ -211,8 +224,29 @@ void main() {
      * Emphasis is a tone; legibility is opacity.
      */
     shade = tint * (0.86 + key * 0.12) * (0.82 + clamp(vWeight, 0.0, 1.2) * 0.18);
+    shade = mix(shade, mix(shade, uAccent, 0.5), uLawHeat * 0.55);
     // Revealed only once it is home, so nothing is read while still in flight.
     alpha = ink * smoothstep(0.08, 0.5, vLock);
+
+    /*
+     * A halo, but only when the plate stops backing the copy.
+     *
+     * Under CHAOS the console face is dialled almost to nothing — that is the
+     * point of the law, the room becomes its own drawing — which leaves the type
+     * sitting directly on the corridor with whatever contrast happens to be
+     * behind it. A dilated sample of the same coverage gives every glyph its own
+     * dark contour, so "pure UI" stays readable instead of trading legibility
+     * for the look. Zero cost under the other two laws: the term is multiplied
+     * out entirely.
+     */
+    float haloAmount = uLawFlat;
+    if (haloAmount > 0.01) {
+      float halo = smoothstep(centre - band * 4.0, centre - band * 0.5, coverage);
+      float haloAlpha = halo * haloAmount * 0.92;
+      // Behind the letter, never over it.
+      shade = mix(uGround * 0.55, shade, ink);
+      alpha = max(alpha, haloAlpha * smoothstep(0.08, 0.5, vLock));
+    }
   } else {
     // Relief / stack matter: darken side facets so elongated depth reads like
     // bay columns, not a flat grid of cubes.
@@ -268,6 +302,9 @@ export class GlyphMaterial extends THREE.ShaderMaterial {
         uInk: { value: sceneColors.ink.clone() },
         uAccent: { value: sceneColors.accent.clone() },
         uFogColor: { value: sceneColors.base.clone() },
+        uLawFlat: { value: 0 },
+        uLawHeat: { value: 0 },
+        uGround: { value: sceneColors.base.clone() },
       },
     })
   }
@@ -280,6 +317,9 @@ export class GlyphMaterial extends THREE.ShaderMaterial {
     uniforms.uVelocity.value = state.velocity
     uniforms.uOpacity.value = state.opacity
     uniforms.uGhost.value = reactorControl.modeAmount.ghost
+    uniforms.uLawFlat.value = liveLaw.flat
+    uniforms.uLawHeat.value = liveLaw.heat
+    uniforms.uGround.value.copy(sceneColors.base)
     uniforms.uInk.value.copy(sceneColors.ink)
     uniforms.uAccent.value.copy(sceneColors.accent)
     uniforms.uFogColor.value.copy(sceneColors.base)

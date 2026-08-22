@@ -155,10 +155,18 @@ export const lateralFit = (fit: number, aspect = REFERENCE_ASPECT) =>
  *
  * The opening shot is the one object that has to land before the visitor has
  * read a word, so it is scaled to command the frame rather than to sit politely
- * inside it. The floor stays generous on short viewports — a phone shrinks the
- * instrument but never loses it.
+ * inside it. Raised again: with the lens now aimed straight at it the optic is
+ * the composition, and at the old ceiling it was a small object in the middle of
+ * a large empty room. The floor stays generous on short viewports — a phone
+ * shrinks the instrument but never loses it.
+ *
+ * Portrait needs its own term. A sphere scaled to fill a tall frame's *height*
+ * is wider than that frame is wide, so on a phone the aperture rings and the
+ * scroll cue below were both being clipped off the sides. The optic is round:
+ * the axis that has to contain it is whichever one is shorter.
  */
-export const heroSizeFit = (fit: number) => 0.72 + fit * 0.46
+export const heroSizeFit = (fit: number, aspect = REFERENCE_ASPECT) =>
+  (0.88 + fit * 0.42) * (1 - portraitAmount(aspect) * 0.34)
 
 /**
  * World em that lands at a given number of CSS pixels tall.

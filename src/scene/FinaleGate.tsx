@@ -170,6 +170,39 @@ varying vec2 vUv;
 
 layout(location = 0) out vec4 fragColor;
 
+/*
+ * Value noise, and an fbm over it.
+ *
+ * Four octaves is the cheapest thing that still has structure at two scales at
+ * once, which is what a fluid needs: without the small octaves the flow is a
+ * smooth gradient sliding around, and without the large ones it is static.
+ */
+float hash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+}
+
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(
+    mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),
+    mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x),
+    u.y
+  );
+}
+
+float fbm(vec2 p) {
+  float total = 0.0;
+  float amplitude = 0.5;
+  for (int octave = 0; octave < 4; octave++) {
+    total += noise(p) * amplitude;
+    p *= 2.02;
+    amplitude *= 0.5;
+  }
+  return total;
+}
+
 void main() {
   vec2 point = (vUv - 0.5) * 2.0;
   float radius = length(point);
@@ -177,75 +210,124 @@ void main() {
 
   float angle = atan(point.y, point.x);
 
-  // Held open by the ring: the field falls off before it reaches the collar
-  // rather than being cut off by the geometry's edge.
-  float aperture = smoothstep(1.0, 0.82, radius);
+  /*
+   * The event horizon, and why the maths below is in log-polar space.
+   *
+   * A black hole's accretion flow is not a texture spinning: the material closer
+   * in orbits *faster*, and it is that shear between neighbouring radii that
+   * stretches the flow into spirals and makes it read as liquid rather than as a
+   * rotating image. Keplerian orbital speed goes as r^-1.5, which is the term in
+   * "orbit" below — the inner edge laps the outer edge many times over.
+   *
+   * Sampling the noise against log(radius) is what makes the spiral
+   * self-similar: equal steps in the coordinate are equal *ratios* of radius, so
+   * the flow has the same character at every scale and appears to fall inward
+   * forever without ever showing a seam or a repeat.
+   */
+  float horizon = mix(0.07, 0.4, uSwallow);
+  float orbitRadius = max(radius, horizon);
+  float orbit = uTime * (0.3 + uSwallow * 1.9) / pow(orbitRadius, 1.5);
 
-  // Rings travelling inward. This is the whole difference between a field and
-  // a blob — a gradient has no direction, and direction is what says the thing
-  // is doing work.
-  float travel = sin((radius * 13.0 - uTime * 1.15) * 3.14159265) * 0.5 + 0.5;
-  travel = pow(travel, 3.0);
+  vec2 flow = vec2(
+    angle * 0.85 + orbit,
+    log(orbitRadius) * 1.7 - uTime * (0.18 + uSwallow * 0.5)
+  );
 
   /*
-   * The accretion swirl, and why it is here.
-   *
-   * Concentric rings alone say "a field is being held open". They do not say
-   * "this is taking something in", because inward travel with no rotation reads
-   * as a pulse. Winding the angle with the radius gives the field a direction of
-   * spin, and tying that spin to the swallow means the mouth visibly starts
-   * turning at the moment the room begins to go into it.
+   * Domain warping: the noise is sampled at a position that is itself displaced
+   * by noise. One sample is clouds; a sample of a warped sample is the curdling,
+   * folding motion of something viscous being drawn through itself.
    */
-  float swirlPhase = angle * 3.0 - uTime * (0.35 + uSwallow * 2.6) + radius * 7.5;
-  float swirl = pow(sin(swirlPhase) * 0.5 + 0.5, 2.4);
-  swirl *= smoothstep(0.05, 0.55, radius) * (0.25 + uSwallow * 1.15);
+  vec2 warp = vec2(fbm(flow * 1.25), fbm(flow * 1.25 + vec2(5.2, 1.3)));
+  float liquid = fbm(flow * 2.05 + warp * (1.1 + uSwallow * 0.9));
+  liquid = pow(clamp(liquid, 0.0, 1.0), 1.35);
+
+  // The disk exists outside the horizon and falls off before the collar, so the
+  // field is held open by the ring rather than cut off by the geometry's edge.
+  float disk = smoothstep(horizon * 0.96, horizon * 1.7, radius);
+  float aperture = smoothstep(1.0, 0.8, radius);
 
   /*
-   * The horizon.
-   *
-   * A ring that tightens as the swallow deepens, so the aperture reads as having
-   * an edge that things fall past rather than as an evenly bright disc. It closes
-   * toward the centre, which is what gives the last stretch of the ending its
-   * "the room went in there" beat.
+   * The photon ring: the thin, much brighter line right at the horizon where the
+   * light that grazed it comes back around. It is the single feature that says
+   * "black hole" rather than "whirlpool", and it tightens as the horizon grows.
    */
-  float horizonAt = mix(0.72, 0.16, uSwallow);
-  float horizon =
-    exp(-pow((radius - horizonAt) * mix(9.0, 26.0, uSwallow), 2.0)) *
-    (0.18 + uSwallow * 1.35);
+  float ring = exp(-pow((radius - horizon * 1.08) / (0.055 * (1.0 - uSwallow * 0.45)), 2.0));
 
-  float core = exp(-radius * radius * mix(3.4, 1.1, uSwallow));
+  /*
+   * Doppler beaming: the side of the disk rotating toward the viewer is brighter.
+   * Real images of this are markedly lopsided, and the asymmetry is most of what
+   * keeps the aperture from reading as a decorative target.
+   */
+  float beam = 0.55 + 0.45 * cos(angle - 0.6);
+
   float body =
-    core * (0.22 + uPower * 0.42 + uSwallow * 0.75) +
-    travel * (0.1 + uPower * 0.2) +
-    swirl * 0.5 +
-    horizon +
-    uHandshake * (core * 0.45 + travel * 0.3);
-
-  vec3 tint = mix(uOuter, uInner, clamp(core * 1.1 + uHandshake * 0.3, 0.0, 1.0));
-  // The mouth runs hotter as it feeds: the centre pushes toward the inner tone
-  // while the rim keeps the accent, which separates near from far in the field.
-  tint = mix(tint, uInner, uSwallow * 0.45 * (1.0 - radius));
-  vec3 colour = tint * (0.5 + body * 0.9);
+    liquid * disk * beam * (0.3 + uPower * 0.4 + uSwallow * 0.95) +
+    ring * (0.35 + uSwallow * 1.5) +
+    uHandshake * disk * 0.35;
 
   /*
-   * A knee below clipping.
-   *
-   * Additive blending over a hot accent drove the middle of the aperture to
-   * pure white, and a white disc has no hue, no depth and no material — it
-   * reads as a blown highlight rather than as a field. Rolling the top end off
-   * keeps the centre the brightest thing in the room while it stays champagne.
+   * Colour by depth into the well: the outer flow keeps the room's accent, the
+   * material about to cross the horizon runs hot and pale. Shifting hue with
+   * radius rather than with brightness is what gives the aperture the sense of
+   * having a *near* and a *far*.
+   */
+  float depth = smoothstep(horizon * 3.0, horizon, radius);
+  vec3 tint = mix(uOuter, uInner, depth * (0.55 + uSwallow * 0.45));
+  tint = mix(tint, vec3(1.0), ring * 0.45);
+  vec3 colour = tint * (0.35 + body);
+
+  /*
+   * A knee below clipping. Additive blending over a hot accent drives the middle
+   * of the aperture to pure white, and a white disc has no hue, no depth and no
+   * material — it reads as a blown highlight rather than as a field.
    */
   colour = colour / (1.0 + max(colour - 0.72, 0.0) * 1.9);
 
-  float alpha = body * aperture * uOpacity;
+  // Nothing escapes from inside the horizon — that is the whole idea.
+  float escaped = smoothstep(horizon * 0.9, horizon * 1.12, radius);
+
+  float alpha = body * aperture * escaped * uOpacity;
   if (alpha < 0.004) discard;
   fragColor = vec4(colour, clamp(alpha, 0.0, 1.0));
+}
+`
+
+/**
+ * The hole itself.
+ *
+ * A separate, *non*-additive disc drawn under the accretion shader. Additive
+ * blending cannot draw darkness — it can only fail to add light — so with the
+ * screen-space ignition wash rising through the finale the centre of the aperture
+ * came out pale grey. A black hole whose middle is brighter than the room is a
+ * whirlpool. This occludes instead, which is what gives the photon ring something
+ * to be a ring around.
+ */
+const horizonFragmentShader = /* glsl */ `
+uniform float uSwallow;
+uniform float uOpacity;
+uniform vec3 uGround;
+
+varying vec2 vUv;
+
+layout(location = 0) out vec4 fragColor;
+
+void main() {
+  float radius = length((vUv - 0.5) * 2.0);
+  if (radius > 1.0) discard;
+  // Soft shoulder so the silhouette never shows the quad it is drawn on.
+  float solid = smoothstep(1.0, 0.72, radius);
+  float alpha = solid * uOpacity * (0.35 + uSwallow * 0.65);
+  if (alpha < 0.004) discard;
+  fragColor = vec4(uGround * 0.15, clamp(alpha, 0.0, 1.0));
 }
 `
 
 export const FinaleGate = () => {
   const group = useRef<THREE.Group>(null)
   const ring = useRef<THREE.Mesh>(null)
+  const portal = useRef<THREE.Mesh>(null)
+  const horizon = useRef<THREE.Mesh>(null)
   const spin = useRef(0)
 
   const geometries = useMemo(
@@ -254,6 +336,7 @@ export const FinaleGate = () => {
       lintel: gateLintel(),
       ring: gateRing(),
       portal: new THREE.PlaneGeometry(RING_RADIUS * 1.7, RING_RADIUS * 1.7),
+      horizon: new THREE.PlaneGeometry(RING_RADIUS * 1.7, RING_RADIUS * 1.7),
     }),
     [],
   )
@@ -299,14 +382,34 @@ export const FinaleGate = () => {
     [],
   )
 
+  const horizonMaterial = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        glslVersion: THREE.GLSL3,
+        vertexShader: portalVertexShader,
+        fragmentShader: horizonFragmentShader,
+        transparent: true,
+        depthWrite: false,
+        // Normal blending on purpose: this one is here to subtract, not to add.
+        blending: THREE.NormalBlending,
+        uniforms: {
+          uSwallow: { value: 0 },
+          uOpacity: { value: 0 },
+          uGround: { value: sceneColors.base.clone() },
+        },
+      }),
+    [],
+  )
+
   useEffect(
     () => () => {
       Object.values(geometries).forEach((geometry) => geometry.dispose())
       material.dispose()
       portalMaterial.dispose()
+      horizonMaterial.dispose()
       envMap.dispose()
     },
-    [geometries, material, portalMaterial, envMap],
+    [geometries, material, portalMaterial, horizonMaterial, envMap],
   )
 
   useFrame((state) => {
@@ -368,20 +471,17 @@ export const FinaleGate = () => {
      */
     spin.current = time * 0.12 + swallow.amount * Math.PI * 5.5
     if (ring.current) {
-      ring.current.rotation.z =
-        spin.current + power * 0.6 + handshake * 1.4
+      ring.current.rotation.z = spin.current + power * 0.6 + handshake * 1.4
     }
 
     portalMaterial.uniforms.uTime.value = time
     portalMaterial.uniforms.uPower.value = Math.max(power, swallow.pull)
     portalMaterial.uniforms.uHandshake.value = handshake
     portalMaterial.uniforms.uSwallow.value = swallow.amount
-    // The field only exists once there is a ring to hold it.
-    portalMaterial.uniforms.uOpacity.value =
-      Math.max(
-        THREE.MathUtils.smoothstep(ease, 0.45, 0.95) * (0.35 + power * 0.65),
-        swallow.amount,
-      )
+    portalMaterial.uniforms.uOpacity.value = Math.max(
+      THREE.MathUtils.smoothstep(ease, 0.45, 0.95) * (0.35 + power * 0.65),
+      swallow.amount,
+    )
     portalMaterial.uniforms.uInner.value
       .copy(sceneColors.signal)
       .lerp(sceneColors.ink, 0.3 + handshake * 0.25)
@@ -389,19 +489,35 @@ export const FinaleGate = () => {
       .copy(sceneColors.accent)
       .lerp(sceneColors.signal, 0.35)
 
+    horizonMaterial.uniforms.uSwallow.value = swallow.amount
+    horizonMaterial.uniforms.uGround.value.copy(sceneColors.base)
+    horizonMaterial.uniforms.uOpacity.value =
+      THREE.MathUtils.smoothstep(ease, 0.5, 0.95) * (0.25 + swallow.pull * 0.75)
+
+    /*
+     * Only the aperture moves.
+     *
+     * The whole gate used to be scaled by the swallow — `root.scale` took
+     * `1 + pull * 1.35 + beyond * 2.2` — so scrolling through the finale visibly
+     * inflated the columns, the lintel and the brackets along with the field. A
+     * building does not grow when you fall into the doorway. The structure now
+     * holds a fixed scale and every bit of the ending's motion belongs to the two
+     * things that should have it: the stator turning, and the well opening.
+     *
+     * The plane still has to grow, and by more than the group ever did, because
+     * "the portal swallows everything" ends with the aperture being the entire
+     * frame. Both discs scale together so the horizon stays exactly concentric
+     * with the photon ring drawn around it.
+     */
+    const mouth = 1 + swallow.pull * 1.6 + swallow.beyond * 3.4
+    if (portal.current) portal.current.scale.setScalar(mouth)
+    if (horizon.current) horizon.current.scale.setScalar(mouth)
+
     const root = group.current
     if (root) {
       root.visible = ease > 0.02
-      /*
-       * The mouth opens toward the lens as the swallow deepens. Scaling the whole
-       * gate rather than only the aperture is what makes it read as the visitor
-       * being drawn *into* it: the structure grows past the frame, which is what a
-       * doorway does when you fall through it.
-       */
-      root.scale.setScalar(
-        (0.9 + ease * 0.12 + power * 0.05 + handshake * 0.06) *
-          (1 + swallow.pull * 1.35 + swallow.beyond * 2.2),
-      )
+      // Assemble pop only — no scroll-driven scaling past that.
+      root.scale.setScalar(0.9 + ease * 0.12)
     }
   })
 
@@ -436,7 +552,17 @@ export const FinaleGate = () => {
         position={[0, RING_Y, 0.1]}
         frustumCulled={false}
       />
+      {/* Drawn first: the darkness the accretion ring is a ring *around*. */}
       <mesh
+        ref={horizon}
+        geometry={geometries.horizon}
+        material={horizonMaterial}
+        position={[0, RING_Y, -0.01]}
+        renderOrder={1}
+        frustumCulled={false}
+      />
+      <mesh
+        ref={portal}
         geometry={geometries.portal}
         material={portalMaterial}
         position={[0, RING_Y, 0]}

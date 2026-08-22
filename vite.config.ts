@@ -18,10 +18,21 @@ export default defineConfig({
 
   build: {
     /*
+     * Emit the client manifest. The bundle budget walks it to classify every
+     * chunk by *who can actually load it* — critical path, base scene, or the
+     * cinema-only layer — because that is the honest measure of what a phone
+     * versus a capable desktop is asked to download. A filename convention
+     * (`manualChunks` naming) was tried first and abandoned: under rolldown it
+     * distorted the shared vendor chunk and silently pulled React internals onto
+     * the critical path. The import graph cannot lie; a name can.
+     */
+    manifest: true,
+
+    /*
      * The scene chunk is knowingly large. `scripts/bundle-budget.mjs` is what
      * actually gates size, per chunk and against the real critical path, so this
      * only silences a warning that cannot tell the two apart.
      */
-    chunkSizeWarningLimit: 700,
+    chunkSizeWarningLimit: 1600,
   },
 })
