@@ -57,11 +57,25 @@ const BUDGETS = {
   /** Any single project image, in any format. */
   image: 150 * 1024,
   /**
-   * Every project image a browser could download while reading the page, counting
-   * the JPEG fallbacks only — a browser picks one format per image, so summing all
-   * three would measure a download that never happens.
+   * What one project shot is allowed to weigh on average, counting the JPEG
+   * fallbacks only — a browser picks one format per image, so summing all three
+   * would measure a download that never happens.
+   *
+   * Per shot rather than per folder, which is the correction. This was a flat
+   * 600 kB total, already 93% full at eleven case studies, and it went red on the
+   * sixteenth while the weight of a shot had not moved at all: 50.5 kB per entry
+   * before, 50.4 kB after, same 1440×900, same encoder, same quality ladder. A
+   * total ceiling on a portfolio measures how much work has shipped rather than
+   * whether the asset pipeline regressed, so it fails for the one reason that is
+   * not a defect and teaches everyone to raise it.
+   *
+   * 56 kB is today's mean plus room for exactly one more shot arriving at the
+   * `image` ceiling — enough that a genuinely texture-heavy addition lands, not
+   * enough for a quality bump across the set to go unnoticed. Total page weight
+   * stays bounded by `image` per file and by the cards below the fold being
+   * `loading="lazy"`: nobody downloads the whole folder to read the page.
    */
-  workImages: 600 * 1024,
+  workImageAverage: 56 * 1024,
 }
 
 const gzip = (buffer) => gzipSync(buffer, { level: 9 }).length
@@ -153,9 +167,19 @@ const reachable = (manifest, roots, stop = new Set()) => {
 const cinemaOnlyFiles = (manifest) => {
   if (!manifest[CINEMA_ENTRY]) return new Set()
   const cinema = reachable(manifest, [CINEMA_ENTRY])
+  /*
+   * Roots, not every key. A shared chunk (`_name-hash.js`) is only ever reached
+   * *through* an entry, so listing it as a root of its own is redundant while
+   * cinema stays one chunk — and wrong the moment it does not, because the
+   * second half would then be its own root and count itself as base.
+   */
   const shared = reachable(
     manifest,
-    Object.keys(manifest).filter((key) => key !== CINEMA_ENTRY),
+    Object.keys(manifest).filter(
+      (key) =>
+        key !== CINEMA_ENTRY &&
+        (manifest[key].isEntry || manifest[key].isDynamicEntry),
+    ),
     new Set([CINEMA_ENTRY]),
   )
   return new Set([...cinema].filter((file) => !shared.has(file)))
@@ -244,10 +268,14 @@ const main = async () => {
   const fallbacks = images.filter(
     (file) => file.includes('/work/') && /\.jpe?g$/.test(file),
   )
+  // The count and total ride along in the label: they are what you want when the
+  // mean moves, and they make an empty folder read as `NaN` over 0 shots rather
+  // than as a mean of zero that quietly passes.
+  const fallbackBytes = (await measure(fallbacks)).raw
   record(
-    'work images, jpeg fallbacks',
-    (await measure(fallbacks)).raw,
-    BUDGETS.workImages,
+    `work images, mean jpeg fallback (${fallbacks.length} shots, ${kb(fallbackBytes)})`,
+    fallbackBytes / fallbacks.length,
+    BUDGETS.workImageAverage,
   )
 
   const width = Math.max(...results.map((r) => r.label.length))

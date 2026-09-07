@@ -322,8 +322,15 @@ vec4 bhDisk(vec3 pos, float radius, vec3 tangent, float column) {
    * an unbounded phase. sin of the half-angle keeps it one bump per orbit with no
    * seam at ±π.
    */
+  /*
+   * x*x, never pow(x, 2.0): pow of a negative base is undefined, and this base is
+   * a sine, so half the disk was handing exp() a NaN. A NaN here does not stay
+   * local — bloom is downstream, and one bad texel spreads through the mip chain
+   * and takes the whole frame black. Same reason at the ring.
+   */
+  float clump = sin((angle - uFlow * 0.85) * 0.5) * 2.2;
   float spot =
-    exp(-pow(sin((angle - uFlow * 0.85) * 0.5) * 2.2, 2.0)) *
+    exp(-clump * clump) *
     pow(uInner / max(radius, uInner), 2.0);
   // A clump adds gas, it does not replace it — hence a sum and not a max.
   grain = min(1.35, grain + spot * 0.55);
@@ -568,9 +575,13 @@ vec3 bhJet(vec3 origin, vec3 dir) {
 
   // Paler than the rim, and dark until the gate is fully armed: in the corridor
   // there are no two searchlights coming out of the stator.
+  // ...and "dark" means off, not dim: a window on the last sixth of the gate,
+  // where the room has already gone. uGate² still left two visible beams
+  // standing in the corridor at half a gate.
   vec3 tint = mix(uChill, uHot, 0.35);
   return tint * core * grain * envelope * boost *
-    uGate * uGate * uCharge * (0.12 + uSuction * 0.5 + uSwallow * 0.3);
+    smoothstep(0.85, 1.0, uGate) * uCharge *
+    (0.12 + uSuction * 0.5 + uSwallow * 0.3);
 }
 
 void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth, out vec4 outputColor) {
@@ -595,10 +606,13 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth,
    * would have been "unchanged" at the cost of a hundred integration steps.
    */
   float mask = (1.0 - smoothstep(uMask * 0.74, uMask, length(offset))) * uGate;
-  // A gulp tightens the well for a beat — denser lensing in the core — then
-  // releases. Expanding the mask on surge is what used to flash the whole frame
-  // black when depth was empty; intensity lives in charge/flow instead.
-  mask *= 1.0 + uSuction * 0.28;
+  /*
+   * Nothing here rides the gulp. Driving the mask off suction — its size *or* its
+   * opacity — is what flashed the frame: the mask reaches the corners at its
+   * ceiling, and forcing its feather opaque for a beat handed the corners to a
+   * bent sample that lands off-frame, i.e. to the abyss. A gulp belongs in the
+   * gas, and it is there: uSuction is in the emission, the flow, the drain, the ring.
+   */
 
   /*
    * What the room puts in front of the well does not get bent by it.
@@ -618,9 +632,31 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth,
    *
    * The guard lifts as the room goes in. Once the corridor is inside the field,
    * "in front of" has stopped meaning anything worth protecting.
+   *
+   * But the guard cedes at the core, and it has to.
+   *
+   * A plate is a rectangle, and the guard is a step: where a plate's edge crossed
+   * the lensed region the guard turned the pass off along a straight line, which
+   * read as a hard vertical seam down the frame with the left half lensed and the
+   * right half not. That is a worse artefact than the one the guard exists to
+   * prevent, and it got obvious rather than newly-broken once the backdrop behind
+   * the well grew real signal to be discontinuous *in* — the same seam over an
+   * empty sky had nothing to show it. Feathering the threshold cannot fix it: the step
+   * is in the plate's geometry, not in the threshold.
+   *
+   * So the guard is scoped to where it earns its keep. Inside a third of the mask
+   * live the shadow and the photon ring — the shadow's apparent radius runs
+   * 0.29 of the mask down to 0.14 as the drain opens it, so a third clears it at
+   * every stop — and there the well wins unconditionally, because the one hard
+   * rule of this page is that nothing stands in front of the horizon. Out at the
+   * feather, where a console at reading distance actually sits and where 1/b has
+   * taken the deflection down to nearly nothing anyway, the guard keeps full
+   * authority. The plate edge still exists out there; it is now a step in a term
+   * the mask is already fading to zero, which is why it stops reading as an edge.
    */
   float ahead = smoothstep(uNearGuard - 0.004, uNearGuard, depth);
-  mask *= mix(1.0, ahead, uDepthGuard);
+  float cede = smoothstep(uMask * 0.34, uMask * 0.78, length(offset));
+  mask *= mix(1.0, ahead, uDepthGuard * cede);
   if (mask < 0.004) return;
 
   vec4 far = uRayBasis * vec4(uv * 2.0 - 1.0, 1.0, 1.0);
@@ -870,15 +906,17 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth,
    * percent of the shadow's diameter. σ = 2.2% of the radius is that, and it is the
    * narrowest a Gaussian can be here without the line breaking up between pixels.
    */
-  float ring = exp(-pow((impact - capture) / max(capture * 0.022, 0.0001), 2.0));
+  // Signed base — impact runs under capture everywhere inside the shadow — so
+  // squared, not pow(). See the clump in bhDisk.
+  float off1 = (impact - capture) / max(capture * 0.022, 0.0001);
+  float ring = exp(-off1 * off1);
   /*
    * N=2: the same light after one more winding — thinner, a hair further in,
    * and about 1/e of N=1's amplitude. The cascade stops here on purpose: a
    * finite RK4 budget cannot produce N=3, and the image does not promise it.
    */
-  ring += 0.37 * exp(
-    -pow((impact - capture * 0.993) / max(capture * 0.010, 0.0001), 2.0)
-  );
+  float off2 = (impact - capture * 0.993) / max(capture * 0.010, 0.0001);
+  ring += 0.37 * exp(-off2 * off2);
 
   /*
    * Crossing: the blaze, and then nothing.
@@ -924,7 +962,15 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth,
   // that peaks near 6, which put the single most recognisable feature of the whole
   // image a factor of thirty under the band it rings — it read as a seam on the
   // shadow rather than as the filament that only a black hole can draw.
+  //
+  // Brighter on the flat side of the D, and not by coincidence: the side the
+  // dragging pulls the capture radius in on is the side the gas co-rotates toward
+  // the lens on, so the filament is beamed there for the same reason the disk's
+  // limb is. Reusing side — the prograde weight the shadow was cut with — lands
+  // the bright arc on the flattened edge for free. An even ring around an uneven
+  // shadow is the one thing none of the references show.
   vec3 halo = mix(uHot, uChill, 0.5) * ring *
+    mix(0.5, 1.5, 0.5 + 0.5 * side) *
     (0.55 + uSwallow * 0.9 + uSuction * 0.25) * uCharge * blaze;
 
   /*

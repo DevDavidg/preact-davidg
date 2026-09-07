@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { samePath } from '../lib/routes'
 import type { ExperienceState } from '../scene/capability'
 import { resetSceneMotion } from '../scene/sceneState'
 import { refreshLayout, scrollToSection } from './ticker'
@@ -60,7 +61,11 @@ export const useAnchorScroll = () => {
 
       const url = new URL(anchor.href, window.location.href)
       // Same-document anchors only; a link elsewhere keeps normal routing.
-      if (url.pathname !== window.location.pathname || !url.hash) return
+      // `samePath` rather than `===` because a visitor who arrived on the
+      // trailing-slash spelling would otherwise match none of their own
+      // anchors, and every in-page link would silently fall back to the
+      // native jump.
+      if (!samePath(url.pathname, window.location.pathname) || !url.hash) return
 
       const id = url.hash.slice(1)
       const target = document.getElementById(id)

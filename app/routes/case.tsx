@@ -16,7 +16,7 @@ import { usePerformanceGovernor } from '../../src/hooks/usePerformanceGovernor'
 import { usePointerTracking } from '../../src/hooks/usePointerTracking'
 import { trackEvent } from '../../src/lib/analytics'
 import { useCopy } from '../../src/lib/locale'
-import { casePath, cvPath } from '../../src/lib/routes'
+import { casePath, cvPath, samePath } from '../../src/lib/routes'
 import { CASE_SECTION_IDS, caseRailChapters } from '../../src/lib/sceneRoutes'
 import { caseSchema, pageMeta } from '../../src/lib/seo'
 import { useReactorScroll, useScrollRefresh } from '../../src/motion/scroll'
@@ -27,7 +27,7 @@ export const meta: MetaFunction = ({ params, location }) => {
   const locale = isLocale(params.locale) ? params.locale : 'es'
   const study = findCase(locale, params.slug)
 
-  if (!study || location.pathname !== casePath(locale, study.slug)) {
+  if (!study || !samePath(location.pathname, casePath(locale, study.slug))) {
     return pageMeta({
       locale,
       path: location.pathname,
@@ -73,7 +73,7 @@ const Case = () => {
     if (study) trackEvent('case_open', study.slug)
   }, [study])
 
-  if (!study || pathname !== casePath(locale, study.slug)) return <NotFound />
+  if (!study || !samePath(pathname, casePath(locale, study.slug))) return <NotFound />
 
   const chapters = caseRailChapters(copy, study)
   const canvas = rendersCanvas(experience)

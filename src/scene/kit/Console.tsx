@@ -267,7 +267,8 @@ export const Console = ({
       THREE.MathUtils.smoothstep(assemble, 0.15, 0.75) *
       held *
       (1 - swallow.drain)
-    faceMat.opacity = faceOpacity * 0.98
+    // Uplink is a window onto the well — airy face, no depth punch-out.
+    faceMat.opacity = faceOpacity * (uplink ? 0.45 : 0.98)
     // Never occlude glyphs — letters assemble in front of an opaque writer.
     faceMat.depthWrite = false
     rimMat.opacity = faceOpacity * (0.4 + focus.current * 0.3)
@@ -279,7 +280,7 @@ export const Console = ({
     // occlude anything, and writing depth for one would punch a hole in the post
     // chain wherever a console was still arriving.
     const occluderNode = occluder.current
-    if (occluderNode) occluderNode.visible = faceOpacity > 0.85
+    if (occluderNode) occluderNode.visible = !uplink && faceOpacity > 0.85
   })
 
   return (

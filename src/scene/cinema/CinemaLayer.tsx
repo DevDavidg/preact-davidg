@@ -393,14 +393,17 @@ export const CinemaLayer = ({ fidelity }: CinemaLayerProps) => {
        * luminance buffer went empty for a frame).
        */
       const holeOwns = holeGateFor(build) * (0.55 + swallow.amount * 0.45)
-      bloomEffect.intensity =
+      // Keep an empty luminance mip from blanking the composer for a frame.
+      bloomEffect.intensity = Math.max(
+        0.08,
         (0.35 +
           transit * transit * 1.5 +
           power * 0.55 +
           swallow.surge * 1.8 +
           swallow.pull * 0.45 +
           reactorControl.uplink * 0.45) *
-        (1 - holeOwns * 0.9)
+          (1 - holeOwns * 0.9),
+      )
       // CHAOS runs hot, so it lowers the bar for what counts as a highlight.
       bloomEffect.luminanceMaterial.threshold =
         0.62 - liveLaw.heat * 0.22 + holeOwns * 0.18

@@ -4,7 +4,7 @@ import { LOCALES, type Locale } from '../content'
 import { useCopy } from '../lib/locale'
 import { rememberLocale } from '../lib/locale'
 import { trackEvent } from '../lib/analytics'
-import { homePath, translatePath, type SectionId } from '../lib/routes'
+import { homePath, samePath, translatePath, type SectionId } from '../lib/routes'
 import { useSceneStore } from '../scene/sceneState'
 import { SoundToggle } from './SoundToggle'
 import { Action } from './ui/Action'
@@ -34,7 +34,7 @@ export const Nav = () => {
   const [open, setOpen] = useState(false)
   const dialog = useRef<HTMLDialogElement>(null)
 
-  const onHome = pathname === homePath(locale)
+  const onHome = samePath(pathname, homePath(locale))
 
   const closeMenu = useCallback(() => setOpen(false), [])
 

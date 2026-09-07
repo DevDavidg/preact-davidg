@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { liveLaw, reactorControl } from '../control/reactorControl'
 import { sceneColors } from '../sceneColors'
+import { sceneState } from '../sceneState'
 import { FOG_DENSITY } from '../layout'
 import { STAGGER_RATIO } from './fragmentSettle'
 
@@ -369,8 +370,17 @@ export class GlyphMaterial extends THREE.ShaderMaterial {
      * otherwise draw straight over the event horizon, which is the one object on
      * the page that must never have anything in front of it. Same exception, and
      * the same threshold, as `Lattice` and `ReconstructMaterial`.
+     *
+     * On the swallow, not on `recall` — which is the threshold this comment always
+     * claimed and the code did not have. `recall` is the *room coming back*, and it
+     * finishes at drain 0.72, around swallow 0.68; the shadow is at its largest
+     * from there to the end of the rail. Keying the depth test to it dropped the
+     * protection exactly across the stretch it was written for, and the only reason
+     * that was not visible is that `uDepthGuard` has faded by then too, so the pass
+     * overwrites the type anyway. Two mistakes cancelling is not a guarantee, and
+     * it stops being one the moment either schedule moves.
      */
-    this.depthTest = state.recall > 0.01
+    this.depthTest = sceneState.swallow >= 0.12
     uniforms.uLawFlat.value = liveLaw.flat
     uniforms.uLawHeat.value = liveLaw.heat
     uniforms.uGround.value.copy(sceneColors.base)

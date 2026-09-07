@@ -18,6 +18,21 @@ export const casePath = (locale: Locale, slug: string) =>
 
 export const cvPath = (locale: Locale) => `/${locale}/cv`
 
+/**
+ * Path equality that ignores a trailing slash, for anything routing on the URL.
+ *
+ * The builders above never emit one, but `location.pathname` does: under
+ * `v8_trailingSlashAwareDataRequests` the prerenderer renders
+ * `/es/proyectos/ag-valores/` while the browser visits the same page as
+ * `/es/proyectos/ag-valores`. An `===` guard was therefore false on the server
+ * and true on the client, which prerendered all 32 case studies as NotFound
+ * with `noindex` and then had hydration swap in the real tree (React #418).
+ * Slash or no slash is one page — a guard must not be able to tell them apart,
+ * so this does not get simplified back to `===`.
+ */
+export const samePath = (a: string, b: string) =>
+  a.replace(/\/+$/, '') === b.replace(/\/+$/, '')
+
 export const NOT_FOUND_PATH = '/404'
 
 export const LOCALE_GATE_PATH = '/'

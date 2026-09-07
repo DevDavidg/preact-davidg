@@ -30,9 +30,9 @@
     "semantic_hash": ""
   },
   "app/routes/case.tsx": {
-    "mtime": 1787103492.5030205,
-    "seen": 1788470456.1296089,
-    "ast_hash": "51c7138c44ec58822225ace2c1daff1c",
+    "mtime": 1788788060.7665436,
+    "seen": 1788788066.576601,
+    "ast_hash": "3f6df0d43618e34be35a5598283c731b",
     "semantic_hash": ""
   },
   "app/routes/cv.tsx": {
@@ -84,9 +84,9 @@
     "semantic_hash": ""
   },
   "scripts/bundle-budget.mjs": {
-    "mtime": 1788483684.0218306,
-    "seen": 1788483703.5361888,
-    "ast_hash": "c1d1631b5263aa63eec7599a51480129",
+    "mtime": 1788788081.5794432,
+    "seen": 1788788493.187787,
+    "ast_hash": "ad0dbcf5719832f97014827b5d6f05e8",
     "semantic_hash": ""
   },
   "scripts/capture-shots.ts": {
@@ -198,9 +198,9 @@
     "semantic_hash": ""
   },
   "src/components/Nav.tsx": {
-    "mtime": 1786293172.3287604,
-    "seen": 1788470456.129626,
-    "ast_hash": "090f7988c4ca73e931f7ce0305095152",
+    "mtime": 1788788063.3516057,
+    "seen": 1788788066.576621,
+    "ast_hash": "09f619b4660b2d0d349da11829023248",
     "semantic_hash": ""
   },
   "src/components/OperatorBar.tsx": {
@@ -366,9 +366,9 @@
     "semantic_hash": ""
   },
   "src/lib/routes.ts": {
-    "mtime": 1787102694.647869,
-    "seen": 1788470456.129637,
-    "ast_hash": "9b039caac9e8b7be338274c364b98089",
+    "mtime": 1788788379.1620958,
+    "seen": 1788788493.187818,
+    "ast_hash": "ca620188b9839d8a0735de2b648dc78d",
     "semantic_hash": ""
   },
   "src/lib/sceneRoutes.ts": {
@@ -426,9 +426,9 @@
     "semantic_hash": ""
   },
   "src/scene/FinaleGate.tsx": {
-    "mtime": 1788751652.6356857,
-    "seen": 1788751661.796365,
-    "ast_hash": "1d69eff44bcca5bf0305f28f080aa6b4",
+    "mtime": 1788788385.0430179,
+    "seen": 1788788493.187824,
+    "ast_hash": "b213285037446bd889bec6b7c1100e1c",
     "semantic_hash": ""
   },
   "src/scene/GridFloor.tsx": {
@@ -468,9 +468,9 @@
     "semantic_hash": ""
   },
   "src/scene/Rig.tsx": {
-    "mtime": 1788750883.1024737,
-    "seen": 1788750955.4197388,
-    "ast_hash": "5bf6ac862b0e6dc5a0c52ae0ad089918",
+    "mtime": 1788755309.2118227,
+    "seen": 1788788066.5766468,
+    "ast_hash": "05800880379a88fa9f24e28d3fab13cd",
     "semantic_hash": ""
   },
   "src/scene/SignalConduits.tsx": {
@@ -486,9 +486,9 @@
     "semantic_hash": ""
   },
   "src/scene/blackHole.ts": {
-    "mtime": 1788751621.8636875,
-    "seen": 1788751661.796373,
-    "ast_hash": "0c1057038683a128ec26f960ab88621c",
+    "mtime": 1788787680.355909,
+    "seen": 1788788066.576649,
+    "ast_hash": "c7ece6f1d9b6708ac0747f458c11be57",
     "semantic_hash": ""
   },
   "src/scene/capability.ts": {
@@ -498,15 +498,15 @@
     "semantic_hash": ""
   },
   "src/scene/cinema/BlackHoleEffect.ts": {
-    "mtime": 1788751652.7798383,
-    "seen": 1788751661.796375,
-    "ast_hash": "2d0a48e2ba0caac5874f7b779d5742ed",
+    "mtime": 1788788005.8546808,
+    "seen": 1788788066.57665,
+    "ast_hash": "b978fa70e05ba68664dcc31521fedc03",
     "semantic_hash": ""
   },
   "src/scene/cinema/CinemaLayer.tsx": {
-    "mtime": 1788751584.3144875,
-    "seen": 1788751661.796376,
-    "ast_hash": "0eb122f72458ad86daaec511cdd1493b",
+    "mtime": 1788787719.4402237,
+    "seen": 1788788066.576651,
+    "ast_hash": "fec331267a6a13afc6910c1f385a7e57",
     "semantic_hash": ""
   },
   "src/scene/consoles/TelemetryStrip.tsx": {
@@ -534,9 +534,9 @@
     "semantic_hash": ""
   },
   "src/scene/consoles/homeConsoles.ts": {
-    "mtime": 1788486717.3372717,
-    "seen": 1788522997.8242402,
-    "ast_hash": "7bc9c14ce894b7a31b27994e10b084f4",
+    "mtime": 1788787662.923364,
+    "seen": 1788788066.576653,
+    "ast_hash": "353aaf50fa6dd1ad801d0f7162fcfd53",
     "semantic_hash": ""
   },
   "src/scene/consoles/placement.ts": {
@@ -594,9 +594,9 @@
     "semantic_hash": ""
   },
   "src/scene/kit/Console.tsx": {
-    "mtime": 1788732965.5708206,
-    "seen": 1788742110.2803059,
-    "ast_hash": "9464b0a36ae25f707eb839d80ce5786f",
+    "mtime": 1788787664.325936,
+    "seen": 1788788066.576659,
+    "ast_hash": "52261ed071fb233594186641092df4a1",
     "semantic_hash": ""
   },
   "src/scene/kit/ModuleRig.tsx": {
@@ -690,9 +690,9 @@
     "semantic_hash": ""
   },
   "src/scene/ui/GlyphMaterial.ts": {
-    "mtime": 1788733669.3389552,
-    "seen": 1788742110.280364,
-    "ast_hash": "4d0b1efff693fecd6b5a9a57db098d3c",
+    "mtime": 1788787563.3266976,
+    "seen": 1788788066.576669,
+    "ast_hash": "c5f7e0155c08f1458eda86ecefd1e8a9",
     "semantic_hash": ""
   },
   "src/scene/ui/ReactorType.tsx": {
@@ -1038,57 +1038,81 @@
     "semantic_hash": ""
   },
   "src/scene/CosmicWorld.tsx": {
-    "mtime": 1788745970.7441776,
-    "seen": 1788750955.419734,
-    "ast_hash": "2b2ce4a508dac13c746251b14fcb46a2",
+    "mtime": 1788788083.1495943,
+    "seen": 1788788493.187823,
+    "ast_hash": "76aa3931873fdcc0e7d85b50b753d8be",
     "semantic_hash": ""
   },
   "public/cosmos/CREDITS.txt": {
-    "mtime": 1788741736.892182,
-    "seen": 1788742110.280388,
-    "ast_hash": "b6f365f7de62161ca0040c3c767dad9b",
+    "mtime": 1788755599.3154695,
+    "seen": 1788788066.57668,
+    "ast_hash": "b139d77146904355f624d154c693ae84",
     "semantic_hash": ""
   },
   "public/cosmos/earth.webp": {
-    "mtime": 1788741539.89525,
-    "seen": 1788742110.280409,
-    "ast_hash": "66c6cc63b66a9c7f5a858999dc2b8e98",
+    "mtime": 1788753516.8551688,
+    "seen": 1788788066.576683,
+    "ast_hash": "73c95a9552fdf58a696785a0f20ef34f",
     "semantic_hash": ""
   },
   "public/cosmos/moon.webp": {
-    "mtime": 1788741539.9872973,
-    "seen": 1788742110.2804108,
-    "ast_hash": "8b79a11524dd2550ac960be00f54fb36",
+    "mtime": 1788753519.6717405,
+    "seen": 1788788066.576684,
+    "ast_hash": "e4a6349069ebecef04b03c0c4d1d8da7",
     "semantic_hash": ""
   },
   "public/cosmos/night.webp": {
-    "mtime": 1788741434.2369828,
-    "seen": 1788742110.280412,
-    "ast_hash": "9691616db013d3404641735a11a55e13",
+    "mtime": 1788753517.0721698,
+    "seen": 1788788066.576685,
+    "ast_hash": "a12415f58594b43dfc477ba6024d8b24",
     "semantic_hash": ""
   },
   "public/cosmos/saturn.webp": {
-    "mtime": 1788741643.0582833,
-    "seen": 1788742110.2804139,
-    "ast_hash": "b132d9059ad1202d11ecb2b9d8a50dd8",
+    "mtime": 1788753519.853118,
+    "seen": 1788788066.5766861,
+    "ast_hash": "08eba838a66da0ad1b3f312cd2572a90",
     "semantic_hash": ""
   },
   "public/cosmos/sky.webp": {
-    "mtime": 1788741643.2041817,
-    "seen": 1788742110.280416,
-    "ast_hash": "a8ac134442240cd6706a7b5235685919",
+    "mtime": 1788753520.0898468,
+    "seen": 1788788066.576687,
+    "ast_hash": "ab0633b5df7c36dbe20e16f99a914dec",
     "semantic_hash": ""
   },
   "scripts/check-kerr.ts": {
-    "mtime": 1788750921.3231757,
-    "seen": 1788750955.419701,
-    "ast_hash": "74197afdb554e65bfda6c0e58d1ffccd",
+    "mtime": 1788754503.866214,
+    "seen": 1788788066.57661,
+    "ast_hash": "10133aeeac2e2ed6f381a747a0f243ce",
     "semantic_hash": ""
   },
   "docs/agujero-negro.md": {
-    "mtime": 1788751653.8742754,
-    "seen": 1788751661.7964091,
-    "ast_hash": "be0f2045b7a8ced04240bd69adb2fe58",
+    "mtime": 1788786834.125928,
+    "seen": 1788788066.576679,
+    "ast_hash": "64b4e7ad707abc14b38a418b25068039",
+    "semantic_hash": ""
+  },
+  "scripts/check-cosmos.ts": {
+    "mtime": 1788754676.5454338,
+    "seen": 1788788066.5766091,
+    "ast_hash": "b5f32a6fe81d7d638b835f94cc4390d4",
+    "semantic_hash": ""
+  },
+  "public/cosmos/earth-mask.webp": {
+    "mtime": 1788753522.3162951,
+    "seen": 1788788066.576683,
+    "ast_hash": "6dc80ba1aef5d7eacc7aa1cebba2ec82",
+    "semantic_hash": ""
+  },
+  "public/cosmos/ring.webp": {
+    "mtime": 1788753522.3522158,
+    "seen": 1788788066.576685,
+    "ast_hash": "1ceefebc7e7e311ecc8078c842030ee2",
+    "semantic_hash": ""
+  },
+  "scripts/check-routes.ts": {
+    "mtime": 1788788195.3986464,
+    "seen": 1788788493.187791,
+    "ast_hash": "5174d92db1866a13c754c5bd0c2d60a1",
     "semantic_hash": ""
   }
 }

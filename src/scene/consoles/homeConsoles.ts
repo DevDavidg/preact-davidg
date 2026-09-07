@@ -266,13 +266,13 @@ export const homeConsoleSpecs = (
     {
       id: 'contact',
       section: 'contact',
-      width: 3.3,
-      height: 2.2,
+      width: 2.3,
+      height: 1.55,
       z: -18.4,
       side: 0,
       lateral: 0,
-      // No lift — a positive rise with the late path put the plate in the ceiling.
-      rise: 0,
+      // Slight drop — the nucleus reads above the plate, not behind a wall.
+      rise: -0.07,
       uplink: true,
       rows: [
         // The mail address is not a footer button here — it is the frequency the

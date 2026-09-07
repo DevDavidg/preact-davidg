@@ -26,11 +26,11 @@ import { sceneState, swallowShape, type SwallowShape } from './sceneState'
  * from one angle. Anything that drifts those two apart turns the ending back into
  * a ring of dots parked near a hole.
  *
- * The second is that nothing in this file integrates. Every position, angle,
- * stretch and brightness is a pure function of `swallowShape(sceneState.swallow)`,
- * which is itself a pure function of scroll — so the whole collapse runs backwards
- * exactly when the visitor scrolls up. `scripts/check-cosmos.ts` is where that is
- * actually asserted.
+ * The second is that the collapse does not integrate. Fall, stretch and swallow-
+ * winding are a pure function of `swallowShape(sceneState.swallow)` — scroll up
+ * and the galaxy comes back out. Corridor motion (a slow Keplerian cruise as
+ * `build` rises) is added in `useFrame` on top of that, never inside `spiralFall`.
+ * `scripts/check-cosmos.ts` is where the fall is actually asserted.
  */
 
 const vertex = /* glsl */ `
@@ -345,10 +345,11 @@ const DISK_SCALE = 0.2
  * Sized against the *shadow*, not against the disk. The shader hollows out every
  * star inside ~1.4× the shadow's apparent radius, which at the top of the corridor
  * is about 0.1 in these units, so a tighter bulge is a bulge that is entirely behind
- * the hole and therefore invisible. This puts half its light in the band between the
- * hollow and 0.3 R: a bright halo hugging the shadow, which is the whole image.
+ * the hole and therefore invisible. The draw stays under 0.35 R so it does not
+ * thicken the disk's flare band; the exponent parks half the light just outside
+ * the hollow — a bright halo hugging the shadow, which is the whole image.
  */
-const BULGE_R = 0.3
+const BULGE_R = 0.33
 /**
  * How many disk stars ignore the arms, and why any of them must.
  *
@@ -432,9 +433,9 @@ export const galaxyGeometry = (count: number): Stellar => {
     let z: number
     if (bulge) {
       // A flattened spheroid, not a ball: a real bulge is boxy and ~0.6 as tall as
-      // it is wide. The steep power is what makes it *glow* toward one point rather
-      // than sit there as a fuzzy sphere.
-      r = BULGE_R * random(s + 2) ** 1.6
+      // it is wide. Power 1.2 still concentrates, but parks the half-light just
+      // outside the hollow — steeper and the nucleus is a bite with nothing around it.
+      r = BULGE_R * random(s + 2) ** 1.2
       const cosT = random(s + 3) * 2 - 1
       const phi = random(s + 4) * Math.PI * 2
       const sinT = Math.sqrt(Math.max(0, 1 - cosT * cosT))
@@ -592,6 +593,11 @@ const GALAXY_SPAN = 0.22
 const FIELD_SPAN = 14
 /** Span for the worlds, in metres: the corridor's own length, so they fall with it. */
 const PLANET_SPAN = 12
+/**
+ * Corridor cruise, radians at r = PLANET_SPAN over build 0→1. Keplerian (r^{-3/2})
+ * and a fraction of a radian — they frame the well; they do not cross the lens.
+ */
+const CRUISE = 0.16
 
 const PLANETS = [
   // Earth. Axial tilt 23.4°, and the only one that gets the whole shader.
@@ -787,10 +793,14 @@ export const CosmicWorld = ({ quality }: { quality: Quality }) => {
       RADIAL.divideScalar(r)
       TANGENT.crossVectors(axis, RADIAL)
       const fall = spiralFall(r, height, s, PLANET_SPAN)
+      // On top of spiralFall, never inside it: swallow 0 still means fall=0,
+      // radius=authored, wind=0. Suction stays off the position.
+      const wind =
+        fall.wind + b * CRUISE * Math.min(1.8, (PLANET_SPAN / r) ** 1.5)
       world.position
         .copy(holeCenter)
-        .addScaledVector(RADIAL, Math.cos(fall.wind) * fall.radius)
-        .addScaledVector(TANGENT, Math.sin(fall.wind) * fall.radius)
+        .addScaledVector(RADIAL, Math.cos(wind) * fall.radius)
+        .addScaledVector(TANGENT, Math.sin(wind) * fall.radius)
         .addScaledVector(axis, fall.height)
       // XYZ Euler order means Rx wraps Ry, so the planet spins about its own axis
       // *inside* its tilt — which is what axial tilt is, and what lets the ring ride
@@ -853,7 +863,7 @@ export const CosmicWorld = ({ quality }: { quality: Quality }) => {
       // does, not hang behind an unbuilt room — and out only at the crossing, since
       // the stars now leave by falling rather than by being turned off.
       u.uOpacity.value =
-        (0.26 + THREE.MathUtils.smoothstep(b, 0.25, 0.72) * 0.6) * (1 - s.crossing)
+        (0.3 + THREE.MathUtils.smoothstep(b, 0.18, 0.64) * 0.6) * (1 - s.crossing)
     }
     if (stars.current) {
       const u = resources.field.uniforms

@@ -14,6 +14,7 @@ import {
   GATE_APERTURE_Y,
   GATE_APERTURE_Z_AHEAD,
   HOLE_SPIN,
+  holeGateFor,
   holeRadiusFor,
   holeRender,
   iscoRs,
@@ -21,8 +22,7 @@ import {
 import { reactorControl } from './control/reactorControl'
 import { PORTAL_POSITION } from './layout'
 import { sceneColors } from './sceneColors'
-import { livePowerFor, sceneState, swallowShape, clamp01 } from './sceneState'
-import { softAssemble } from './ui/assembleDrama'
+import { livePowerFor, sceneState, swallowShape } from './sceneState'
 
 const RING_RADIUS = 1.85
 /** World Y of the well, shared with `holeCenter` so the billboard cannot drift. */
@@ -174,7 +174,8 @@ void main() {
   float reach =
     smoothstep(diskIn * 0.9, diskIn * 1.25, abs(point.x)) *
     (1.0 - smoothstep(diskOut * 0.82, diskOut, abs(point.x)));
-  float primary = exp(-pow((point.y + tilt) / thick, 2.0)) * reach;
+  float primaryY = (point.y + tilt) / thick;
+  float primary = exp(-primaryY * primaryY) * reach;
 
   /*
    * Image two: the far half, bent over the top.
@@ -185,8 +186,9 @@ void main() {
    * it an arc that hugs the shadow instead of a circle around it.
    */
   vec2 upper = vec2(point.x, (point.y - tilt) * 1.8);
+  float overOff = (length(upper) - horizon * 1.45) / (horizon * 0.3);
   float over =
-    exp(-pow((length(upper) - horizon * 1.45) / (horizon * 0.3), 2.0)) *
+    exp(-overOff * overOff) *
     // Confined to the half it belongs to. Clamping the y term to zero instead —
     // which is what this did first — leaves the arc's radius equal to |x| for
     // every pixel below the line, so it lit two vertical lobes out in the lower
@@ -199,8 +201,9 @@ void main() {
    * is the same light taking a longer way round.
    */
   vec2 lower = vec2(point.x, (point.y + tilt) * 2.7);
+  float underOff = (length(lower) - horizon * 1.32) / (horizon * 0.24);
   float under =
-    exp(-pow((length(lower) - horizon * 1.32) / (horizon * 0.24), 2.0)) *
+    exp(-underOff * underOff) *
     smoothstep(0.0, horizon * 0.5, -(point.y + tilt));
 
   float secondary = over * 0.85 + under * 0.4;
@@ -210,9 +213,11 @@ void main() {
    * where light that grazed the well comes back around. It is the single feature
    * that says "black hole" rather than "whirlpool".
    */
-  float ring = exp(-pow((radius - horizon * 1.02) / (horizon * 0.055), 2.0));
+  float ringOff = (radius - horizon * 1.02) / (horizon * 0.055);
+  float ring = exp(-ringOff * ringOff);
   // N=2: a second, thinner filament just inside the first. No third.
-  ring += 0.4 * exp(-pow((radius - horizon * 0.985) / (horizon * 0.028), 2.0));
+  float ring2 = (radius - horizon * 0.985) / (horizon * 0.028);
+  ring += 0.4 * exp(-ring2 * ring2);
 
   /*
    * Doppler beaming, as an axis rather than as a rotation.
@@ -231,14 +236,18 @@ void main() {
    * board. They stay clear of the shadow (the escaped cutout below would catch
    * them anyway) and never outshine the band.
    */
+  float jetX = point.x / 0.07;
   float jet =
-    exp(-pow(point.x / 0.07, 2.0)) *
+    exp(-jetX * jetX) *
     smoothstep(horizon * 1.1, horizon * 1.7, abs(point.y)) *
     (1.0 - smoothstep(0.55, 0.9, abs(point.y)));
+  // ponytail: jets stay dark until the well is actually feeding (power+swallow),
+  // otherwise two faint lobes ride over the corridor stars and read as glare.
+  float jetGate = smoothstep(0.25, 0.7, uPower + uSwallow * 1.5);
   float body =
     matter * beam * (0.28 + uPower * 0.45 + uSwallow * 1.1) +
     ring * (0.4 + uSwallow * 1.7) +
-    jet * (0.10 + uSwallow * 0.35) * (0.3 + grain * 0.4) +
+    jet * (0.10 + uSwallow * 0.35) * (0.3 + grain * 0.4) * jetGate +
     uHandshake * matter * 0.4;
 
   /*
@@ -396,9 +405,9 @@ export const FinaleGate = () => {
     const build = sceneState.build
     const power = livePowerFor(build)
     const swallow = swallowShape(sceneState.swallow)
-    const enter = clamp01((build - 0.94) / 0.06)
-    // Present by the end of the corridor, then held for the whole ending.
-    const ease = Math.max(softAssemble(enter), swallow.amount)
+    // Same ramp cinema uses for uGate, so lite's nucleus lands with the jewel
+    // instead of waiting until 0.94 while the galaxy already has a hole in it.
+    const ease = Math.max(holeGateFor(build), swallow.amount)
     const handshake = reactorControl.uplink
     const time = state.clock.elapsedTime
 
@@ -457,14 +466,22 @@ export const FinaleGate = () => {
     horizonMaterial.uniforms.uHorizon.value = shadow
     horizonMaterial.uniforms.uSpin.value = HOLE_SPIN
     horizonMaterial.uniforms.uGround.value.copy(sceneColors.base)
+    // ponytail: horizon ramps behind the portal so the dark nucleus never appears
+    // before the ring is lit — a black disc flashing on ahead of its own halo is
+    // the "black flash" symptom; portal starts at ease 0.45, this at 0.6.
     horizonMaterial.uniforms.uOpacity.value =
-      THREE.MathUtils.smoothstep(ease, 0.5, 0.95) * (0.4 + swallow.pull * 0.6)
+      THREE.MathUtils.smoothstep(ease, 0.6, 0.95) * (0.4 + swallow.pull * 0.6)
 
     /*
      * The plane grows with the drain so the well can take the frame. Both
      * discs scale together so the horizon stays concentric with the ring.
+     *
+     * ponytail: early in the corridor the aperture is a small nucleus, not the
+     * full plane — the galaxy stars around it stay visible. mouth eases from
+     * 0.3 up to 1.0 as the gate comes on, then drain widens it past the frame.
+     * Ceiling: ease<=1 ⇒ mouth<=1.0; drain<=1 ⇒ +2.2 ⇒ 3.2 (same max as before).
      */
-    const mouth = 1 + swallow.drain * 2.2
+    const mouth = 0.3 + ease * 0.7 + swallow.drain * 2.2
     if (portal.current) {
       portal.current.scale.setScalar(mouth)
       portal.current.visible = billboard

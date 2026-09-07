@@ -313,21 +313,18 @@ export const apparentShadow = (
  * How present the well is, 0 → 1. One ramp, read by everything that hands over
  * to it.
  *
- * Deliberately the gate's own assembly window rather than something earlier. The
- * well used to fade up from build 0.44, which put a half-formed accretion arc at
- * the end of a corridor that was still a cloud of shards — a smudge with no object
- * around it, and no gate yet to hold it open. Arriving with the mechanism reads as
- * light gathering inside something; arriving before it reads as a rendering
- * artefact.
+ * Fades up from 0.52 so it serves as the galactic nucleus during the corridor's
+ * transmit phase (the galaxy itself ramps 0.25–0.72). It used to wait until 0.94
+ * so it arrived fully formed with the gate mechanism, but that left a galaxy
+ * with an empty middle during the flight. It reaches full strength by 0.94 so
+ * the finale still peaks exactly as the gate locks into place.
  *
  * `Atmosphere`'s ambient glow at the end of the room reads the same ramp from the
  * other side: it holds the corridor's far end until this takes the job over, so
  * there is never a moment where the destination is neither lit nor drawn.
  */
 export const holeGateFor = (build: number): number =>
-  // After the uplink plate is the thing being read — earlier and the well sits
-  // over the contact copy as a glow in the top of the frame.
-  THREE.MathUtils.smoothstep(build, 0.94, 1)
+  THREE.MathUtils.smoothstep(build, 0.52, 0.94)
 
 /**
  * The disk's axis, in world space.

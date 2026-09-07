@@ -451,7 +451,13 @@ sampleada en grilla finita sale punteada.
   imagen quedaba un factor 30 abajo de la banda que rodea, y leía como una costura
   en la sombra en vez de como el filamento que solo un agujero negro dibuja.
 
-#### La costura vertical (arreglada)
+#### Las dos costuras verticales (arregladas)
+
+Fueron **dos**, con la misma pinta y causas distintas, y arreglar la primera no
+tocó la segunda. Vale la pena tenerlas separadas porque el síntoma es idéntico —
+media pantalla lenseada y media no — y es fácil creer que ya está resuelto.
+
+**Costura 1: el signo del frame dragging.**
 
 `sense` leía `sign(dot(plane, uAxis))` y eso ponía una **costura dura por el medio
 del frame**. El conjunto donde el plano orbital del rayo contiene el eje de spin
@@ -466,6 +472,49 @@ La proyección (`dot(plane, uAxis)`, sin `sign`) es además la cantidad honesta:
 rayo cuyo plano contiene el eje no lleva momento angular respecto de él y no lo
 arrastra ninguno de los dos lados. `sign()` reclamaba el máximo de uno o del otro
 para exactamente esos rayos.
+
+**Costura 2: la silueta del `uDepthGuard`.**
+
+Visible en el finale temprano (swallow ~0.15), sobrevivió al arreglo de arriba
+nueve horas. La causa no está en la geodésica: **una placa es un rectángulo y el
+guard es un step**. `recall` trae el corredor de vuelta para el trago, así que hay
+consolas a distancia de lectura escribiendo depth más cerca que `uNearGuard`; ahí
+`ahead → 0`, el pase se apaga, y como el borde de la placa es una recta vertical
+la lente se corta en una línea. No es el gate radial del mask — ese es suave —
+sino el factor de depth que lo multiplica.
+
+Se hizo obvia ahora y no antes porque el otro frente le puso **señal real al
+fondo** (galaxia centrada en `holeCenter`): la misma discontinuidad sobre un cielo
+vacío no tenía nada con qué mostrarse.
+
+Feathear el umbral no arregla nada — el step está en la geometría de la placa, no
+en el threshold. Lo que se hizo es **acotar el guard a donde se gana el sueldo**:
+`cede = smoothstep(uMask*0.34, uMask*0.78, |offset|)`. Adentro de un tercio del
+mask viven la sombra y el anillo (el radio aparente va de 0.29 a 0.14 del mask
+según abre el drain, así que un tercio los cubre en todas las paradas) y ahí el
+pozo gana **incondicionalmente**, porque la única regla dura de la página es que
+nada se para delante del horizonte. Afuera, en el feather, donde de verdad está la
+consola y donde `1/b` ya bajó la deflexión a casi nada, el guard mantiene toda su
+autoridad. El borde de la placa sigue existiendo allá; ahora es un step en un
+término que el mask ya está fundiendo a cero, y por eso deja de leerse como borde.
+
+Verificado forzando `uDepthGuard = 0` y comparando capturas: con el guard apagado
+la costura desaparece, lo que prueba que era él y no la integración.
+
+#### El `depthTest` de la tipografía corría con el reloj equivocado
+
+`GlyphMaterial` prendía depth test con `state.recall > 0.01`, y el comentario al
+lado decía que usaba "el mismo threshold que `Lattice`" — que usa
+`sceneState.swallow >= 0.12`. No era el mismo. `recall` es *el cuarto volviendo* y
+termina en drain 0.72, o sea swallow ~0.68; **la sombra es más grande justo de ahí
+al final del riel**. El depth test se apagaba exactamente en el tramo para el que
+se había escrito.
+
+No se veía porque `uDepthGuard` también ya se había ido a esa altura, así que el
+pase sobreescribía la tipografía de todas formas. Dos errores cancelándose no es
+una garantía, y deja de serlo en cuanto alguno de los dos schedules se mueve —
+que es precisamente lo que hizo el arreglo de la costura 2. Ahora corre con
+`sceneState.swallow >= 0.12`, que es lo que el comentario venía afirmando.
 
 #### Cadena del composer
 
