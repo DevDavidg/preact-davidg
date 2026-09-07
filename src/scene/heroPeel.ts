@@ -50,7 +50,7 @@ export const createPeelUniforms = (
   uBreathe: { value: 0 },
   uTime: { value: 0 },
   uStagger: { value: 1.05 },
-  uHoverPush: { value: 0.07 },
+  uHoverPush: { value: 1.55 },
   uFirePush: { value: 2.8 },
   uCorridor: { value: new THREE.Vector3() },
   uState: { value: state },
@@ -112,18 +112,20 @@ void heroPeel(vec3 localPos, vec3 localNormal) {
     hover * uHoverPush +
     fire * uFirePush;
 
-  float spin = throwAmt * (1.35 + aPhase * 0.32) + fire * 1.1;
-  float shrink = 1.0 - throwAmt * 0.34 - fire * 0.15;
+  float spin = throwAmt * (1.35 + aPhase * 0.32) + fire * 1.1 + hover * 1.45;
+  float shrink = 1.0 - throwAmt * 0.34 - fire * 0.15 - hover * 0.22;
 
   gHeroPos =
     heroRotate(localPos * shrink, aTangent, spin) +
     aCentroid +
     aFaceNormal * push +
-    uCorridor * (throwAmt + fire * 0.5);
+    uCorridor * (throwAmt + fire * 0.5 + hover * 0.12);
   gHeroNormal = heroRotate(localNormal, aTangent, spin);
 
   vThrow = throwAmt;
-  vGlow = hover * 0.85 + fire * 1.5 + throwAmt * 0.3;
+  // Hover owns the glow budget: a hot sector has to read through PBR metal,
+  // not sit as a polite tint under the env map.
+  vGlow = hover * 2.55 + fire * 1.5 + throwAmt * 0.3;
   // A stable per-facet value in [0,1]. Machined panels are cut from the same
   // billet but never finish identically; without this every facet takes exactly
   // the same roughness and the shell reads as one moulded ball rather than as an
@@ -183,7 +185,10 @@ export const applyLitPeel = (
         "#include <roughnessmap_fragment>",
         /* glsl */ `
         #include <roughnessmap_fragment>
-        roughnessFactor = clamp( roughnessFactor * ( 0.6 + vFacet * 0.85 ), 0.04, 1.0 );
+        // Hot facets polish: lower roughness = sharper catch-lights on the
+        // sector under the pointer, so hover reads as metal waking up.
+        float facetRough = roughnessFactor * ( 0.6 + vFacet * 0.85 );
+        roughnessFactor = clamp( facetRough * ( 1.0 - clamp( vGlow, 0.0, 1.0 ) * 0.55 ), 0.04, 1.0 );
         `,
       )
       .replace(
@@ -192,8 +197,9 @@ export const applyLitPeel = (
         #include <emissivemap_fragment>
         vec3 heroView = normalize( vViewPosition );
         float heroFresnel = pow( 1.0 - clamp( dot( normal, heroView ), 0.0, 1.0 ), 3.0 );
-        totalEmissiveRadiance += uGlowColor * vGlow;
-        totalEmissiveRadiance += uRimColor * heroFresnel * uRimGain;
+        float glowKick = vGlow * ( 1.0 + vGlow * 1.35 );
+        totalEmissiveRadiance += uGlowColor * glowKick;
+        totalEmissiveRadiance += uRimColor * heroFresnel * ( uRimGain + vGlow * 0.55 );
         `,
       )
       /*
@@ -239,7 +245,7 @@ export const applyLinePeel = (
         "#include <color_fragment>",
         /* glsl */ `
         #include <color_fragment>
-        diffuseColor.rgb *= 1.0 + vGlow * 0.8;
+        diffuseColor.rgb *= 1.0 + vGlow * 2.4;
         diffuseColor.a *= 1.0 - vThrow * 0.45;
         `,
       );

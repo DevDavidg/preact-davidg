@@ -28,6 +28,8 @@ uniform float uFogDensity;
 uniform float uStaggerRatio;
 /** GHOST: releases settled type back toward the cloud it arrived from. */
 uniform float uGhost;
+/** The swallow's recall: reopens every exit window at once. See GlyphSync. */
+uniform float uRecall;
 
 varying vec2 vAtlasUv;
 varying vec3 vNormalW;
@@ -67,6 +69,7 @@ void main() {
   float exitSpan = max(aWindow.w, 0.0001);
   float leaving = clamp((uBuild - aWindow.z - aSeed * exitSpan * 0.4) / exitSpan, 0.0, 1.0);
   leaving = leaving * leaving * (3.0 - 2.0 * leaving);
+  leaving *= 1.0 - uRecall;
 
   // Soft settle in; leave fades in place — no explode cloud.
   float settled = arrive * (1.0 - leaving);
@@ -120,6 +123,29 @@ void main() {
 
   float depth = length(viewPos.xyz);
   vFog = 1.0 - exp(-uFogDensity * uFogDensity * depth * depth);
+
+  /*
+   * A glyph outside its own scroll window never reaches the rasteriser.
+   *
+   * The whole corridor's typography is one instanced draw of up to twenty-two
+   * thousand boxes, and the material is transparent, double-sided and depth-test
+   * free — so there is no early-z and nothing rejects a letter that has not
+   * arrived yet or has already left. The fragment shader does kill them, but only
+   * at the very bottom, after the atlas fetch, the lighting, the fog and the halo
+   * have all run, and after both faces of every box have been rasterised and
+   * blended. At any scroll position about one console's worth of glyphs is
+   * genuinely on screen; the rest was pure overdraw, several times over the
+   * frame.
+   *
+   * alpha is multiplied by exactly vWeight before its own discard, so
+   * clipping here is the same picture — the primitive is pushed outside the clip
+   * volume on every axis, which costs one comparison per vertex and saves the
+   * entire fragment.
+   */
+  if (vWeight <= 0.0) {
+    gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+    return;
+  }
 
   gl_Position = projectionMatrix * viewPos;
 }
@@ -277,6 +303,8 @@ export interface GlyphSync {
   time: number
   velocity: number
   opacity: number
+  /** The swallow's recall — see `uRecall`. */
+  recall: number
 }
 
 export class GlyphMaterial extends THREE.ShaderMaterial {
@@ -299,6 +327,19 @@ export class GlyphMaterial extends THREE.ShaderMaterial {
         uFogDensity: { value: FOG_DENSITY },
         uStaggerRatio: { value: STAGGER_RATIO },
         uGhost: { value: 0 },
+        /*
+         * The swallow's recall: how much of the copy the corridor has already
+         * retired is back in the room to be taken in, 0 → 1.
+         *
+         * A uniform rather than a second set of windows. Every block leaves
+         * against its own `aWindow.z`, and the finale runs at `uBuild === 1` — so
+         * by the ending every line on the page has left, and the well was closing
+         * on a room with no words in it. Scaling `leaving` by `1 - uRecall`
+         * reopens all those exits together, which is also why one float is
+         * enough: the type comes back as the page it was, not as a new
+         * arrangement, and scrolling up closes them again in lockstep.
+         */
+        uRecall: { value: 0 },
         uInk: { value: sceneColors.ink.clone() },
         uAccent: { value: sceneColors.accent.clone() },
         uFogColor: { value: sceneColors.base.clone() },
@@ -316,7 +357,20 @@ export class GlyphMaterial extends THREE.ShaderMaterial {
     uniforms.uTime.value = state.time
     uniforms.uVelocity.value = state.velocity
     uniforms.uOpacity.value = state.opacity
+    uniforms.uRecall.value = state.recall
     uniforms.uGhost.value = reactorControl.modeAmount.ghost
+    /*
+     * Depth testing, for the swallow only.
+     *
+     * Type is drawn without it for the whole corridor on purpose — mixed voxels
+     * and transparent atlas plates in one instanced call, sorted by nothing —
+     * and that is harmless while the only thing behind the copy is the room.
+     * The well is not the room: recalled type falling toward the aperture would
+     * otherwise draw straight over the event horizon, which is the one object on
+     * the page that must never have anything in front of it. Same exception, and
+     * the same threshold, as `Lattice` and `ReconstructMaterial`.
+     */
+    this.depthTest = state.recall > 0.01
     uniforms.uLawFlat.value = liveLaw.flat
     uniforms.uLawHeat.value = liveLaw.heat
     uniforms.uGround.value.copy(sceneColors.base)

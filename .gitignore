@@ -38,8 +38,5 @@ __pycache__/
 .react-router
 # Build output
 build
-# Playwright
-test-results
-playwright-report
 .vercel
 .env*

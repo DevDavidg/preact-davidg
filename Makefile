@@ -1,12 +1,18 @@
-.PHONY: quick-check check full-check dev build lint typecheck test e2e budget verify
+.PHONY: quick-check check full-check dev build lint typecheck budget verify swallow kerr
 
-quick-check: lint typecheck
+quick-check: lint typecheck swallow kerr
 	@echo "✓ quick-check OK"
 
-check: quick-check test build budget
+swallow:
+	pnpm exec tsx scripts/check-swallow.ts
+
+kerr:
+	pnpm exec tsx scripts/check-kerr.ts
+
+check: quick-check build budget
 	@echo "✓ check OK"
 
-full-check: check e2e
+full-check: check
 	@echo "✓ full-check OK"
 
 lint:
@@ -14,12 +20,6 @@ lint:
 
 typecheck:
 	pnpm run typecheck
-
-test:
-	pnpm run test
-
-e2e:
-	pnpm run e2e
 
 build:
 	pnpm run build

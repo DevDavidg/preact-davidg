@@ -23,7 +23,11 @@ import { SECTION_IDS, type SectionId } from './routes'
  *   the beat it sits inside rather than opening a dead stretch.
  * - `finale` is the swallow: the stretch past the end of the corridor where the
  *   portal takes the room in, and the only chapter whose scroll drives something
- *   other than `build`.
+ *   other than `build`. It is the longest chapter on the rail after the hero, and
+ *   it has to be: the ending now carries a real infall — an orbit that winds two
+ *   and a half turns while it decays, a tidal stretch, and a lens falling through
+ *   the aperture. At the 1.6 it used to have, the swallow occupied about a screen
+ *   and a half of wheel and the last third of it went past in a flick.
  */
 const BEAT_VH = 170
 
@@ -37,7 +41,7 @@ export const HOME_CHAPTER_VH: Record<SectionId, number> = {
   process: BEAT_VH,
   about: BEAT_VH,
   contact: BEAT_VH,
-  finale: Math.round(BEAT_VH * 1.6),
+  finale: Math.round(BEAT_VH * 2.6),
 }
 
 export const homeRailChapters = (

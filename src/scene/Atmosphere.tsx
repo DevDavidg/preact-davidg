@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { holeCenter, holeRender } from './blackHole'
 import type { Quality } from './capability'
 import { FOG_DENSITY, PORTAL_POSITION } from './layout'
 import { idleAmount, objectPhase, pulse, pulseAt, sectionPhase } from './pulse'
@@ -234,9 +235,15 @@ export const Atmosphere = ({ quality }: { quality: Quality }) => {
        */
       const swallowAir = swallowShape(sceneState.swallow)
       fog.current.density =
-        FOG_DENSITY * (1 - power * 0.16) * (1 + swallowAir.pull * 2.4)
-      fog.current.color.lerp(sceneColors.accent, swallowAir.grip * 0.4)
+        FOG_DENSITY *
+        (1 - power * 0.16) *
+        (1 + swallowAir.drain * 4.2 + swallowAir.surge * 1.8)
+      fog.current.color.lerp(
+        sceneColors.accent,
+        swallowAir.drain * swallowAir.drain * 0.42 + swallowAir.surge * 0.15,
+      )
     }
+    const swallow = swallowShape(sceneState.swallow)
     // The portal is the far end of the same room, so it breathes on the room's
     // clock. It used to run its own 0.8 Hz sine, which put the destination
     // visibly out of step with the reactor the visitor had just left.
@@ -249,20 +256,63 @@ export const Atmosphere = ({ quality }: { quality: Quality }) => {
       // keeps this one extra draw cheap.
       // Visible earlier so the corridor end never reads as a black void.
       const approach = THREE.MathUtils.smoothstep(sceneState.build, 0.58, 0.92)
+      /*
+       * The glow steps aside for the well.
+       *
+       * This plane is thirteen metres of additive amber parked exactly where the
+       * event horizon is, and its whole job was to stop the end of the corridor
+       * reading as a black void. Once `BlackHoleEffect` is drawing there, that job
+       * is done by something that emits its own light — and this becomes a haze
+       * over the one part of the frame that has to be the darkest thing on the
+       * page. A black hole whose middle is brighter than the room is a whirlpool.
+       *
+       * Not off, though. A fifth of it survives as the light the well is lensing:
+       * the pass bends whatever is behind the shadow into a ring around it, so
+       * what is left of this reaches the eye as an Einstein ring rather than as a
+       * wash — which is a better use of it than it ever had before.
+       */
+      /*
+       * ...and it recedes as the room goes in, in both renderings.
+       *
+       * On a device with no post chain the well is drawn by the gate's own
+       * billboard, and a thirteen-metre additive glow immediately behind that
+       * billboard washes the shadow out to a warm grey no matter how opaque the
+       * shadow itself is made. The glow is the light the corridor is *approaching*;
+       * once the corridor is being drawn into it, the source has to stop being
+       * ambient and start being the object.
+       */
+    const yielded =
+        holeRender.lensing
+          ? Math.max(0, 0.12 - swallow.pull * 0.12 - swallow.surge * 0.08)
+          : 1 - swallow.pull * 0.85
       portalMaterial.opacity =
-        Math.max(power, approach * 0.62) * (0.32 + power * 0.62)
+        Math.max(power, approach * 0.62) * (0.32 + power * 0.62) * yielded
     }
 
     dustMaterial.color.copy(sceneColors.signal).lerp(sceneColors.accent, 0.12 + power * 0.18)
-    dustMaterial.opacity = (0.14 + power * 0.12) * dustPresence
+    dustMaterial.opacity =
+      (0.14 + power * 0.12) * dustPresence * (1 - swallow.drain * 0.7)
     if (dust.current) {
+      // The shared channel, not a local one: the air has to be going in at the
+      // same rate as the matter it is between. A gulp is a small kick on top.
+      const drain = Math.min(0.99, swallow.drain * 0.94 + swallow.surge * 0.05)
       dust.current.rotation.y = THREE.MathUtils.damp(
         dust.current.rotation.y,
-        time * 0.012,
-        1.4,
+        time * (0.012 + swallow.suction * 1.4) + swallow.orbit * 0.55,
+        2.4,
         delta,
       )
-      dust.current.position.y = Math.sin(time * 0.21) * 0.04
+      dust.current.rotation.z = swallow.orbit * 0.7
+      dust.current.position.set(
+        holeCenter.x * drain,
+        THREE.MathUtils.lerp(
+          Math.sin(time * 0.21) * 0.04,
+          holeCenter.y,
+          drain,
+        ),
+        holeCenter.z * drain,
+      )
+      dust.current.scale.setScalar(1 - drain * 0.88)
     }
 
     shardMaterials.signal.color.copy(sceneColors.signal)
@@ -279,18 +329,22 @@ export const Atmosphere = ({ quality }: { quality: Quality }) => {
 
     const shardRoot = shards.current
     if (shardRoot) {
-      // Slow tumble is ornament, so it eases off while the visitor is moving —
-      // otherwise it competes with the corridor for the eye during a scroll.
-      const drift = idleAmount(0.35 + 0.65 * volumePresence)
+      const drain = Math.min(0.98, swallow.drain * 0.92 + swallow.surge * 0.05)
+      const drift = idleAmount(0.35 + 0.65 * volumePresence) * (1 - drain)
       shardRoot.children.forEach((child, index) => {
         const spec = shardSpecs[index]
         if (!spec) return
+        child.position.lerpVectors(spec.position, holeCenter, drain)
         child.rotation.x = time * spec.spin.x * drift + spec.phase
-        child.rotation.y = time * spec.spin.y * drift
-        child.rotation.z = time * spec.spin.z * 0.6 * drift
-        child.position.y =
-          spec.position.y +
-          (pulseAt(objectPhase(index)) - 0.5) * 0.16 * pulse.idle
+        child.rotation.y = time * spec.spin.y * drift + swallow.orbit * drain
+        child.rotation.z =
+          time * spec.spin.z * 0.6 * drift + swallow.orbit * 1.4 * drain
+        child.scale.setScalar(spec.scale * (1 - drain * 0.78))
+        if (drain < 0.001) {
+          child.position.y =
+            spec.position.y +
+            (pulseAt(objectPhase(index)) - 0.5) * 0.16 * pulse.idle
+        }
       })
     }
   })

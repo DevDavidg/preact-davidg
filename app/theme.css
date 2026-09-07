@@ -25,11 +25,11 @@
 
 @theme {
   /* Surfaces — carbon and graphite, warm-neutral rather than blue-black. */
-  --color-abyss: #030406;
-  --color-reactor: #050608;
-  --color-graphite: #0d1117;
-  --color-graphite-raised: #151b23;
-  --color-graphite-hover: #1d242e;
+  --color-abyss: #02030b;
+  --color-reactor: #050817;
+  --color-graphite: #0c1429;
+  --color-graphite-raised: #15203a;
+  --color-graphite-hover: #202b49;
 
   /*
    * Machined metal. The hero shell's facets and the corridor's structures are
@@ -38,17 +38,17 @@
    * not own. Cool enough to hold the warm accent off it, dark enough to stay
    * inside the room's key.
    */
-  --color-steel: #8e939a;
+  --color-steel: #758bae;
 
   /* Ink ramp. `ink` for body, `ink-soft` for secondary, `ink-dim` for metadata. */
-  --color-ink: #f3eee4;
-  --color-ink-soft: #d3ccc0;
-  --color-ink-dim: #9a948c;
+  --color-ink: #f1f5ff;
+  --color-ink-soft: #cad7f1;
+  --color-ink-dim: #9aaed1;
 
   /* Signal accents. Amber is the primary action; champagne is telemetry only. */
-  --color-ignition: #ffb454;
-  --color-ignition-bright: #ffc87a;
-  --color-ion: #e6c891;
+  --color-ignition: #72e6fa;
+  --color-ignition-bright: #bbf5ff;
+  --color-ion: #efa5ed;
   --color-alert: #ff6b5d;
 
   /*

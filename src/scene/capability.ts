@@ -58,18 +58,30 @@ const prefersLessData = (): boolean => {
  *
  * The context is explicitly released afterwards, because browsers cap the number
  * of live contexts and the scene needs to claim one moments later.
+ *
+ * The answer is cached. `detectQuality` re-runs on resize, and a second
+ * `getContext('webgl2')` while the reactor is live is enough for iOS to evict
+ * the scene's context and leave a black canvas.
  */
+let webgl2: boolean | null = null
+
 const supportsWebGL2 = (): boolean => {
+  if (webgl2 !== null) return webgl2
   if (typeof document === 'undefined') return false
   try {
     const canvas = document.createElement('canvas')
     const gl = canvas.getContext('webgl2', {
       failIfMajorPerformanceCaveat: false,
     })
-    if (!gl) return false
+    if (!gl) {
+      webgl2 = false
+      return false
+    }
     gl.getExtension('WEBGL_lose_context')?.loseContext()
+    webgl2 = true
     return true
   } catch {
+    webgl2 = false
     return false
   }
 }

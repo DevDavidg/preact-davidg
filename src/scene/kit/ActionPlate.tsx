@@ -121,7 +121,16 @@ export const ActionPlate = ({
     const leaving = clamp01((build - exit) / Math.max(exitSpan, 0.001))
     const assemble = softAssemble(progress)
     const { presence: leavePresence, scatter } = softDisassemble(leaving)
-    const presence = assemble * leavePresence
+    /*
+     * Controls retire the moment the ending starts.
+     *
+     * The plate they sit on no longer fades for the swallow — it is matter now,
+     * and it falls — so without this a live mail link stays hit-testable while it
+     * is being pulled into a black hole. The room goes in; the interface does
+     * not go with it. `visible` is what actually takes it out of the raycast.
+     */
+    const retired = 1 - clamp01(sceneState.swallow / 0.08)
+    const presence = assemble * leavePresence * retired
 
     hoverAmt.current = THREE.MathUtils.damp(
       hoverAmt.current,

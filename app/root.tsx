@@ -81,9 +81,10 @@ export const links: LinksFunction = () => [
  * Three properties this shape has and a JS-only solution does not:
  * - Scripting off, or the bundle failing to load: the attribute is never
  *   stamped, so the document is simply visible. There is no cover to get stuck.
- * - It writes an ATTRIBUTE on an element React already owns, never a new node.
- *   A foreign child of `<html>` breaks hydration here (see the note in
- *   `src/scene/sceneColors.ts`); an extra attribute is left alone.
+ * - It writes an ATTRIBUTE on `<html>`, never a new node. A foreign child of
+ *   `<html>` breaks hydration (see `src/scene/sceneColors.ts`). React 19
+ *   warns about the extra attribute; `suppressHydrationWarning` tells it the
+ *   stamp is intentional and must stay.
  * - The failsafe timeout is armed by this script, not by React, so it fires even
  *   if hydration never happens.
  *
@@ -123,7 +124,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   const locale = localeFromPath(pathname)
 
   return (
-    <html lang={locale}>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         {/* No maximum-scale or user-scalable: pinch zoom stays available. */}

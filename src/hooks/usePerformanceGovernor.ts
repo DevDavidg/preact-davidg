@@ -66,6 +66,8 @@ export const usePerformanceGovernor = (experience: ExperienceState) => {
     let abandonSeconds = 0
 
     const sample = (_time: number, delta: number) => {
+      // A backgrounded tab or a synchronous screenshot is not a GPU sample.
+      if (document.hidden || delta > 250) return
       if (warmUp < WARM_UP_MS) {
         warmUp += delta
         return
@@ -82,7 +84,7 @@ export const usePerformanceGovernor = (experience: ExperienceState) => {
       // Abandoning is the most destructive step available, so it also has to be
       // sustained: one stalled second — a background tab waking, a heavy image
       // decoding — must not cost the visitor the whole experience.
-      if (average >= ABANDON_MS) {
+      if (average >= ABANDON_MS && experience === 'lite' && useSceneStore.getState().fidelity === 'minimal') {
         abandonSeconds += 1
         if (abandonSeconds >= DEMOTE_STRIKES) {
           setExperience('static')
@@ -106,6 +108,10 @@ export const usePerformanceGovernor = (experience: ExperienceState) => {
           return
         }
         setFidelity(NEXT_DOWN[fidelity])
+        // Changing the composer/DPR compiles resources once. Let that settle
+        // before measuring the cheaper tier or one stall cascades to static.
+        warmUp = 0
+        abandonSeconds = 0
         return
       }
 

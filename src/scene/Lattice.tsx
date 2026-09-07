@@ -149,6 +149,19 @@ export const Lattice = ({ quality }: { quality: Quality }) => {
   }, [parts])
 
   const refs = useRef<Partial<Record<PartKind, THREE.InstancedMesh>>>({})
+  const root = useRef<THREE.Group>(null)
+  /** Last build the instance matrices were written for; NaN forces a first pass. */
+  const written = useRef(Number.NaN)
+  /**
+   * The five part kinds, once.
+   *
+   * `Object.keys(groups)` inside the frame loop allocated a fresh five-element
+   * array and a closure every frame for a set that is fixed at module scope.
+   */
+  const kinds = useMemo(
+    () => (Object.keys(groups) as PartKind[]).filter((k) => groups[k].length),
+    [groups],
+  )
 
   useEffect(
     () => () => {
@@ -165,7 +178,32 @@ export const Lattice = ({ quality }: { quality: Quality }) => {
     const { dummy } = scratch
     const corridorPresence = THREE.MathUtils.smoothstep(build, 0.15, 0.28)
 
-    ;(Object.keys(groups) as PartKind[]).forEach((kind) => {
+    /*
+     * Absent below the entry ramp, for the same reason as the colonnade: the
+     * shard material discards on alpha far too late to save the fill, so an
+     * opacity of zero still shades five instanced meshes' worth of double-sided
+     * transparent triangles through the whole opening shot.
+     */
+    const shown = corridorPresence > 0.002
+    if (root.current) root.current.visible = shown
+    if (!shown) return
+
+    /*
+     * The matrices are only moving while something is still loose.
+     *
+     * Every instance's transform is a function of `build` alone, except for the
+     * `sin(time …) * loose` bob — and `loose` is zero for every part once
+     * `build` clears the largest stagger plus its ramp, at 0.82. Past that the
+     * loop was recomposing a hundred identical matrices and re-uploading five
+     * instance buffers every frame, for the whole middle of the corridor and for
+     * as long as the visitor stood still. Rewriting only when the scroll has
+     * actually moved, or while something is genuinely animating, leaves the
+     * result bit-identical.
+     */
+    const animating = build < 0.83
+    if (animating || build !== written.current) {
+    written.current = build
+    kinds.forEach((kind) => {
       const mesh = refs.current[kind]
       const list = groups[kind]
       if (!mesh || list.length === 0) return
@@ -197,6 +235,7 @@ export const Lattice = ({ quality }: { quality: Quality }) => {
       mesh.instanceMatrix.needsUpdate = true
       mesh.count = list.length
     })
+    }
 
     material.sync({
       build,
@@ -205,7 +244,14 @@ export const Lattice = ({ quality }: { quality: Quality }) => {
       time,
       velocity: sceneState.velocity,
     })
-    material.depthWrite = false
+    /*
+     * A ghost while the room stands — a lattice at 0.3 opacity has no business
+     * cutting holes in the consoles behind it. But once the swallow begins the
+     * lattice must occlude: `sync` keeps writers off under WIRE, and the lensing
+     * pass only spares depth-written geometry. Without an explicit true here the
+     * hole paints over wires that are still in front of it.
+     */
+    material.depthWrite = sceneState.swallow >= 0.12
     // The opening is a dedicated product shot; corridor architecture enters after it.
     material.uniforms.uOpacity.value =
       (0.26 + live * 0.14) * corridorPresence * (rich ? 1.15 : 1)
@@ -220,10 +266,9 @@ export const Lattice = ({ quality }: { quality: Quality }) => {
   })
 
   return (
-    <group>
-      {(Object.keys(groups) as PartKind[]).map((kind) => {
+    <group ref={root}>
+      {kinds.map((kind) => {
         const count = groups[kind].length
-        if (count === 0) return null
         return (
           <instancedMesh
             key={kind}

@@ -14,7 +14,7 @@ import {
   type PortraitVoxelField,
 } from './portraitVoxels'
 import { beatFor, reactorControl } from './control/reactorControl'
-import { clamp01, liveFor, sceneState } from './sceneState'
+import { clamp01, liveFor, sceneState, swallowShape } from './sceneState'
 import type { SectionWindows } from './ui/sectionRanges'
 
 /**
@@ -233,7 +233,12 @@ const CinemaAboutPortrait = ({ windows }: { windows: SectionWindows }) => {
     const build = sceneState.build
     const progress = clamp01((build - assembly.enter) / assembly.span)
     const retire = clamp01((build - assembly.exit) / assembly.exitSpan)
-    const presence = 1 - retire
+    // The face is recalled for the swallow like everything else the corridor
+    // built, so the well takes a room with a person in it. See `Console`.
+    const presence = Math.max(
+      1 - retire,
+      swallowShape(sceneState.swallow).recall,
+    )
     const enterFade = THREE.MathUtils.smoothstep(progress, 0.02, 0.22)
 
     const targetOpacity = presence > 0.15 ? enterFade * presence : 0

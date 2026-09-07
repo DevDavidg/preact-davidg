@@ -1,17 +1,29 @@
 import { useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { holeCenter } from './blackHole'
 import type { Quality } from './capability'
 import { liveLaw, reactorControl } from './control/reactorControl'
 import { pulse } from './pulse'
 import { sceneColors } from './sceneColors'
-import { liveFor, sceneState } from './sceneState'
+import { liveFor, sceneState, swallowShape } from './sceneState'
 
 const vertexShader = /* glsl */ `
 varying vec3 vWorld;
+uniform vec3 uHole;
+uniform float uDrain;
+uniform float uSuction;
 
 void main() {
   vec4 world = modelMatrix * vec4(position, 1.0);
+  if (uDrain > 0.0008) {
+    vec2 delta = uHole.xz - world.xz;
+    float r = length(delta);
+    float grav = clamp(uDrain * (0.55 + uDrain * 0.9) * (13.0 / (r + 2.4)), 0.0, 0.94);
+    grav = min(0.97, grav * (1.0 + uSuction * 0.3));
+    world.xz += delta * grav;
+    world.y += grav * 1.35;
+  }
   vWorld = world.xyz;
   gl_Position = projectionMatrix * viewMatrix * world;
 }
@@ -127,6 +139,12 @@ export const GridFloor = ({ quality }: { quality: Quality }) => {
           uAudio: { value: 0 },
           uInk: { value: sceneColors.ink.clone() },
           uAccent: { value: sceneColors.accent.clone() },
+          uHole: { value: new THREE.Vector3() },
+          // Same infall shape as `ReconstructMaterial`, and for the same
+          // reason: the beat multiplies the fall rather than adding to it, so
+          // the floor cannot flow back out between gulps.
+          uDrain: { value: 0 },
+          uSuction: { value: 0 },
         },
       }),
     [],
@@ -153,6 +171,10 @@ export const GridFloor = ({ quality }: { quality: Quality }) => {
     material.uniforms.uAudio.value = reactorControl.audio
     material.uniforms.uInk.value.copy(sceneColors.ink)
     material.uniforms.uAccent.value.copy(sceneColors.accent)
+    const swallow = swallowShape(sceneState.swallow)
+    material.uniforms.uHole.value.copy(holeCenter)
+    material.uniforms.uDrain.value = swallow.drain
+    material.uniforms.uSuction.value = swallow.suction
   })
 
   return (

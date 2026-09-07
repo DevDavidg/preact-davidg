@@ -22,6 +22,7 @@ import { livePowerFor, sceneState, swallowShape } from '../scene/sceneState'
  */
 export const StageTreatment = () => {
   const ignition = useRef<HTMLDivElement>(null)
+  const vignette = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     /*
@@ -36,6 +37,7 @@ export const StageTreatment = () => {
      * comparing first means the common case writes nothing at all.
      */
     let lastIgnition = ''
+    let lastVignette = ''
     let lastCrt = ''
     let lastOverclock = ''
 
@@ -43,30 +45,54 @@ export const StageTreatment = () => {
       const root = document.documentElement
 
       /*
-       * The ignition wash carries the swallow as well as the charge, but only a
-       * little of it. The finale is a black hole now, and the defining feature of
-       * one is that the middle of the frame is the *darkest* thing in it. A strong
-       * screen-space wash lifted the whole image, the event horizon along with it,
-       * and turned the well into a bright disc. Enough to spill the aperture's
-       * light past its own geometry, and no more.
+       * The ignition wash carries the swallow as well as the charge, but barely.
+       *
+       * The finale is a black hole, and the defining feature of one is that the
+       * middle of the frame is the *darkest* thing in it. A screen-space wash lifts
+       * the whole image, the event horizon along with it, and turns the well into a
+       * grey disc — and now that the well is drawn by a pass that emits its own
+       * light and blooms, this has nothing left to contribute but that lift. What
+       * survives is a trace, enough to say the room is under a light it cannot see
+       * the source of.
        */
       const swallow = swallowShape(sceneState.swallow)
       const glow = (
-        livePowerFor(sceneState.build) * 0.1 +
-        swallow.grip * 0.24
+        livePowerFor(sceneState.build) * 0.1 * (1 - swallow.amount) +
+        swallow.grip * 0.02
       ).toFixed(3)
       if (ignition.current && glow !== lastIgnition) {
         lastIgnition = glow
         ignition.current.style.opacity = glow
       }
 
-      const crt = reactorControl.modeAmount.crt.toFixed(3)
+      /*
+       * The vignette lets go of the ending.
+       *
+       * It is a fixed radial scrim that pulls the corners toward the reactor
+       * colour, and for the whole corridor that is what gives the room a frame.
+       * The finale is the one shot where a frame is wrong: the well opens past
+       * the edges of the viewport, so the scrim was laying an opaque border over
+       * the outermost arcs of the lensed image — the part that carries how far
+       * the field reaches — and flattening the interior along with it.
+       *
+       * Opacity on one element rather than a custom property on the root: a
+       * property write invalidates style for the whole document, and this
+       * changes every frame for the length of the ending, which is exactly the
+       * stretch that can least afford a style recalculation.
+       */
+      const scrim = (1 - swallow.drain * 0.94).toFixed(3)
+      if (vignette.current && scrim !== lastVignette) {
+        lastVignette = scrim
+        vignette.current.style.opacity = scrim
+      }
+
+      const crt = (reactorControl.modeAmount.crt * (1 - swallow.drain)).toFixed(3)
       if (crt !== lastCrt) {
         lastCrt = crt
         root.style.setProperty('--crt', crt)
       }
 
-      const overclock = reactorControl.modeAmount.overclock.toFixed(3)
+      const overclock = (reactorControl.modeAmount.overclock * (1 - swallow.drain)).toFixed(3)
       if (overclock !== lastOverclock) {
         lastOverclock = overclock
         root.style.setProperty('--overclock', overclock)
@@ -102,7 +128,7 @@ export const StageTreatment = () => {
 
   return (
     <div aria-hidden="true" data-print-hide>
-      <div className="stage-vignette" />
+      <div ref={vignette} className="stage-vignette" />
       <div ref={ignition} className="stage-ignition" />
       <div className="stage-scanlines" />
       <div className="stage-heat" />

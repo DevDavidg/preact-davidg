@@ -1,10 +1,11 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { CaseStudy, Copy } from "../content";
 import { SECTION_IDS } from "../lib/routes";
 import { AboutPortrait } from "./AboutPortrait";
-import { Atmosphere } from "./Atmosphere";
+import { CosmicIntro, CosmicWorld } from "./CosmicWorld";
+import { holeCenter, holeRender } from "./blackHole";
 import type { Quality } from "./capability";
 import {
   advanceControl,
@@ -12,15 +13,9 @@ import {
   resetControl,
 } from "./control/reactorControl";
 import { CursorProbe } from "./CursorProbe";
-import { GridFloor } from "./GridFloor";
-import { Lattice } from "./Lattice";
 import { PORTAL_POSITION } from "./layout";
-import { ReactorCore } from "./ReactorCore";
 import { Rig } from "./Rig";
 import { FinaleGate } from "./FinaleGate";
-import { HeroStage } from "./HeroStage";
-import { SignalConduits } from "./SignalConduits";
-import { Structures } from "./Structures";
 import { advancePulse, setPulseDepth } from "./pulse";
 import { refreshSceneColors, sceneColors } from "./sceneColors";
 import {
@@ -38,10 +33,10 @@ import { useSectionWindows } from "./ui/useSectionWindows";
  * The advanced animation stack, behind a lazy boundary.
  *
  * `cinema` is the only quality that ever resolves this import, so the
- * post-processing chain, the transmission material, the Theatre timeline, the
- * physics solver and the Rive runtime are bytes a phone never asks for. See
- * `src/scene/cinema/CinemaLayer.tsx` for why that boundary is load-bearing and
- * `scripts/bundle-budget.mjs` for the budget that holds it honest.
+ * post-processing chain and geodesic black hole are bytes a phone never asks
+ * for. See `src/scene/cinema/CinemaLayer.tsx` for why that boundary is
+ * load-bearing and `scripts/bundle-budget.mjs` for the budget that holds it
+ * honest.
  */
 const CinemaLayer = lazy(() =>
   import("./cinema/CinemaLayer").then((module) => ({
@@ -145,35 +140,55 @@ const PulseDriver = () => {
 };
 
 /**
- * A lost GPU context has to be survivable. Without this the canvas keeps a dead
- * renderer and the page shows a black rectangle over half the content; here the
- * scene reports upward and the document takes over as if 3D had never been asked
- * for. `preventDefault` on the loss event is what allows the browser to restore.
+ * A lost GPU context has to be survivable. `preventDefault` lets the browser
+ * restore; if it does not, the canvas remounts once, and only then does the
+ * document take over. Without that the page keeps a dead black rectangle.
+ *
+ * Unmount (route change) also fires `webglcontextlost` — the timer is cleared
+ * on cleanup so a teardown is not treated as an orphaned GPU.
  */
-const ContextGuard = ({ onFailure }: { onFailure: () => void }) => {
+const RESTORE_MS = 400;
+
+const ContextGuard = ({
+  onFailure,
+  onOrphaned,
+}: {
+  onFailure: () => void;
+  onOrphaned: () => void;
+}) => {
   const gl = useThree((state) => state.gl);
   const setSceneReady = useSceneStore((state) => state.setSceneReady);
+  const onFailureRef = useRef(onFailure);
+  const onOrphanedRef = useRef(onOrphaned);
+  onFailureRef.current = onFailure;
+  onOrphanedRef.current = onOrphaned;
 
   useEffect(() => {
     const canvas = gl.domElement;
+    let restore = 0;
 
     const handleLost = (event: Event) => {
       event.preventDefault();
       setSceneReady(false);
+      restore = window.setTimeout(() => onOrphanedRef.current(), RESTORE_MS);
     };
-    // Restoration is not guaranteed; if it does not come back, fail over.
-    const handleRestored = () => refreshSceneColors();
+    const handleRestored = () => {
+      window.clearTimeout(restore);
+      refreshSceneColors();
+    };
+    const handleCreateError = () => onFailureRef.current();
 
     canvas.addEventListener("webglcontextlost", handleLost);
     canvas.addEventListener("webglcontextrestored", handleRestored);
-    canvas.addEventListener("webglcontextcreationerror", onFailure);
+    canvas.addEventListener("webglcontextcreationerror", handleCreateError);
 
     return () => {
+      window.clearTimeout(restore);
       canvas.removeEventListener("webglcontextlost", handleLost);
       canvas.removeEventListener("webglcontextrestored", handleRestored);
-      canvas.removeEventListener("webglcontextcreationerror", onFailure);
+      canvas.removeEventListener("webglcontextcreationerror", handleCreateError);
     };
-  }, [gl, onFailure, setSceneReady]);
+  }, [gl, setSceneReady]);
 
   return null;
 };
@@ -223,8 +238,13 @@ const DemandDriver = () => {
   const settle = useRef(WARM_UP_SECONDS);
 
   useFrame((_state, delta) => {
-    if (sceneState.build !== last.current) {
-      last.current = sceneState.build;
+    // Both axes. `build` is pinned at 1 for the whole finale, so watching it
+    // alone left the ending's settle tail — the part of a flick Lenis is still
+    // easing through after the browser has stopped emitting scroll — with
+    // nothing to extend it.
+    const position = sceneState.build + sceneState.swallow;
+    if (position !== last.current) {
+      last.current = position;
       settle.current = Math.max(settle.current, SETTLE_SECONDS);
     }
     if (settle.current > 0) {
@@ -332,10 +352,24 @@ const IgnitionFlare = () => {
     // closing the circuit is what makes it flare.
     const handshake = reactorControl.uplink;
     material.color.copy(sceneColors.accent);
-    // Soft end glow — structure/gate carry the finale, not a screen-filling blob.
-    material.opacity = power * power * 0.28 + handshake * handshake * 0.22;
+    /*
+     * Soft end glow — structure/gate carry the finale, not a screen-filling blob.
+     *
+     * And once the composer is drawing a real event horizon at this exact point,
+     * an additive white sprite centred on it is a haze over the darkest thing in
+     * the frame. A quarter survives as light for the well to bend; the rest of the
+     * flare's job has been taken over by an object that emits.
+     */
+    const yielded = holeRender.lensing
+      ? Math.max(0, 0.08 - sceneState.swallow * 0.08)
+      : 1 - sceneState.swallow * 0.85;
+    material.opacity =
+      (power * power * 0.28 + handshake * handshake * 0.22) * yielded;
     const sprite = mesh.current;
-    if (sprite) sprite.scale.setScalar(8 + power * 5 + handshake * 4);
+    if (sprite) {
+      sprite.scale.setScalar(8 + power * 5 + handshake * 4);
+      sprite.visible = yielded > 0.02;
+    }
   });
 
   return (
@@ -352,20 +386,21 @@ const IgnitionFlare = () => {
  * The swallow.
  *
  * Everything the corridor is built out of hangs under here, and the ending is one
- * transform: the whole room is scaled toward the portal's position, twisted about
- * the corridor axis and stretched along it, so it is drawn into the aperture as a
- * single object rather than each component being taught to leave separately.
+ * transform: the whole room is drawn onto a decaying orbit around the well, so it
+ * goes in as a single body rather than each component being taught to leave
+ * separately.
  *
- * Two nested groups because the scale has to happen *about the portal*, not about
- * the world origin. The outer group is parked at `PORTAL_POSITION` and owns the
- * scale and the twist; the inner one undoes that offset so its children keep the
- * world coordinates they were authored in. Collapsing the outer scale therefore
- * converges every vertex on the aperture.
+ * Two nested groups because the transform has to happen *about the singularity*,
+ * not about the world origin. The outer group is parked at `holeCenter` — the
+ * actual aperture, not `PORTAL_POSITION` — and owns the collapse and the winding;
+ * the inner one undoes that offset so its children keep the world coordinates
+ * they were authored in. Closing the outer scale therefore converges every vertex
+ * on the well, which is the only point that reads as going in.
  *
  * It reads `sceneState.swallow` and does nothing else — no springs, no
  * accumulators, no latch. Stop scrolling and it holds; scroll up and the room
- * comes back out of the portal along exactly the path it went in. That is what
- * makes the ending scrubbable rather than a cutscene that fires on arrival.
+ * comes back out of the well along exactly the path it went in. That is what makes
+ * the ending scrubbable rather than a cutscene that fires on arrival.
  */
 const SwallowField = ({ children }: { children: ReactNode }) => {
   const pivot = useRef<THREE.Group>(null);
@@ -374,7 +409,9 @@ const SwallowField = ({ children }: { children: ReactNode }) => {
     const node = pivot.current;
     if (!node) return;
 
-    const { amount, pull, grip } = swallowShape(sceneState.swallow);
+    const { amount, radius, orbit, tide, drain, suction, surge } = swallowShape(
+      sceneState.swallow,
+    );
 
     if (amount <= 0.0005) {
       // The overwhelming common case: the corridor, untouched.
@@ -386,20 +423,60 @@ const SwallowField = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const collapse = 1 - pull * 0.94;
-    // Held longer along the corridor axis than across it, so the room elongates
-    // toward the aperture on its way in instead of merely getting smaller.
-    node.scale.set(collapse, collapse, collapse * (1 + grip * 1.8));
-    node.rotation.z = grip * Math.PI * 1.15;
-    // Past this there is nothing left to draw but the portal's own light.
+    /*
+     * Three transforms, and each one is a different thing gravity does.
+     *
+     * A uniform shrink is the one thing falling into a well does *not* look like.
+     * Matter is flattened onto the disk plane, yanked inward on each gulp, and
+     * still *goes in* along the corridor — stretching Z away from the hole used
+     * to throw the room at the camera, which is the opposite of suction.
+     */
+    /*
+     * The gulp is a tug on a fall, not the fall itself.
+     *
+     * This used to be `1 - suction * 0.55`, and suction is a beat: it returns to
+     * zero between gulps, so the factor returned to one and the room sprang back
+     * out to four fifths of its width every time a pulse passed. Measured, the
+     * corridor went from 0.41 of its span at the first gulp's peak back to 0.75
+     * a few percent of scroll later — the ending read as the room breathing
+     * rather than as the room being eaten.
+     *
+     * `radius` now carries the drain and only ever closes, so all the beat has
+     * left to do is lean on it. Twelve percent is a tug that costs 2.7% of the
+     * room's span back at its worst point — measured, in `check-swallow.ts`,
+     * which fails if a retune pushes any call site past 5%.
+     */
+    const gulpIn = 1 - suction * 0.12;
+    // Flattening onto the disk plane, on the drain rather than on raw scroll, so
+    // the room is a disk by the third gulp instead of only at the very end.
+    const flatten = 1 - drain * drain * 0.88;
+    const across = radius * gulpIn;
+    const along = radius * (1 - tide * 0.42) * gulpIn;
+
+    node.scale.set(across, across * flatten, Math.max(0.05, along));
+    /*
+     * The winding, about the axis of the fall.
+     *
+     * Roll rather than a revolution, because the lens is looking straight down the
+     * axis the room is collapsing along: a revolution about any other axis swings
+     * the corridor sideways out of frame, while a roll about this one is exactly
+     * what an orbital spiral projects to when seen down its own axis. It is also
+     * the only rotation that leaves the room converging on the aperture instead of
+     * orbiting past it.
+     *
+     * Surge adds a kick of angular rate on each gulp so the eye feels the tug.
+     */
+    node.rotation.z = orbit + surge * 0.9;
+    // Past this there is nothing left to draw but the well's own light.
     node.visible = amount < 0.995;
   });
 
   return (
-    <group ref={pivot} position={PORTAL_POSITION}>
-      <group
-        position={[-PORTAL_POSITION[0], -PORTAL_POSITION[1], -PORTAL_POSITION[2]]}
-      >
+    <group
+      ref={pivot}
+      position={[holeCenter.x, holeCenter.y, holeCenter.z]}
+    >
+      <group position={[-holeCenter.x, -holeCenter.y, -holeCenter.z]}>
         {children}
       </group>
     </group>
@@ -431,18 +508,43 @@ export const ReactorScene = ({
 }: ReactorSceneProps) => {
   const fidelity = useSceneStore((state) => state.fidelity);
   const windows = useSectionWindows(sectionIds);
+  const [epoch, setEpoch] = useState(0);
+  const retried = useRef(false);
 
   const cinema = quality === "cinema";
+
+  const handleOrphaned = () => {
+    if (retried.current) {
+      onFailure();
+      return;
+    }
+    retried.current = true;
+    setEpoch((n) => n + 1);
+  };
 
   return (
     <div className="stage" aria-hidden="true">
       <Canvas
+        key={epoch}
         dpr={DPR[fidelity]}
         frameloop={cinema ? "always" : "demand"}
-        camera={{ fov: 42, near: 0.1, far: 64, position: [-5.4, 2.05, 8.4] }}
+        camera={{ fov: 42, near: 0.1, far: 110, position: [-1.62, 1.94, 10.6] }}
         gl={{
           alpha: false,
-          antialias: fidelity === "full",
+          /*
+           * Never both. Cinema at anything above `minimal` mounts `CinemaLayer`,
+           * whose `EffectComposer` renders the scene into its own multisampled
+           * HalfFloat target and blits one resolved quad to the default buffer —
+           * so a 4x-MSAA default backbuffer is allocated, resolved every frame
+           * and never rendered into. At dpr 2 that is on the order of a hundred
+           * megabytes of colour+depth for pixels that were already anti-aliased
+           * upstream, which on an integrated GPU is the difference between
+           * fitting the tile budget and thrashing it.
+           *
+           * `lite` never mounts a composer, so it keeps the driver's MSAA — it
+           * is the only antialiasing that quality has.
+           */
+          antialias: fidelity === "full" && !cinema,
           powerPreference: cinema ? "high-performance" : "default",
           stencil: false,
         }}
@@ -454,20 +556,15 @@ export const ReactorScene = ({
       >
         <PulseDriver />
         <ClearColour />
-        <ContextGuard onFailure={onFailure} />
+        <ContextGuard onFailure={onFailure} onOrphaned={handleOrphaned} />
         <ReadySignal />
         {cinema ? null : <DemandDriver />}
 
-        <Atmosphere quality={quality} />
         <Rig quality={quality} />
+        <CosmicWorld quality={quality} />
 
         {/* The room. Everything in here is what the portal takes in. */}
         <SwallowField>
-          <GridFloor quality={quality} />
-          <Lattice quality={quality} />
-          <Structures quality={quality} />
-          <HeroStage quality={quality} cue={copy.hero.cue} />
-          <ReactorCore quality={quality} />
           <WorldConsoles
             copy={copy}
             featured={featured}
@@ -478,7 +575,6 @@ export const ReactorScene = ({
           />
           {/* Causality: the light reaches a bay before the project does. Only the
               home corridor has modules to wire. */}
-          {mode === "home" ? <SignalConduits quality={quality} /> : null}
           {mode === "home" ? (
             <AboutPortrait quality={quality} windows={windows} />
           ) : null}
@@ -508,6 +604,7 @@ export const ReactorScene = ({
           </Suspense>
         ) : null}
       </Canvas>
+      {mode === "home" ? <CosmicIntro copy={copy} /> : null}
     </div>
   );
 };

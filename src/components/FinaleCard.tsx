@@ -27,8 +27,15 @@ import { useSceneStore } from '../scene/sceneState'
  * again exactly as it faded in.
  */
 
-/** Fades in over the last stretch, once the room itself has gone. */
-const FADE_FROM = 0.12
+/**
+ * Fades in over the last stretch, once the room itself has gone.
+ *
+ * Late enough to cross over with the light going out rather than to compete with
+ * it. The last few percent of the swallow is a flare and then a black frame — see
+ * `uEclipse` in `src/scene/cinema/BlackHoleEffect.ts` — and copy rising through the
+ * flare would be read against the brightest thing the site ever draws.
+ */
+const FADE_FROM = 0.52
 
 export const FinaleCard = () => {
   const { copy } = useCopy()
@@ -49,6 +56,7 @@ export const FinaleCard = () => {
       // Untouchable until it is actually there, so the mail link can never
       // intercept a pointer over the corridor.
       node.style.pointerEvents = shown > 0.6 ? 'auto' : 'none'
+      node.inert = shown <= 0.6
     })
   }, [])
 
@@ -59,6 +67,7 @@ export const FinaleCard = () => {
       ref={card}
       data-print-hide
       className="finale-card"
+      inert
       style={{ opacity: 0, pointerEvents: 'none' }}
     >
       <p className="text-meta text-ignition">{copy.hud.uplinkDone}</p>

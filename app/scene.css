@@ -22,6 +22,37 @@
   background-color: var(--color-reactor);
 }
 
+.cosmic-intro {
+  position: absolute;
+  inset: auto 6vw 7vh;
+  pointer-events: none;
+  color: var(--color-ink);
+  text-shadow: 0 2px 30px #02030b;
+}
+.cosmic-eyebrow {
+  font: 0.7rem var(--font-mono);
+  letter-spacing: 0.22em;
+  color: var(--color-ignition);
+  margin-bottom: 1.5rem;
+}
+.cosmic-intro h1 {
+  font: 500 clamp(4rem, 8.8vw, 9rem)/0.84 var(--font-display);
+  letter-spacing: -0.065em;
+  margin: 0 0 2rem;
+}
+.cosmic-intro h1 span { color: var(--color-ink-soft); }
+.cosmic-intro-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font: 0.65rem var(--font-mono);
+  letter-spacing: 0.12em;
+}
+@media (max-width: 40rem) {
+  .cosmic-intro { bottom: 5vh; }
+  .cosmic-intro-footer { flex-direction: column; font-size: 0.6rem; }
+}
+
 .stage-vignette {
   position: fixed;
   inset: 0;
@@ -30,7 +61,7 @@
   background: radial-gradient(
     ellipse 74% 60% at 50% 45%,
     transparent 0%,
-    color-mix(in srgb, var(--color-reactor) 78%, transparent) 100%
+    color-mix(in srgb, var(--color-reactor) 44%, transparent) 100%
   );
 }
 
@@ -238,14 +269,39 @@
 .finale-card {
   position: fixed;
   left: 50%;
-  top: 50%;
+  /*
+   * Below the singularity, not on it.
+   *
+   * This used to sit at 50%/50%, which is exactly where the well is: the camera
+   * looks straight down the aperture's axis for the whole ending, so screen
+   * centre and the event horizon are the same point by construction. The plate
+   * was therefore laid over the one thing the ending is about, and the closing
+   * beat — the interior opening up inside the shadow — was being read through
+   * three lines of copy.
+   *
+   * 74% keeps the shadow and the ring clear while leaving the plate on the lower
+   * third, where a caption belongs. `dvh`-based so a phone's URL bar cannot push
+   * it off the bottom.
+   */
+  bottom: max(3vh, env(safe-area-inset-bottom));
   z-index: var(--z-index-hud);
-  translate: -50% -50%;
+  translate: -50% 0;
   width: min(34rem, calc(100vw - var(--spacing-gutter) * 2));
   padding: 0 max(var(--spacing-gutter), env(safe-area-inset-left));
   text-align: center;
   /* The portal is behind it and hot; the copy needs its own ground to sit on. */
   text-shadow: 0 1px 24px var(--color-reactor);
+}
+
+/*
+ * Short viewports have no lower third to spare, so the plate comes back toward
+ * the middle — the well is smaller in frame there anyway, because `viewportFit`
+ * widens the lens rather than moving the camera in.
+ */
+@media (max-height: 34rem) {
+  .finale-card {
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
 }
 
 @media (forced-colors: active) {

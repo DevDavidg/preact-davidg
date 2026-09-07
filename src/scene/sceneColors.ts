@@ -28,12 +28,12 @@ const TOKENS = {
 type TokenName = keyof typeof TOKENS;
 
 const FALLBACK: Record<TokenName, string> = {
-  base: "#050608",
-  abyss: "#030406",
-  ink: "#f3eee4",
-  accent: "#ffb454",
-  signal: "#e6c891",
-  steel: "#8e939a",
+  base: "#050817",
+  abyss: "#02030b",
+  ink: "#f1f5ff",
+  accent: "#72e6fa",
+  signal: "#efa5ed",
+  steel: "#758bae",
 };
 
 /**

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { liveFor, sceneState } from '../sceneState'
+import { liveFor, sceneState, swallowShape } from '../sceneState'
 import { GlyphMaterial } from './GlyphMaterial'
 import type { GlyphInstances } from './glyphLayout'
 
@@ -90,6 +90,9 @@ export const GlyphField = ({ instances, atlas }: GlyphFieldProps) => {
     opacity.current = THREE.MathUtils.damp(opacity.current, 1, 3.5, delta)
     // Reserve the opening for the product shot; fade in as the first console enters.
     const corridorPresence = THREE.MathUtils.smoothstep(build, 0.055, 0.1)
+    // Same rule as Console: the copy is recalled for the ending rather than
+    // faded out before it, so the well takes a room that still has words in it.
+    const { recall } = swallowShape(sceneState.swallow)
 
     material.sync({
       build,
@@ -97,6 +100,7 @@ export const GlyphField = ({ instances, atlas }: GlyphFieldProps) => {
       time: state.clock.elapsedTime,
       velocity: sceneState.velocity,
       opacity: opacity.current * corridorPresence,
+      recall,
     })
   })
 

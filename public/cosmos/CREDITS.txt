@@ -1,0 +1,49 @@
+Planet and sky textures
+=======================
+
+Solar System Scope / INOVE — CC BY 4.0
+https://www.solarsystemscope.com/textures/
+https://creativecommons.org/licenses/by/4.0/
+
+  earth.webp    from "2k_earth_daymap"        — 2048x1024, 129 kB
+  night.webp    from "2k_earth_nightmap"      — 2048x1024,  91 kB
+  moon.webp     from "2k_moon"                — 1536x768,  135 kB
+  saturn.webp   from "2k_saturn"              — 2048x1024,  48 kB
+  ring.webp     from "2k_saturn_ring_alpha"   — 1024x8,      2 kB
+  sky.webp      from "2k_stars_milky_way"     — 2048x1024,  66 kB
+
+  Changes: converted to WebP; quality chosen per map to stay under the site's
+  150 kB per-image budget (see scripts/bundle-budget.mjs). The moon was reduced to
+  1536x768 because it is high-frequency across its whole surface and 2K lossy could
+  not reach the budget without visible blocking in the crater rims. The ring alpha
+  strip was reduced to eight rows: it varies with radius only. Rendered with custom
+  lighting, not with the source maps' own shading.
+
+three.js authors — MIT
+https://github.com/mrdoob/three.js/tree/dev/examples/textures/planets
+
+  earth-mask.webp  from "earth_bump_roughness_clouds_4096" — 2048x1024, 143 kB
+
+  A channel-packed map: R is elevation, G is roughness (land is rough, water is
+  glass) and B is cloud cover. Changes: resized to 2048x1024 and converted to WebP.
+  Used as the height field for the terminator's relief, the mask that keeps the
+  specular on the ocean, and the cloud deck — three maps in one fetch.
+
+The MIT License
+Copyright (c) 2010-2026 three.js authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.

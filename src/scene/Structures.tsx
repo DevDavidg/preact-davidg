@@ -160,12 +160,30 @@ const BayMesh = ({
 }) => {
   const focus = useRef(0)
   const cinema = quality === 'cinema'
+  const mesh = useRef<THREE.Mesh>(null)
 
   useFrame((state, delta) => {
     const build = sceneState.build
     // The room has to exist by the time the lens clears the hero optic — the
     // transit hands off into the corridor, not into an empty floor.
     const corridorPresence = THREE.MathUtils.smoothstep(build, 0.09, 0.2)
+
+    /*
+     * Absent, not merely transparent.
+     *
+     * `ReconstructMaterial` is `transparent`, `DoubleSide` and `depthWrite:
+     * false`, and it only discards at alpha < 0.004 — after the whole shard
+     * shader has run. So an opacity of zero still rasterises both faces of every
+     * triangle in the bay and blends the result. Across eight merged bays that
+     * is tens of thousands of triangles shaded to nothing, and the stretch where
+     * it happens is `build < 0.09`: the hero product shot, which is already the
+     * most expensive frame the site draws and the one `usePerformanceGovernor`
+     * samples before deciding whether to demote. `SignalConduits` makes exactly
+     * this argument for its own ribbons; the colonnade never got it.
+     */
+    const shown = corridorPresence > 0.002
+    if (mesh.current) mesh.current.visible = shown
+    if (!shown) return
     const artifactIndex = sceneState.focus
     const artifactZ =
       artifactIndex >= 0 ? ARTIFACTS[artifactIndex]?.position[2] : null
@@ -211,7 +229,14 @@ const BayMesh = ({
   })
 
   // One mesh for the whole bay: columns, kerb and tie in a single buffer.
-  return <mesh geometry={geometry} material={material} position={[0, 0, bay.z]} />
+  return (
+    <mesh
+      ref={mesh}
+      geometry={geometry}
+      material={material}
+      position={[0, 0, bay.z]}
+    />
+  )
 }
 
 export const Structures = ({ quality }: { quality: Quality }) => {

@@ -57,9 +57,11 @@ export const CAMERA_PATH = new THREE.CatmullRomCurve3(
     // Clear of the optic; the corridor takes over from here.
     new THREE.Vector3(0.35, 1.66, 3.1),
     new THREE.Vector3(-1.2, 1.95, 1.4),
-    new THREE.Vector3(1.5, 2.35, -2.2),
-    new THREE.Vector3(-0.9, 1.55, -6.0),
-    new THREE.Vector3(0, 1.7, -10.4),
+    new THREE.Vector3(1.4, 1.95, -2.2),
+    new THREE.Vector3(-0.8, 1.9, -6.0),
+    // Eye-level approach: high enough that the well stays ahead of the uplink
+    // plate, low enough that the plate itself sits mid-frame — not in the ceiling.
+    new THREE.Vector3(0, 1.95, -10.4),
   ],
   false,
   "catmullrom",
@@ -109,11 +111,14 @@ export const TARGET_PATH = new THREE.CatmullRomCurve3(
     new THREE.Vector3(0, 1.62, 4.9),
     new THREE.Vector3(0.05, 1.6, 3.5),
     new THREE.Vector3(0.1, 1.54, 2.3),
-    new THREE.Vector3(0.14, 1.44, 0.6),
-    new THREE.Vector3(0, 1.34, -1.6),
-    new THREE.Vector3(0, 1.35, -5.0),
-    new THREE.Vector3(0, 1.25, -8.8),
-    new THREE.Vector3(0, 1.45, -13.6),
+    new THREE.Vector3(0.14, 1.48, 0.6),
+    new THREE.Vector3(0, 1.55, -1.6),
+    new THREE.Vector3(0, 1.75, -5.0),
+    // Toward the gate, but not all the way to aperture height — that put the
+    // uplink plate in the top third of the frame. The well sits a little above
+    // centre; the plate reads at eye level.
+    new THREE.Vector3(0, 1.95, -8.8),
+    new THREE.Vector3(0, 2.1, -13.6),
   ],
   false,
   "catmullrom",
@@ -155,8 +160,8 @@ const ARTIFACT_SLOTS: ArtifactPlacement[] = [
 ];
 
 /**
- * Featured cases are the same length in both locales — `tests/unit/content.test.ts`
- * holds that — so either one answers how many bays the corridor needs.
+ * Featured cases are the same length in both locales, so either one answers
+ * how many bays the corridor needs.
  */
 export const ARTIFACTS: ArtifactPlacement[] = ARTIFACT_SLOTS.slice(
   0,

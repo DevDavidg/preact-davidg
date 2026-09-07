@@ -38,6 +38,8 @@ interface TelemetryStripProps {
 const STRIP_WIDTH = 512
 const STRIP_HEIGHT = 96
 
+const _local = new THREE.Vector3()
+
 export const TelemetryStrip = ({
   consoles,
   heightFit,
@@ -119,13 +121,9 @@ export const TelemetryStrip = ({
       texture.needsUpdate = true
     }
 
-    const local = new THREE.Vector3(
-      0,
-      (active.spec.height * heightFit) / 2 + 0.22,
-      0.05,
-    )
-    local.applyQuaternion(active.quaternion)
-    node.position.copy(active.position).add(local)
+    _local.set(0, (active.spec.height * heightFit) / 2 + 0.22, 0.05)
+    _local.applyQuaternion(active.quaternion)
+    node.position.copy(active.position).add(_local)
     node.quaternion.copy(active.quaternion)
     const stripWidth = active.spec.width * widthFit * 0.48
     node.scale.set(

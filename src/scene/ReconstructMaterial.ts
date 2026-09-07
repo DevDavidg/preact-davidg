@@ -1,6 +1,8 @@
 import * as THREE from 'three'
+import { holeAxis, holeCenter, holeRadiusFor } from './blackHole'
 import { liveLaw, reactorControl } from './control/reactorControl'
 import { sceneColors } from './sceneColors'
+import { sceneState, swallowShape } from './sceneState'
 
 const vertexShader = /* glsl */ `
 attribute vec3 aBary;
@@ -20,6 +22,14 @@ uniform float uDrift;
 uniform float uAssembleAt;
 /** 1 = CPU places instances; skip per-shard assemble (avoids fighting JS paths). */
 uniform float uCpuPlaced;
+uniform vec3 uHole;
+uniform vec3 uAxis;
+uniform float uTide;
+uniform float uOrbit;
+uniform float uSuction;
+uniform float uDrain;
+/** The well's current gravitational radius, in metres — the dilation clock's scale. */
+uniform float uRs;
 
 varying vec3 vBary;
 varying vec3 vNormalW;
@@ -73,6 +83,33 @@ void main() {
   vec3 drift = (outward * (loose * uSpread * (0.4 + aSeed * 0.55)) + aAxis * breathe) * uDrift;
 
   vec4 worldPos = modelMatrix * instance * vec4(aCenter + drift + local, 1.0);
+
+  // Per-vertex infall. See the note on uDrain where the uniform is declared.
+  // Nearer shards fall first, flatten onto the disk and pick up extra spin.
+  if (uDrain > 0.0008) {
+    vec3 rel = worldPos.xyz - uHole;
+    float r = length(rel);
+    if (r > 0.05) {
+      vec3 axis = normalize(uAxis);
+      float grav = clamp(uDrain * (0.55 + uDrain * 0.9) * (12.0 / (r + 2.2)), 0.0, 0.94);
+      grav = min(0.97, grav * (1.0 + uSuction * 0.3));
+      vec3 along = axis * dot(rel, axis);
+      vec3 planar = rel - along;
+      float squash = 1.0 - clamp(uTide * 0.72 + uDrain * 0.22, 0.0, 0.9);
+      rel = along * squash + planar * (1.0 - grav);
+      /*
+       * Gravitational time dilation, per shard. Proper time at r runs at
+       * √(1 − Rs/r) of the far observer's clock, so matter nearing the horizon
+       * does not vanish — its swirl freezes, redshifted and slow, the way
+       * infalling light really reads from outside. Only the orbit is dilated:
+       * the fall itself (grav) is the swallow's monotonic channel and must
+       * finish taking the room.
+       */
+      float dilate = sqrt(max(1.0 - uRs / max(r, uRs * 1.02), 0.02));
+      rel = rotateAxis(axis, uOrbit * (2.2 / (r + 1.7)) * dilate) * rel;
+      worldPos.xyz = uHole + rel;
+    }
+  }
 
   vBary = aBary;
   vUv = uv;
@@ -359,6 +396,31 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
         uDrift: { value: cpuPlaced ? 0 : 1 },
         uAssembleAt: { value: -1 },
         uCpuPlaced: { value: cpuPlaced ? 1 : 0 },
+        uHole: { value: new THREE.Vector3() },
+        uAxis: { value: new THREE.Vector3(0, 1, 0) },
+        /*
+         * The swallow's monotonic channel — what the well has actually taken —
+         * and the shader's whole infall term.
+         *
+         * The room-level `SwallowField` orbits and collapses the corridor as a
+         * body; the vertex shader's `grav` block is the differential on top of
+         * it. That block used to key off `pull`, which is scroll squared, and
+         * then squared it again: a quarter of the way into the ending the
+         * per-vertex infall was four parts in a thousand, so the corridor went
+         * in as a rigid toy and only came apart at the very last moment. The
+         * drain is what the three gulps have actually taken, and the linear term
+         * beside it is what puts the near shards on their way during the first
+         * gulp rather than the third.
+         *
+         * `uSuction` multiplies that fall rather than adding to it, because an
+         * added beat falls back to nothing between gulps and hands the shard
+         * straight back out — the exact release `drain` exists to end.
+         */
+        uDrain: { value: 0 },
+        uTide: { value: 0 },
+        uOrbit: { value: 0 },
+        uSuction: { value: 0 },
+        uRs: { value: 0 },
         uAccent: { value: sceneColors.accent.clone() },
         uInk: { value: sceneColors.ink.clone() },
         uMap: { value: options.map ?? blankMap },
@@ -434,6 +496,14 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
     uniforms.uLawEdge.value = liveLaw.edge
     uniforms.uAudio.value = reactorControl.audio
     uniforms.uHeat.value = liveLaw.heat
+    const swallow = swallowShape(sceneState.swallow)
+    uniforms.uDrain.value = swallow.drain
+    uniforms.uTide.value = swallow.tide
+    uniforms.uOrbit.value = swallow.orbit
+    uniforms.uSuction.value = swallow.suction
+    uniforms.uHole.value.copy(holeCenter)
+    uniforms.uRs.value = holeRadiusFor(state.build, sceneState.swallow)
+    holeAxis(uniforms.uAxis.value as THREE.Vector3, state.time)
     // Once faces carry the read, real occlusion beats blended transparency.
     // Textured panels wait until nearly locked (high alpha + stagger). Follow
     // the threshold both ways so scrolling back clears writers mid-flight.
@@ -447,7 +517,12 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
     // show through the near side, which is the whole point of the mode.
     // A blueprint does not occlude — whether the blueprint came from the mode or
     // from the law.
+    //
+    // Exception: once the swallow starts the lensing pass can only spare geometry
+    // that wrote depth. Without writers the well paints over wires that are still
+    // in front of it. The corridor's ghost behaviour yields for that stretch.
     this.depthWrite =
-      wire < 0.5 && stage > (mapped ? 0.72 : solid ? 0.45 : 0.55)
+      sceneState.swallow >= 0.12 ||
+      (wire < 0.5 && stage > (mapped ? 0.72 : solid ? 0.45 : 0.55))
   }
 }

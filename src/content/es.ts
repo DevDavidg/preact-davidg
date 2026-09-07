@@ -40,27 +40,27 @@ export const es: Copy = {
     cta: 'HABLEMOS',
     menuOpen: 'Abrir menú',
     menuClose: 'Cerrar menú',
-    soundOn: 'Activar sonido del reactor',
-    soundOff: 'Silenciar el reactor',
+    soundOn: 'Activar sonido del observatorio',
+    soundOff: 'Silenciar el observatorio',
     langGroup: 'Idioma',
     langNames: { es: 'Español', en: 'English' },
   },
 
   hud: {
-    subtitle: 'REACTOR DE SEÑAL · SUBSISTEMAS EN LÍNEA',
+    subtitle: 'OBSERVATORIO DIGITAL · SEÑAL DESDE LA TIERRA',
     subtitleStatic: 'CUADRO FIJO · MOVIMIENTO REDUCIDO',
-    build: 'CARGA',
-    hint: 'STANDBY → CARGA → TRANSMISIÓN → IGNICIÓN',
-    boot: 'PREFLIGHT DEL REACTOR',
+    build: 'VIAJE',
+    hint: 'ORIGEN → ÓRBITAS → GALAXIA → HORIZONTE',
+    boot: 'ABRIENDO EL OBSERVATORIO',
     phases: {
-      STANDBY: 'STANDBY',
-      CHARGE: 'CARGA',
-      TRANSMIT: 'TRANSMISIÓN',
-      IGNITION: 'IGNICIÓN',
+      STANDBY: 'ORIGEN',
+      CHARGE: 'ÓRBITAS',
+      TRANSMIT: 'GALAXIA',
+      IGNITION: 'HORIZONTE',
     },
-    operator: 'OPERADOR · DG-01',
-    moduleLock: 'MÓDULO {n} ASENTADO',
-    sectorLabel: 'SECTOR 02 · INESTABLE',
+    operator: 'EXPLORADOR · DG-01',
+    moduleLock: 'ÓRBITA {n} · PROYECTO',
+    sectorLabel: 'CONSTELACIÓN 02 · LAB',
     uplinkReady: 'UPLINK LISTO',
     uplinkHold: 'MANTENÉ PARA CERRAR EL CIRCUITO',
     uplinkDone: 'UPLINK ESTABLECIDO',
@@ -69,11 +69,11 @@ export const es: Copy = {
       'FIDELIDAD',
       'SPLINE',
       'AUDIO',
-      'REACTOR',
+      'COSMOS',
     ],
-    finaleLabel: 'Colapso del reactor',
+    finaleLabel: 'Horizonte de sucesos',
     finaleBody:
-      'Final del recorrido. Si seguís scrolleando, el portal se traga la sala entera; si frenás, se queda donde está, y si scrolleás para arriba vuelve a salir.',
+      'El último destino: un agujero negro. El scroll acerca planetas y constelaciones al horizonte; volvé hacia arriba para reconstruir el universo.',
     finaleClose: 'DAVID GUILLEN · dev.davidg@gmail.com',
     finaleReturn: 'SCROLLEÁ PARA ARRIBA PARA VOLVER',
   },
@@ -88,7 +88,7 @@ export const es: Copy = {
     factExperience: 'NONCONFORMIST DESDE 2024 · BANCA, SALUD, TELCO Y PRODUCTO',
     factStack: 'REACT · REACT NATIVE · NEXT · ANGULAR · NODE',
     factAvailability: 'BUENOS AIRES (GMT−3) · REMOTO',
-    cue: 'SCROLL PARA ENTRAR',
+    cue: 'SCROLL PARA EXPLORAR',
   },
 
   work: {
@@ -462,6 +462,54 @@ export const es: Copy = {
         height: 1000,
       },
       plate: 'MÓDULO 02 — NXC',
+    },
+    {
+      slug: 'a3-mercados',
+      title: 'A3 Mercados',
+      kind: 'product',
+      kindLabel: 'Cliente · sitio en producción',
+      tags: ['NEXT.JS', 'MERCADO DE CAPITALES', 'DATOS EN VIVO'],
+      summary:
+        'Sitio institucional de A3 Mercados, mercado registrado ante CNV n.º 13: futuros agropecuarios y financieros en vivo, productos y normativa del mercado argentino.',
+      outcome:
+        'La web pública opera en a3mercados.com.ar con datos de mercado en vivo, la oferta de productos del mercado y acceso a CEM para la operatoria electrónica.',
+      problem:
+        'Un mercado de capitales necesita publicar cotizaciones en tiempo real, productos y normativa con claridad regulatoria, sin trasladarle al usuario la complejidad del mercado.',
+      role: 'Desarrollo frontend del sitio en el contexto de Nonconformist / producto cliente.',
+      scope: 'Cliente. Sitio institucional con datos de mercado en vivo y navegación de productos.',
+      stack: ['Next.js', 'React', 'TypeScript'],
+      constraints: [
+        'Datos de mercado sujetos a horarios y estados del mercado: fuera de horario el sitio muestra su última referencia sin romperse.',
+        'Copy bajo marco CNV: carácter informativo, sin promesas de rendimiento.',
+        'Tablas de futuros y cauciones legibles en desktop y usables en móvil.',
+      ],
+      decisions: [
+        {
+          title: 'El mercado como protagonista',
+          body: 'El hero abre con las cotizaciones clave y el acceso a CEM: quien entra a un mercado busca precios antes que marketing.',
+        },
+        {
+          title: 'Separar institución de operatoria',
+          body: 'El sitio institucional enlaza a CEM y a las apps de operatoria en lugar de replicarlas, y se concentra en explicar productos y normativa.',
+        },
+      ],
+      contribution: [
+        'Implementación del sitio institucional y sus secciones de producto e info de mercado.',
+        'UI de cotizaciones en vivo: futuros agropecuarios y financieros, dólar BCRA y MATBA.',
+        'Ajustes responsive y de accesibilidad del recorrido.',
+      ],
+      evidence: [
+        'El sitio está en producción: https://a3mercados.com.ar/',
+        'A3 Mercados S.A. figura como Mercado con matrícula CNV Nro. 13 en el pie del sitio.',
+      ],
+      demoUrl: 'https://a3mercados.com.ar/',
+      image: {
+        src: '/work/a3-mercados.jpg',
+        alt: 'Sitio de A3 Mercados: cotizaciones de futuros agropecuarios y financieros en vivo',
+        width: 1600,
+        height: 1000,
+      },
+      plate: 'MÓDULO 03 — A3 MERCADOS',
     },
   ],
 
@@ -846,6 +894,186 @@ export const es: Copy = {
         height: 1000,
       },
       plate: 'LAB — SPHERE',
+    },
+    {
+      slug: 'gohaus',
+      title: 'Gohaus',
+      kind: 'product',
+      kindLabel: 'Sitio en producción',
+      tags: ['NEXT.JS', 'REAL ESTATE', 'IA'],
+      summary:
+        'Sitio de Gohaus: amoblado con inteligencia artificial para habitar y rentar mejor, dirigido al mundo real estate.',
+      outcome:
+        'La web pública opera en gohaus.ai y presenta la propuesta de amoblado rápido con la entrada a la plataforma siempre a un clic.',
+      problem:
+        'Un producto que mezcla diseño físico e IA tiene que explicarse sin tecnicismos, tanto al propietario que quiere rentar como al inquilino que va a habitar.',
+      role: 'Desarrollo frontend del sitio.',
+      scope: 'Sitio público en producción.',
+      stack: ['Next.js', 'React'],
+      constraints: [
+        'El mensaje une diseño, IA y real estate: la propuesta tiene que entenderse en el primer viewport.',
+        'La velocidad de amoblado es el argumento de venta y no puede perderse detrás de la técnica.',
+      ],
+      decisions: [
+        {
+          title: 'La promesa antes que la tecnología',
+          body: 'El hero comunica «Diseño + Inteligencia Artificial» con la promesa concreta de rentar mejor; la IA es el medio, no el titular.',
+        },
+        {
+          title: 'Entrada directa a la plataforma',
+          body: 'El CTA de entrar convive con la narrativa de cada sección para no interrumpir la lectura.',
+        },
+      ],
+      contribution: [
+        'Implementación del sitio público y sus secciones.',
+        'Hero con la propuesta de valor y acceso a la plataforma.',
+        'Ajustes responsive del recorrido.',
+      ],
+      evidence: [
+        'El sitio está en producción: https://gohaus.ai/',
+      ],
+      demoUrl: 'https://gohaus.ai/',
+      image: {
+        src: '/work/gohaus.jpg',
+        alt: 'Sitio de Gohaus: propuesta de amoblado con inteligencia artificial para rentar mejor',
+        width: 1600,
+        height: 1000,
+      },
+      plate: 'LAB — GOHAUS',
+    },
+    {
+      slug: 'skyblue-analytics',
+      title: 'Skyblue Analytics',
+      kind: 'product',
+      kindLabel: 'Sitio en producción',
+      tags: ['FINTECH', 'APIS', 'LATAM'],
+      summary:
+        'Sitio de Skyblue Analytics: infraestructura de inversión y APIs para que brokers, bancos y fintechs de LATAM ofrezcan acceso al mercado de EE.UU.',
+      outcome:
+        'La web pública opera en skyblueanalytics.com explicando el modelo de partner local: el cliente y su UX quedan del lado del broker, la custodia y ejecución del lado de EE.UU.',
+      problem:
+        'Vender infraestructura financiera B2B sin convertir el sitio en un documento técnico: la idea fuerza es que la internacionalización es un plug-in estratégico, no un proyecto de años.',
+      role: 'Desarrollo frontend del sitio.',
+      scope: 'Sitio institucional en producción.',
+      stack: ['React', 'Vite'],
+      constraints: [
+        'Copy financiero con marco regulatorio: informativo, sin promesas de rendimiento.',
+        'El modelo de tres actores (SkyBlue, partner local, mercado de EE.UU.) tiene que entenderse en un escaneo rápido.',
+      ],
+      decisions: [
+        {
+          title: 'Un diagrama vale más que un párrafo',
+          body: 'El modelo de negocio se cuenta como un flujo visual entre los tres actores en lugar de un bloque de texto.',
+        },
+        {
+          title: 'Demo antes que signup',
+          body: '«Agendar demo» es la acción principal porque el comprador es institucional y el ciclo de venta lo confirma una conversación.',
+        },
+      ],
+      contribution: [
+        'Implementación del sitio público.',
+        'Secciones de modelo de negocio, clientes y partners.',
+        'CTA de agendado de demo.',
+      ],
+      evidence: [
+        'El sitio está en producción: https://skyblueanalytics.com/',
+      ],
+      demoUrl: 'https://skyblueanalytics.com/',
+      image: {
+        src: '/work/skyblue-analytics.jpg',
+        alt: 'Sitio de Skyblue Analytics: infraestructura de inversión y APIs para LATAM',
+        width: 1600,
+        height: 1000,
+      },
+      plate: 'LAB — SKYBLUE',
+    },
+    {
+      slug: 'empleos-mundo-digital',
+      title: 'Empleos Mundo Digital',
+      kind: 'product',
+      kindLabel: 'Sitio en producción',
+      tags: ['ASTRO', 'REACT', 'RECLUTAMIENTO'],
+      summary:
+        'EMD: plataforma de empleos enfocada 100% en el mundo digital, con matching inteligente, panel de control y gestión integral de la selección.',
+      outcome:
+        'La plataforma opera en empleosmundodigital.com con búsqueda gestionada, recomendaciones automáticas y un panel centralizado para seguir cada proceso.',
+      problem:
+        'Una reclutadora digital necesita que talento y empresas entiendan en segundos qué cambia el matching con IA y la gestión del ciclo completo frente a un portal de avisos más.',
+      role: 'Desarrollo frontend del sitio y la plataforma.',
+      scope: 'Producto en producción con backend propio.',
+      stack: ['Astro', 'React', 'PWA'],
+      constraints: [
+        'La app es una PWA con service worker: la primera carga tiene que ser rápida y la shell usable enseguida.',
+        'El copy habla a dos audiencias a la vez: quien busca empleo y quien contrata.',
+      ],
+      decisions: [
+        {
+          title: 'Shell estática, app viva',
+          body: 'El documento se prerenderiza con Astro y la plataforma hidrata como SPA contra la API propia, así el primer render no espera al JavaScript.',
+        },
+        {
+          title: 'Características que se escanean',
+          body: 'Matching, panel y gestión del ciclo se presentan como bloques de una línea cada uno, pensados para leerse en diagonal.',
+        },
+      ],
+      contribution: [
+        'Sitio público y vistas de la plataforma.',
+        'Panel de control de procesos de selección.',
+        'Integración con la API propia y registro del service worker.',
+      ],
+      evidence: [
+        'La plataforma está en producción: https://www.empleosmundodigital.com/',
+        'El HTML servido declara la API propia api-v2.empleosmundodigital.com.',
+      ],
+      demoUrl: 'https://www.empleosmundodigital.com/',
+      image: {
+        src: '/work/empleos-mundo-digital.jpg',
+        alt: 'Plataforma EMD: matching inteligente de empleos digitales y panel de selección',
+        width: 1600,
+        height: 1000,
+      },
+      plate: 'LAB — EMD',
+    },
+    {
+      slug: 'rally',
+      title: 'Rally',
+      kind: 'product',
+      kindLabel: 'Producto · demo en Vercel',
+      tags: ['PÁDEL', 'TENIS', 'VIDEO ANÁLISIS'],
+      summary:
+        'App de coaching de pádel y tenis: video, análisis y nivel objetivo, con acceso por email o Google.',
+      outcome:
+        'La app corre en Vercel: el acceso está montado con email y Google, y la experiencia de análisis queda detrás del login.',
+      problem:
+        'Una app de análisis de video para deportistas de raqueta necesita una entrada de cuenta simple y sin fricción antes de mostrar el valor del análisis.',
+      role: 'Desarrollo frontend de la app.',
+      scope: 'Producto con deploy de demo en Vercel.',
+      stack: ['React', 'Vite'],
+      constraints: [
+        'El valor está detrás del login: la pantalla de acceso tiene que ser clara y rápida.',
+        'Email y Google conviven en el mismo paso, sin pantallas intermedias.',
+      ],
+      decisions: [
+        {
+          title: 'Login como puerta, no como pared',
+          body: 'Un único formulario con ambos métodos de acceso: el usuario entra por donde ya tiene la cuenta.',
+        },
+      ],
+      contribution: [
+        'Pantalla de acceso con autenticación por email y Google.',
+        'Base de la app de análisis de video y nivel objetivo.',
+      ],
+      evidence: [
+        'La demo es pública: https://rally-taupe-eight.vercel.app/ muestra el acceso; el análisis requiere cuenta.',
+      ],
+      demoUrl: 'https://rally-taupe-eight.vercel.app/',
+      image: {
+        src: '/work/rally.jpg',
+        alt: 'Acceso de Rally: coaching de pádel y tenis con video y análisis',
+        width: 1600,
+        height: 1000,
+      },
+      plate: 'LAB — RALLY',
     },
   ],
 

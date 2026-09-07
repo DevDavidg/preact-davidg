@@ -40,8 +40,7 @@ const BUDGETS = {
    */
   baseJs: 330 * 1024,
   /**
-   * The cinema-only layer: post-processing, transmission materials, the Theatre
-   * timeline, the physics solver and the Rive runtime.
+   * The cinema-only layer: post-processing and the geodesic black hole.
    *
    * Gated twice over — `quality === 'cinema'` requires a fine pointer and a
    * viewport at least 1100px wide, and `usePerformanceGovernor` can demote out of
@@ -108,6 +107,60 @@ const record = (label, actual, budget) => {
   results.push({ label, actual, budget, pass: actual <= budget })
 }
 
+/**
+ * The one module the cinema split is defined by.
+ *
+ * `src/scene/cinema/CinemaLayer.tsx` is the lazy boundary for the whole advanced
+ * animation stack — post-processing and the geodesic black hole — and
+ * `quality === 'cinema'` is the only thing that ever resolves it. Naming the
+ * source module rather than an output file is what makes this survive a bundler
+ * change.
+ */
+const CINEMA_ENTRY = 'src/scene/cinema/CinemaLayer.tsx'
+
+const readManifest = async () => {
+  try {
+    return JSON.parse(
+      await readFile(join(CLIENT, '.vite', 'manifest.json'), 'utf8'),
+    )
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Output files reachable from a set of manifest keys.
+ *
+ * Follows static and dynamic imports alike — a dynamic import is still something
+ * that entry can pull down — except for keys in `stop`, which is how the base
+ * side of the split avoids walking through the boundary it is measuring against.
+ */
+const reachable = (manifest, roots, stop = new Set()) => {
+  const seen = new Set()
+  const queue = [...roots]
+  while (queue.length > 0) {
+    const key = queue.pop()
+    if (seen.has(key) || stop.has(key)) continue
+    const entry = manifest[key]
+    if (!entry) continue
+    seen.add(key)
+    queue.push(...(entry.imports ?? []), ...(entry.dynamicImports ?? []))
+  }
+  return new Set([...seen].map((key) => manifest[key].file))
+}
+
+/** Chunks only a cinema visitor ever asks for, as build-relative paths. */
+const cinemaOnlyFiles = (manifest) => {
+  if (!manifest[CINEMA_ENTRY]) return new Set()
+  const cinema = reachable(manifest, [CINEMA_ENTRY])
+  const shared = reachable(
+    manifest,
+    Object.keys(manifest).filter((key) => key !== CINEMA_ENTRY),
+    new Set([CINEMA_ENTRY]),
+  )
+  return new Set([...cinema].filter((file) => !shared.has(file)))
+}
+
 const main = async () => {
   try {
     await stat(CLIENT)
@@ -135,27 +188,44 @@ const main = async () => {
   /*
    * Off the critical path, split by who actually downloads it.
    *
-   * `cinema-*.js` is pinned by name in `vite.config.ts` — a `manualChunks` entry
-   * rather than a filename guess, because a guess that stops matching would fail
-   * open and silently stop guarding anything.
+   * From the import graph, not from a filename. This used to look for a
+   * `cinema-*.js` chunk pinned by a `manualChunks` entry in `vite.config.ts` —
+   * and that entry is gone, deliberately: its own comment records that under
+   * rolldown it distorted the shared vendor chunk and pulled React internals onto
+   * the critical path. So the pattern matched nothing, the cinema layer was
+   * counted against the phone's budget, and the split the two numbers exist to
+   * express had quietly stopped being measured at all.
+   *
+   * The config already emits the manifest for exactly this, and the graph in it
+   * cannot go stale the way a name can. A chunk is cinema-only when it is
+   * reachable from the cinema entry and from *nowhere else* — a shared chunk, Three
+   * itself being the large one, belongs to the base budget because a `lite`
+   * visitor downloads it. The traversal below refuses to follow the dynamic import
+   * that reaches the cinema entry from the scene, or every cinema chunk would come
+   * back as shared.
    */
   const criticalSet = new Set(criticalJs)
   const offCritical = files.filter(
     (file) => file.endsWith('.js') && file.includes('/assets/') && !criticalSet.has(file),
   )
-  const isCinema = (file) => /\/cinema-[^/]*\.js$/.test(file)
+
+  const manifest = await readManifest()
+  const cinemaOnly = manifest ? cinemaOnlyFiles(manifest) : new Set()
+  const isCinema = (file) => cinemaOnly.has(relative(CLIENT, file))
   const cinemaChunks = offCritical.filter(isCinema)
   const baseChunks = offCritical.filter((file) => !isCinema(file))
 
   record('base scene JS (gzip)', (await measure(baseChunks)).compressed, BUDGETS.baseJs)
   record('cinema-only JS (gzip)', (await measure(cinemaChunks)).compressed, BUDGETS.cinemaJs)
 
-  // A cinema chunk that measures zero means the manualChunks entry stopped
-  // matching and its contents are now inside the base budget, unnoticed.
+  // Nothing cinema-only means the entry below stopped resolving and the advanced
+  // animation layer is inside the base budget again, unnoticed. Failing loudly is
+  // the point: the alternative is a guard that passes because it stopped looking.
   if (cinemaChunks.length === 0) {
     console.warn(
-      'note: no cinema-* chunk was emitted. If the advanced animation layer is ' +
-        'expected, its dependencies are being counted against the base budget.',
+      `note: nothing resolved as cinema-only from ${CINEMA_ENTRY}. If the ` +
+        'advanced animation layer is expected, its dependencies are being ' +
+        'counted against the base budget.',
     )
   }
 

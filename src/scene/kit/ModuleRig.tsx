@@ -10,7 +10,7 @@ import {
   reactorControl,
 } from '../control/reactorControl'
 import { ReconstructMaterial } from '../ReconstructMaterial'
-import { clamp01, liveFor, sceneState } from '../sceneState'
+import { clamp01, liveFor, sceneState, swallowShape } from '../sceneState'
 import { toShards } from '../shardGeometry'
 import { punchScale, softAssemble, softDisassemble } from '../ui/assembleDrama'
 import {
@@ -219,7 +219,10 @@ export const ModuleRig = ({
     const leaving = clamp01((build - exit) / Math.max(exitSpan, 0.001))
     const assemble = softAssemble(progress)
     const { presence: leavePresence, scatter } = softDisassemble(leaving)
-    const presence = assemble * leavePresence
+    // Recalled for the ending on the same terms as the plate it belongs to: the
+    // evidence goes into the well alongside the words about it. See `Console`.
+    const held = Math.max(leavePresence, swallowShape(sceneState.swallow).recall)
+    const presence = assemble * held
 
     const node = group.current
     if (node) {

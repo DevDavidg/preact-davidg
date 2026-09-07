@@ -32,15 +32,18 @@ import {
   reactorControl,
   setLaw,
 } from "./control/reactorControl";
-import { buildHeroShell, TRIS_PER_SHARD } from "./heroShell";
+import { buildHeroShell } from "./heroShell";
 import { applyLinePeel, applyLitPeel, createPeelUniforms } from "./heroPeel";
 import { CAMERA_PATH, HERO_BUILD, REACTOR_CORE } from "./layout";
 import { scrollByPixels } from "../motion/ticker";
 import { idleAmount, pulse, pulseAt, sectionPhase } from "./pulse";
 import { sceneColors } from "./sceneColors";
-import { clamp01, sceneState } from "./sceneState";
+import { clamp01, sceneState, swallowShape } from "./sceneState";
 import { createStudioEquirect } from "./studioEnv";
 import { computeViewportFit, heroSizeFit } from "./viewportFit";
+
+/** No-op raycast so decorative meshes never steal the shell's hit proxy. */
+const skipRaycast = () => undefined;
 
 /*
  * Every window below is expressed against `HERO_BUILD` — the charge value at
@@ -77,6 +80,17 @@ const transitPulse = (build: number) =>
   1 - clamp01(Math.abs(build - HERO_BUILD) / TRANSIT_WIDTH);
 const BASE_SEPARATION = 0.022;
 const SHELL_RADIUS = 0.78;
+/**
+ * Invisible hit volume.
+ *
+ * Facets are inset (`FACE_GAP` in heroShell), so the visual mesh has real seams
+ * with no triangles. Raycasting that mesh alone drops hover every time the
+ * pointer crosses a gap — or when it grazes a peeled facet that the GPU moved
+ * but the CPU geometry did not. A slightly larger solid sphere catches the
+ * pointer continuously; the nearest facet centroid still drives the sector.
+ * Kept under the outer law-ring so the ring remains reachable.
+ */
+const HIT_RADIUS = SHELL_RADIUS * 1.14;
 
 /**
  * Hover ripple.
@@ -88,9 +102,9 @@ const SHELL_RADIUS = 0.78;
  * one choreographed gesture, spreading outward from the pointer, instead of
  * every facet in range snapping up together.
  */
-const HOVER_SECTOR_RADIUS = SHELL_RADIUS * 1.15;
-const HOVER_WAVE_DURATION = 0.3;
-const HOVER_WAVE_EDGE = 0.16;
+const HOVER_SECTOR_RADIUS = SHELL_RADIUS * 1.35;
+const HOVER_WAVE_DURATION = 0.16;
+const HOVER_WAVE_EDGE = 0.12;
 
 /**
  * Opening the shell by hand.
@@ -400,6 +414,8 @@ export const HeroStage = ({
   const hoverActive = useRef(false);
   /** Seconds since the sector was entered — drives the ripple's outward travel. */
   const hoverElapsed = useRef(0);
+  /** 0 → 1 instrument awake under the pointer. Drives lights, rings, magnetic tilt. */
+  const hoverEnergy = useRef(0);
   /** The live gesture: which control is held, and how far it has travelled. */
   const drag = useRef<{
     kind: "shell" | "ring" | null;
@@ -506,6 +522,8 @@ export const HeroStage = ({
       cuePlate: new THREE.BoxGeometry(1.75, 0.44, 0.1),
       cueChevron: createChevronGeometry(),
       cueLabel: new THREE.PlaneGeometry(1.58, 0.33),
+      // Low-segment is fine: we only need continuous coverage, not silhouette.
+      hit: new THREE.SphereGeometry(HIT_RADIUS, 24, 16),
     };
   }, [cinema]);
 
@@ -640,6 +658,14 @@ export const HeroStage = ({
       depthWrite: false,
       toneMapped: false,
     });
+    // Visible mesh, invisible surface — Three skips raycasts on `visible: false`.
+    const hit = new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      depthTest: false,
+      colorWrite: false,
+    });
 
     return {
       face,
@@ -657,6 +683,7 @@ export const HeroStage = ({
       cueAccent,
       cueLabel,
       cueTexture,
+      hit,
     };
   }, [cue, envMap]);
 
@@ -723,6 +750,7 @@ export const HeroStage = ({
       materials.cueAccent.dispose();
       materials.cueLabel.dispose();
       materials.cueTexture.dispose();
+      materials.hit.dispose();
     },
     [envMap, shellGeo, shardState, geometries, materials],
   );
@@ -813,7 +841,11 @@ export const HeroStage = ({
     const fade =
       1 -
       clamp01((build - HERO_FADE_START) / (HERO_FADE_END - HERO_FADE_START));
-    const presenceTarget = reveal * fade;
+    // The optic is the first thing the corridor built and it is a chapter behind
+    // the lens by the finale, so recalling it puts a whole object into the room
+    // from *outside* the frame — it arrives already falling. See `Console`.
+    const presenceTarget =
+      reveal * Math.max(fade, swallowShape(sceneState.swallow).recall);
     presence.current =
       presenceTarget < 0.015
         ? 0
@@ -942,6 +974,7 @@ export const HeroStage = ({
       HOVER_SECTOR_RADIUS;
 
     if (hovers && fires && goals) {
+      let hoverPeak = 0;
       for (let index = 0; index < shellGeo.count; index++) {
         let wantHover = 0;
         if (hoverActive.current && goals[index] < 0.5) {
@@ -968,7 +1001,7 @@ export const HeroStage = ({
         const nextHover = THREE.MathUtils.damp(
           hovers[index],
           wantHover,
-          6,
+          9,
           delta,
         );
         const nextFire = THREE.MathUtils.damp(
@@ -977,6 +1010,7 @@ export const HeroStage = ({
           3.2,
           delta,
         );
+        hoverPeak = Math.max(hoverPeak, nextHover);
         if (
           Math.abs(nextHover - hovers[index]) > 1e-4 ||
           Math.abs(nextFire - fires[index]) > 1e-4
@@ -989,8 +1023,24 @@ export const HeroStage = ({
           settling = true;
         }
       }
+      // Snap awake fast, cool down a beat slower — so the instrument feels keyed.
+      const energyGoal = hoverActive.current
+        ? Math.min(1, 0.55 + hoverPeak * 0.95)
+        : 0;
+      const nextEnergy = THREE.MathUtils.damp(
+        hoverEnergy.current,
+        energyGoal,
+        energyGoal > hoverEnergy.current ? 14 : 5.5,
+        delta,
+      );
+      if (Math.abs(nextEnergy - hoverEnergy.current) > 1e-4) {
+        hoverEnergy.current = nextEnergy;
+        settling = true;
+      }
     }
     if (stateDirty) shardState.texture.needsUpdate = true;
+
+    const awake = hoverEnergy.current;
 
     // ---- shell -------------------------------------------------------------
     peel.uOpen.value = open;
@@ -1000,22 +1050,33 @@ export const HeroStage = ({
     // The law reaches the shell too: under CHAOS the shut optic is visibly
     // straining before the visitor has scrolled a pixel.
     peel.uBreathe.value = 0.014 * idle * (0.45 + liveLaw.agitation * 0.55);
-    peel.uGlowColor.value.copy(sceneColors.accent).multiplyScalar(0.5);
+    // Hover push and glow escalate with the sector so the first contact feels
+    // like the instrument waking, not a flat emissive wash.
+    peel.uHoverPush.value = 1.7 + awake * 0.95;
+    peel.uGlowColor.value
+      .copy(sceneColors.accent)
+      .lerp(sceneColors.signal, awake * 0.45)
+      .multiplyScalar(0.55 + awake * 2.35);
     peel.uRimColor.value
       .copy(sceneColors.signal)
-      .lerp(sceneColors.accent, rimPulse * 0.6);
+      .lerp(sceneColors.accent, rimPulse * 0.6 + awake * 0.4);
     // The rim follows the same rule as the emissive: a cold instrument has a
     // faint edge, a charging one has a hot one.
     // The rim is a fresnel term, so from inside the shell it lights every inner
     // cap at once. A little is the glint of an aperture going past; a lot is a wash.
     peel.uRimGain.value =
-      (0.05 + open * 0.34 + rimPulse * 0.12 * idle + transit * 0.14) * live;
+      (0.05 +
+        open * 0.34 +
+        rimPulse * 0.12 * idle +
+        transit * 0.14 +
+        awake * 0.42) *
+      live;
 
     structuralColor(_structural);
     materials.face.color.copy(_structural).lerp(sceneColors.steel, master * 0.05);
     materials.face.emissive
       .copy(sceneColors.accent)
-      .lerp(sceneColors.signal, master * 0.55);
+      .lerp(sceneColors.signal, master * 0.55 + awake * 0.4);
     /*
      * Cold until charged.
      *
@@ -1035,7 +1096,12 @@ export const HeroStage = ({
      * the transit is a black frame.
      */
     materials.face.emissiveIntensity =
-      (0.005 + open * 0.085 + master * 0.015 * idle + transit * 0.11) * live;
+      (0.005 +
+        open * 0.085 +
+        master * 0.015 * idle +
+        transit * 0.11 +
+        awake * 0.09) *
+      live;
     /*
      * The env map is the surface.
      *
@@ -1046,7 +1112,9 @@ export const HeroStage = ({
      * shot. Raising it brightens the *reflection*, so it stays metal rather than
      * becoming paint.
      */
-    materials.face.envMapIntensity = 2.7 + master * 0.3;
+    materials.face.envMapIntensity = 2.85 + master * 0.3 + awake * 0.95;
+    materials.face.clearcoat = 0.65 + awake * 0.35;
+    materials.face.clearcoatRoughness = Math.max(0.03, 0.12 - awake * 0.09);
     materials.face.opacity = live;
     materials.face.depthWrite = open < 0.18;
 
@@ -1061,34 +1129,45 @@ export const HeroStage = ({
      */
     materials.wire.color
       .copy(sceneColors.steel)
-      .lerp(sceneColors.accent, 0.18 + open * 0.55 + rimPulse * 0.12);
+      .lerp(sceneColors.accent, 0.18 + open * 0.55 + rimPulse * 0.12 + awake * 0.75);
     materials.wire.opacity =
-      (0.1 + open * 0.4 + rimPulse * 0.1 * idle + transit * 0.5) *
+      (0.12 +
+        open * 0.4 +
+        rimPulse * 0.1 * idle +
+        transit * 0.5 +
+        awake * 0.78) *
       live *
       (1 - fling * 0.7);
 
     if (rootNode) {
+      // Magnetic lean: the whole instrument tips toward the pointer while a
+      // sector is live — far past the idle parallax, so hover owns the pose.
+      const magnet = idle * (1 + awake * 5.5);
       const idleYaw = Math.sin(time * 0.045) * 0.12 * idle;
       const idlePitch = Math.cos(time * 0.0315) * 0.05 * idle;
+      const leanX = hoverOrigin.current.x * awake * 0.18;
+      const leanY = hoverOrigin.current.y * awake * 0.14;
       rootNode.rotation.y = THREE.MathUtils.damp(
         rootNode.rotation.y,
-        sceneState.pointerX * 0.028 * idle + idleYaw,
-        2.2,
+        sceneState.pointerX * 0.028 * magnet + idleYaw + leanX,
+        3.4 + awake * 5,
         delta,
       );
       rootNode.rotation.x = THREE.MathUtils.damp(
         rootNode.rotation.x,
-        -sceneState.pointerY * 0.018 * idle + idlePitch,
-        2.2,
+        -sceneState.pointerY * 0.018 * magnet + idlePitch - leanY,
+        3.4 + awake * 5,
         delta,
       );
       rootNode.position.y =
         REACTOR_CORE[1] + Math.sin(time * 0.55) * 0.028 * idle;
       rootNode.scale.setScalar(
-        stageScale * (1 + Math.sin(time * 0.7) * 0.012 * idle),
+        stageScale *
+          (1 + Math.sin(time * 0.7) * 0.012 * idle + awake * 0.085),
       );
     }
-    if (shell.current) shell.current.rotation.y = time * 0.035 * idle;
+    if (shell.current)
+      shell.current.rotation.y = time * (0.035 + awake * 0.12) * idle;
 
     // ---- housing -----------------------------------------------------------
     // The rings hold the view axis while the shell turns inside them, which is
@@ -1130,7 +1209,8 @@ export const HeroStage = ({
       ringPulse * 0.5 * idle +
       open * 0.5 +
       ringGrip.current * 0.7 +
-      liveLaw.heat * 0.5;
+      liveLaw.heat * 0.5 +
+      awake * 0.55;
     materials.ring.envMapIntensity = 1 + ringPulse * 0.4;
     materials.ring.opacity = ringLive;
     materials.ringInner.color.copy(_structural);
@@ -1334,7 +1414,7 @@ export const HeroStage = ({
       rimLight.current.color
         .copy(sceneColors.accent)
         .lerp(sceneColors.signal, rimPulse);
-      rimLight.current.intensity = (0.44 + rimPulse * 0.3) * live;
+      rimLight.current.intensity = (0.44 + rimPulse * 0.3 + awake * 0.55) * live;
     }
     if (coreGlow.current) {
       coreGlow.current.color
@@ -1365,10 +1445,37 @@ export const HeroStage = ({
     document.body.style.userSelect = "none";
   };
 
-  const shardAt = (event: ThreeEvent<PointerEvent>) =>
-    event.faceIndex === undefined || event.faceIndex === null
-      ? -1
-      : Math.floor(event.faceIndex / TRIS_PER_SHARD);
+  /**
+   * Map a hit on the continuous proxy sphere to the nearest facet.
+   *
+   * Angular match (dot of unit directions) is stabler than Euclidean distance
+   * when the hit lands slightly off the visual radius — which it always does,
+   * because the proxy is larger than the inset facets.
+   */
+  const shardAt = (event: ThreeEvent<PointerEvent>) => {
+    _shardPoint.copy(event.point);
+    event.object.worldToLocal(_shardPoint);
+    const len = _shardPoint.length();
+    if (len < 1e-6) return 0;
+    const lx = _shardPoint.x / len;
+    const ly = _shardPoint.y / len;
+    const lz = _shardPoint.z / len;
+    const centroids = shellGeo.centroids;
+    let best = 0;
+    let bestScore = -Infinity;
+    for (let index = 0; index < shellGeo.count; index++) {
+      const cx = centroids[index * 3];
+      const cy = centroids[index * 3 + 1];
+      const cz = centroids[index * 3 + 2];
+      const cl = Math.hypot(cx, cy, cz) || 1;
+      const score = (cx / cl) * lx + (cy / cl) * ly + (cz / cl) * lz;
+      if (score > bestScore) {
+        bestScore = score;
+        best = index;
+      }
+    }
+    return best;
+  };
 
   const handleMove = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
@@ -1376,9 +1483,8 @@ export const HeroStage = ({
     const index = shardAt(event);
     if (index === hovered.current) return;
     hovered.current = index;
-    if (index >= 0) markHot("shell");
-    else clearHot("shell");
-    document.body.style.cursor = index >= 0 ? "grab" : "";
+    markHot("shell");
+    document.body.style.cursor = "grab";
     invalidate();
   };
 
@@ -1464,6 +1570,7 @@ export const HeroStage = ({
         material={materials.glowFar}
         frustumCulled={false}
         renderOrder={-2}
+        raycast={skipRaycast}
       />
       <mesh
         ref={glowNear}
@@ -1471,39 +1578,52 @@ export const HeroStage = ({
         material={materials.glowNear}
         frustumCulled={false}
         renderOrder={-1}
+        raycast={skipRaycast}
       />
 
       <group ref={shell}>
+        {/* Continuous hit volume — seams on the visual mesh never drop hover. */}
         <mesh
-          geometry={shellGeo.faces}
-          material={materials.face}
+          geometry={geometries.hit}
+          material={materials.hit}
           frustumCulled={false}
+          onPointerOver={handleMove}
           onPointerMove={handleMove}
           onPointerOut={handleOut}
           onPointerDown={handleShellDown}
           onClick={handleClick}
+        />
+        <mesh
+          geometry={shellGeo.faces}
+          material={materials.face}
+          frustumCulled={false}
+          raycast={skipRaycast}
         />
         <lineSegments
           geometry={shellGeo.wires}
           material={materials.wire}
           frustumCulled={false}
           renderOrder={2}
+          raycast={skipRaycast}
         />
         {cinema ? (
           <>
             <mesh
               geometry={geometries.meridian}
               material={materials.meridian}
+              raycast={skipRaycast}
             />
             <mesh
               geometry={geometries.meridian}
               material={materials.meridian}
               rotation={[Math.PI / 2, 0, 0]}
+              raycast={skipRaycast}
             />
             <mesh
               geometry={geometries.meridian}
               material={materials.meridian}
               rotation={[0, Math.PI / 2, 0]}
+              raycast={skipRaycast}
             />
           </>
         ) : null}

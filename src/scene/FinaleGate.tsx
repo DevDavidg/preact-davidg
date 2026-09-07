@@ -1,153 +1,34 @@
 /**
- * The gate at the end of the corridor.
+ * The well at the end of the corridor.
  *
- * This used to be two stretched boxes, a slab and a thin hoop — under the
- * reconstruction material's wireframe stage that read as scaffolding rather than
- * as the thing the whole room has been charging toward. It is now an actual
- * mechanism: machined columns with plinths, collars and heads; a lintel with
- * brackets hanging off it; and a stator ring of radial vanes holding an aperture
- * open in the middle of it.
- *
- * The light in the aperture is a shader rather than a sprite. A radial gradient
- * billboard is a blob — it has no structure, so it reads as a lens flare stuck
- * to the screen. Concentric rings travelling inward read as a field being held
- * open, and they respond to both the charge and the operator's handshake, which
- * is what makes the finale something that *happened* rather than something that
- * faded up.
+ * Cinema traces geodesics; lite paints the same silhouette on two billboards.
+ * The columns, lintel and stator used to frame it, and they also broke it:
+ * a hard D-crease down the middle plus a doorway drawn over the pass. The
+ * well stands on its own now.
  */
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import {
+  captureRs,
+  GATE_APERTURE_Y,
+  GATE_APERTURE_Z_AHEAD,
+  HOLE_SPIN,
+  holeRadiusFor,
+  holeRender,
+  iscoRs,
+} from './blackHole'
 import { reactorControl } from './control/reactorControl'
-import { mergeBoxes, type Box } from './kit/chassis'
 import { PORTAL_POSITION } from './layout'
-import { ReconstructMaterial } from './ReconstructMaterial'
 import { sceneColors } from './sceneColors'
 import { livePowerFor, sceneState, swallowShape, clamp01 } from './sceneState'
-import { toShards } from './shardGeometry'
-import { createStudioEquirect } from './studioEnv'
 import { softAssemble } from './ui/assembleDrama'
 
-const COLUMN_X = 2.9
-const COLUMN_HEIGHT = 5.1
 const RING_RADIUS = 1.85
-const RING_Y = 2.55
-/** Radial vanes between the two rings — a stator, not a hoop. */
-const VANE_COUNT = 16
-
-/**
- * A machined column: base plate, plinth, banded shaft, three collars, head.
- *
- * Segmented on the long axis so the reconstruction breaks it into plausible
- * pieces — a five-metre box shatters into five-metre splinters, which is what
- * made the old gate look like debris rather than like a structure assembling.
- */
-const gateColumn = (): THREE.BufferGeometry => {
-  const shaft = 0.36
-  const boxes: Box[] = [
-    { size: [1.0, 0.16, 1.0], position: [0, 0.08, 0], segments: [2, 1, 2] },
-    { size: [0.72, 0.28, 0.72], position: [0, 0.3, 0] },
-    {
-      size: [shaft, COLUMN_HEIGHT - 1.1, shaft],
-      position: [0, 0.44 + (COLUMN_HEIGHT - 1.1) / 2, 0],
-      segments: [1, 9, 1],
-    },
-    { size: [0.58, 0.1, 0.58], position: [0, 1.5, 0] },
-    { size: [0.5, 0.08, 0.5], position: [0, 2.8, 0] },
-    { size: [0.58, 0.1, 0.58], position: [0, 4.1, 0] },
-    { size: [0.8, 0.34, 0.8], position: [0, COLUMN_HEIGHT - 0.5, 0] },
-    { size: [0.94, 0.12, 0.94], position: [0, COLUMN_HEIGHT - 0.27, 0] },
-  ]
-  return mergeBoxes(boxes)
-}
-
-/** The lintel: a main beam, a fascia under it, and brackets hanging down. */
-const gateLintel = (): THREE.BufferGeometry => {
-  const span = COLUMN_X * 2 + 1.1
-  const boxes: Box[] = [
-    { size: [span, 0.44, 0.62], position: [0, 0.22, 0], segments: [12, 1, 1] },
-    { size: [span - 0.5, 0.14, 0.78], position: [0, -0.05, 0], segments: [10, 1, 1] },
-  ]
-  for (let index = 0; index < 7; index += 1) {
-    const t = index / 6 - 0.5
-    boxes.push({
-      size: [0.1, 0.42, 0.36],
-      position: [t * (span - 1.4), -0.3, 0],
-    })
-  }
-  return mergeBoxes(boxes)
-}
-
-/**
- * The aperture assembly: an outer collar, an inner collar, and vanes between
- * them. The vanes are what make it read as machinery holding something open
- * rather than as a hoop hanging in the air.
- */
-const gateRing = (): THREE.BufferGeometry => {
-  const boxes: Box[] = []
-  const inner = RING_RADIUS * 0.78
-
-  for (let index = 0; index < VANE_COUNT; index += 1) {
-    const angle = (index / VANE_COUNT) * Math.PI * 2
-    const mid = (RING_RADIUS + inner) / 2
-    boxes.push({
-      size: [RING_RADIUS - inner, 0.07, 0.16],
-      position: [Math.cos(angle) * mid, Math.sin(angle) * mid, 0],
-      // Each vane is pitched a little, the way a stator's blades are.
-      rotation: [0.22, 0, angle],
-    })
-  }
-
-  const shards = mergeBoxes(boxes)
-
-  // The two collars are turned parts, so they stay as low-segment torii rather
-  // than being approximated out of boxes.
-  const outer = toShards(new THREE.TorusGeometry(RING_RADIUS, 0.09, 4, 48))
-  const rim = toShards(new THREE.TorusGeometry(inner, 0.055, 4, 40))
-
-  const merged = mergeGeometries([shards, outer, rim])
-  shards.dispose()
-  outer.dispose()
-  rim.dispose()
-  return merged
-}
-
-/**
- * Concatenates already-sharded geometries.
- *
- * They all carry the same attribute set from `toShards`, so joining them is a
- * matter of appending arrays — and it keeps the whole ring assembly at one draw
- * call, which matters because this object is on screen at the same moment the
- * corridor is at its busiest.
- */
-const mergeGeometries = (
-  geometries: THREE.BufferGeometry[],
-): THREE.BufferGeometry => {
-  const names = ['position', 'normal', 'uv', 'aBary', 'aCenter', 'aAxis', 'aSeed']
-  const sizes: Record<string, number> = {
-    position: 3,
-    normal: 3,
-    uv: 2,
-    aBary: 3,
-    aCenter: 3,
-    aAxis: 3,
-    aSeed: 1,
-  }
-
-  const merged = new THREE.BufferGeometry()
-  for (const name of names) {
-    const parts = geometries.map((geometry) => geometry.getAttribute(name))
-    const total = parts.reduce((sum, part) => sum + part.array.length, 0)
-    const joined = new Float32Array(total)
-    let offset = 0
-    for (const part of parts) {
-      joined.set(part.array as Float32Array, offset)
-      offset += part.array.length
-    }
-    merged.setAttribute(name, new THREE.BufferAttribute(joined, sizes[name]))
-  }
-  return merged
-}
+/** World Y of the well, shared with `holeCenter` so the billboard cannot drift. */
+const RING_Y = GATE_APERTURE_Y
+/** The hot end of the disk's temperature ramp, in the renderer's linear space. */
+const WHITE = new THREE.Color(1, 1, 1)
 
 const portalVertexShader = /* glsl */ `
 varying vec2 vUv;
@@ -157,14 +38,45 @@ void main() {
 }
 `
 
+/**
+ * The aperture, for a device with no post chain.
+ *
+ * `src/scene/cinema/BlackHoleEffect.ts` draws the well properly — it integrates
+ * photon geodesics and gets the shadow, the ring, the lensed disk and the bent
+ * corridor as consequences. It also needs a composer to sample the frame it is
+ * bending, and every phone resolves `lite`, which has none. So this is the same
+ * image drawn as a picture rather than as a simulation, on the one billboard the
+ * gate already has.
+ *
+ * What matters is that it is the same *silhouette*. The old version was a face-on
+ * whirlpool: radially symmetric, spinning, with a dark middle. It read as a portal
+ * and it was a decent portal, but the shape it made is not the shape a black hole
+ * makes. The shape a black hole makes — the one thing everyone recognises — is
+ * three separate images of a single flat disk:
+ *
+ * 1. the **near half**, crossing in front of and slightly below the shadow;
+ * 2. the **far half**, lensed up and over the *top* of the shadow, because light
+ *    leaving it away from us is bent back toward us;
+ * 3. the **underside** of the disk, lensed under the bottom, thinner and fainter.
+ *
+ * Those three close into the loop around a black disc that nothing else in nature
+ * produces, and the arcs are the whole read: face-on, all three collapse onto each
+ * other and the structure is gone. So they are drawn here as three explicit terms,
+ * because a billboard cannot derive what it never traced.
+ */
 const portalFragmentShader = /* glsl */ `
 uniform float uTime;
 uniform float uPower;
 uniform float uHandshake;
 uniform float uOpacity;
 uniform float uSwallow;
+uniform float uHorizon;
+uniform float uSpin;
+uniform float uDiskIn;
 uniform vec3 uInner;
 uniform vec3 uOuter;
+uniform vec3 uChill;
+uniform vec3 uEmber;
 
 varying vec2 vUv;
 
@@ -205,87 +117,153 @@ float fbm(vec2 p) {
 
 void main() {
   vec2 point = (vUv - 0.5) * 2.0;
-  float radius = length(point);
-  if (radius > 1.0) discard;
-
-  float angle = atan(point.y, point.x);
+  if (length(point) > 1.0) discard;
+  /*
+   * Smooth D: shift and flatten with azimuth, never a crease on x = 0.
+   * The disk band still uses point.x; only the hole is warped.
+   */
+  vec2 q = point;
+  float side = point.x / max(length(point), 0.0001);
+  q.x -= uSpin * 0.05;
+  q.x *= 1.0 + uSpin * 0.2 * (0.5 + 0.5 * side);
+  float radius = length(q);
 
   /*
-   * The event horizon, and why the maths below is in log-polar space.
+   * The shadow, and the two radii that hang off it.
    *
-   * A black hole's accretion flow is not a texture spinning: the material closer
-   * in orbits *faster*, and it is that shear between neighbouring radii that
-   * stretches the flow into spirals and makes it read as liquid rather than as a
-   * rotating image. Keplerian orbital speed goes as r^-1.5, which is the term in
-   * "orbit" below — the inner edge laps the outer edge many times over.
-   *
-   * Sampling the noise against log(radius) is what makes the spiral
-   * self-similar: equal steps in the coordinate are equal *ratios* of radius, so
-   * the flow has the same character at every scale and appears to fall inward
-   * forever without ever showing a seam or a repeat.
+   * uHorizon is the apparent radius of the black disc in this plane's own
+   * coordinates, handed down so the occluding mesh drawn underneath can use
+   * exactly the same number — a photon ring that is not concentric with the
+   * darkness it rings is worse than no ring at all. 1.16 is 3 / 2.6: the ratio of
+   * the disk's innermost stable orbit to the shadow's apparent size, which is why
+   * a real image has a visible gap between the black and the bright.
    */
-  float horizon = mix(0.07, 0.4, uSwallow);
-  float orbitRadius = max(radius, horizon);
-  float orbit = uTime * (0.3 + uSwallow * 1.9) / pow(orbitRadius, 1.5);
+  float horizon = uHorizon;
+  float diskIn = horizon * uDiskIn;
+  // Held inside the stator: the band is the disk seen through the doorway, and a
+  // band that runs out past the collar reads as a beam being fired rather than as
+  // matter in orbit behind it.
+  float diskOut = min(0.8, horizon * 4.6);
 
+  /*
+   * The flow.
+   *
+   * Seen edge-on, the disk's radius runs along screen x and its thickness along
+   * screen y, so the log-polar coordinate that made the old version self-similar
+   * is taken along x instead of radially. Signed, so material crossing the middle
+   * keeps going the same way rather than reflecting.
+   */
+  float along = 1.0 + abs(point.x) / max(diskIn, 0.001);
   vec2 flow = vec2(
-    angle * 0.85 + orbit,
-    log(orbitRadius) * 1.7 - uTime * (0.18 + uSwallow * 0.5)
+    sign(point.x) * log(along) * 2.5 - uTime * (0.35 + uSwallow * 3.4),
+    point.y * 5.0 + uTime * 0.08
   );
+  vec2 warp = vec2(fbm(flow * 1.2), fbm(flow * 1.2 + vec2(5.2, 1.3)));
+  float grain = pow(clamp(fbm(flow * 2.1 + warp * 1.3), 0.0, 1.0), 1.6);
 
   /*
-   * Domain warping: the noise is sampled at a position that is itself displaced
-   * by noise. One sample is clouds; a sample of a warped sample is the curdling,
-   * folding motion of something viscous being drawn through itself.
+   * Image one: the near half, in front of the shadow.
+   *
+   * Offset downward, because the disk is tipped a few degrees toward the lens —
+   * the same tilt src/scene/blackHole.ts gives the real one. The band thickens
+   * outward: a disk flares, and a band of constant thickness reads as a drawn
+   * line rather than as matter.
    */
-  vec2 warp = vec2(fbm(flow * 1.25), fbm(flow * 1.25 + vec2(5.2, 1.3)));
-  float liquid = fbm(flow * 2.05 + warp * (1.1 + uSwallow * 0.9));
-  liquid = pow(clamp(liquid, 0.0, 1.0), 1.35);
-
-  // The disk exists outside the horizon and falls off before the collar, so the
-  // field is held open by the ring rather than cut off by the geometry's edge.
-  float disk = smoothstep(horizon * 0.96, horizon * 1.7, radius);
-  float aperture = smoothstep(1.0, 0.8, radius);
+  float tilt = 0.05 + uSwallow * 0.04;
+  float thick = 0.045 + 0.24 * max(abs(point.x) - diskIn, 0.0) + uSwallow * 0.04;
+  float reach =
+    smoothstep(diskIn * 0.9, diskIn * 1.25, abs(point.x)) *
+    (1.0 - smoothstep(diskOut * 0.82, diskOut, abs(point.x)));
+  float primary = exp(-pow((point.y + tilt) / thick, 2.0)) * reach;
 
   /*
-   * The photon ring: the thin, much brighter line right at the horizon where the
-   * light that grazed it comes back around. It is the single feature that says
-   * "black hole" rather than "whirlpool", and it tightens as the horizon grows.
+   * Image two: the far half, bent over the top.
+   *
+   * Light leaving the back of the disk *away* from the lens is turned right back
+   * around by the well, so the far side is seen arcing above the shadow rather
+   * than hidden behind it. Squashing y before measuring the radius is what makes
+   * it an arc that hugs the shadow instead of a circle around it.
    */
-  float ring = exp(-pow((radius - horizon * 1.08) / (0.055 * (1.0 - uSwallow * 0.45)), 2.0));
+  vec2 upper = vec2(point.x, (point.y - tilt) * 1.8);
+  float over =
+    exp(-pow((length(upper) - horizon * 1.45) / (horizon * 0.3), 2.0)) *
+    // Confined to the half it belongs to. Clamping the y term to zero instead —
+    // which is what this did first — leaves the arc's radius equal to |x| for
+    // every pixel below the line, so it lit two vertical lobes out in the lower
+    // half where there is nothing at all: an arc over the top drawn twice more,
+    // sideways.
+    smoothstep(0.0, horizon * 0.5, point.y - tilt);
 
   /*
-   * Doppler beaming: the side of the disk rotating toward the viewer is brighter.
-   * Real images of this are markedly lopsided, and the asymmetry is most of what
-   * keeps the aperture from reading as a decorative target.
+   * Image three: the underside, under the bottom. Thinner and dimmer, because it
+   * is the same light taking a longer way round.
    */
-  float beam = 0.55 + 0.45 * cos(angle - 0.6);
+  vec2 lower = vec2(point.x, (point.y + tilt) * 2.7);
+  float under =
+    exp(-pow((length(lower) - horizon * 1.32) / (horizon * 0.24), 2.0)) *
+    smoothstep(0.0, horizon * 0.5, -(point.y + tilt));
 
+  float secondary = over * 0.85 + under * 0.4;
+
+  /*
+   * The photon ring: the thin, much brighter filament right at the shadow's edge,
+   * where light that grazed the well comes back around. It is the single feature
+   * that says "black hole" rather than "whirlpool".
+   */
+  float ring = exp(-pow((radius - horizon * 1.02) / (horizon * 0.055), 2.0));
+  // N=2: a second, thinner filament just inside the first. No third.
+  ring += 0.4 * exp(-pow((radius - horizon * 0.985) / (horizon * 0.028), 2.0));
+
+  /*
+   * Doppler beaming, as an axis rather than as a rotation.
+   *
+   * Edge-on, one *side* of the frame is coming at the lens and the other is going
+   * away, and the brightness ratio between them is better than four to one. It is
+   * the plainest possible statement of the physics and it is most of what keeps
+   * the aperture from reading as a decorative target.
+   */
+  float limb = point.x / max(diskOut, 0.001);
+  float beam = mix(0.55, 1.85, smoothstep(-0.7, 0.7, limb));
+
+  float matter = (primary + secondary) * (0.3 + grain * 0.9);
+  /*
+   * Two weak lobes along the axis: the jets, as dumb as everything else on this
+   * board. They stay clear of the shadow (the escaped cutout below would catch
+   * them anyway) and never outshine the band.
+   */
+  float jet =
+    exp(-pow(point.x / 0.07, 2.0)) *
+    smoothstep(horizon * 1.1, horizon * 1.7, abs(point.y)) *
+    (1.0 - smoothstep(0.55, 0.9, abs(point.y)));
   float body =
-    liquid * disk * beam * (0.3 + uPower * 0.4 + uSwallow * 0.95) +
-    ring * (0.35 + uSwallow * 1.5) +
-    uHandshake * disk * 0.35;
+    matter * beam * (0.28 + uPower * 0.45 + uSwallow * 1.1) +
+    ring * (0.4 + uSwallow * 1.7) +
+    jet * (0.10 + uSwallow * 0.35) * (0.3 + grain * 0.4) +
+    uHandshake * matter * 0.4;
 
   /*
-   * Colour by depth into the well: the outer flow keeps the room's accent, the
-   * material about to cross the horizon runs hot and pale. Shifting hue with
-   * radius rather than with brightness is what gives the aperture the sense of
-   * having a *near* and a *far*.
+   * Colour by radius and by limb. The outer flow keeps the room's accent, the
+   * inner rim runs pale, and the two sides read as different temperatures: the
+   * one rushing at the lens climbs to champagne, the receding one burns down to
+   * ember — the same quantity that set beam, spending itself on hue.
    */
-  float depth = smoothstep(horizon * 3.0, horizon, radius);
+  float depth = smoothstep(diskOut, diskIn, abs(point.x));
   vec3 tint = mix(uOuter, uInner, depth * (0.55 + uSwallow * 0.45));
+  tint = mix(tint, uChill, smoothstep(0.05, 0.75, limb) * 0.65);
+  tint = mix(tint, uEmber, smoothstep(-0.05, -0.75, limb) * 0.7);
   tint = mix(tint, vec3(1.0), ring * 0.45);
-  vec3 colour = tint * (0.35 + body);
+  vec3 colour = tint * (0.3 + body);
 
   /*
-   * A knee below clipping. Additive blending over a hot accent drives the middle
-   * of the aperture to pure white, and a white disc has no hue, no depth and no
-   * material — it reads as a blown highlight rather than as a field.
+   * A knee below clipping. Additive blending over a hot accent drives the brightest
+   * part of the band to pure white, and white has no hue, no depth and no material
+   * — it reads as a blown highlight rather than as matter.
    */
   colour = colour / (1.0 + max(colour - 0.72, 0.0) * 1.9);
 
-  // Nothing escapes from inside the horizon — that is the whole idea.
-  float escaped = smoothstep(horizon * 0.9, horizon * 1.12, radius);
+  // Nothing escapes from inside the shadow — that is the whole idea.
+  float escaped = smoothstep(horizon * 0.9, horizon * 1.06, radius);
+  float aperture = smoothstep(1.0, 0.8, radius);
 
   float alpha = body * aperture * escaped * uOpacity;
   if (alpha < 0.004) discard;
@@ -306,6 +284,8 @@ void main() {
 const horizonFragmentShader = /* glsl */ `
 uniform float uSwallow;
 uniform float uOpacity;
+uniform float uHorizon;
+uniform float uSpin;
 uniform vec3 uGround;
 
 varying vec2 vUv;
@@ -313,52 +293,47 @@ varying vec2 vUv;
 layout(location = 0) out vec4 fragColor;
 
 void main() {
-  float radius = length((vUv - 0.5) * 2.0);
-  if (radius > 1.0) discard;
-  // Soft shoulder so the silhouette never shows the quad it is drawn on.
-  float solid = smoothstep(1.0, 0.72, radius);
-  float alpha = solid * uOpacity * (0.35 + uSwallow * 0.65);
+  vec2 point = (vUv - 0.5) * 2.0;
+  if (length(point) > 1.0) discard;
+  vec2 q = point;
+  float side = point.x / max(length(point), 0.0001);
+  q.x -= uSpin * 0.05;
+  q.x *= 1.0 + uSpin * 0.2 * (0.5 + 0.5 * side);
+  float radius = length(q);
+
+  /*
+   * The shadow, at exactly the radius the accretion shader rings.
+   *
+   * This used to cover the whole billboard with a soft grey wash, on the reasoning
+   * that the middle of a black hole has to be darker than the room. True, but the
+   * middle is 2.6 Rs across and the billboard is twenty times that, so the wash
+   * also dimmed the disk it was there to make readable. uHorizon is shared with
+   * the accretion pass so the darkness and the filament around it are one object
+   * rather than two that happen to be concentric.
+   *
+   * Nearly opaque rather than fully: the disc is drawn over a corridor that is
+   * already almost black, and a hard cut to zero shows the edge of the quad's
+   * antialiasing before it shows an event horizon.
+   */
+  float solid = smoothstep(uHorizon * 1.08, uHorizon * 0.88, radius);
+  float alpha = solid * uOpacity * (0.88 + uSwallow * 0.12);
   if (alpha < 0.004) discard;
-  fragColor = vec4(uGround * 0.15, clamp(alpha, 0.0, 1.0));
+  fragColor = vec4(uGround * 0.02, clamp(alpha, 0.0, 1.0));
 }
 `
 
 export const FinaleGate = () => {
   const group = useRef<THREE.Group>(null)
-  const ring = useRef<THREE.Mesh>(null)
   const portal = useRef<THREE.Mesh>(null)
   const horizon = useRef<THREE.Mesh>(null)
-  const spin = useRef(0)
 
   const geometries = useMemo(
     () => ({
-      column: gateColumn(),
-      lintel: gateLintel(),
-      ring: gateRing(),
       portal: new THREE.PlaneGeometry(RING_RADIUS * 1.7, RING_RADIUS * 1.7),
       horizon: new THREE.PlaneGeometry(RING_RADIUS * 1.7, RING_RADIUS * 1.7),
     }),
     [],
   )
-
-  const material = useMemo(
-    () =>
-      new ReconstructMaterial({
-        spread: 0.7,
-        jitter: 0.14,
-        opacity: 0.8,
-        depthSpan: 0.05,
-      }),
-    [],
-  )
-
-  // The gate is the one machined structure the visitor sees dead-on and at
-  // rest, so it is where a mirror reflection earns the most: the same studio
-  // the hero shell reflects, held on the gate's columns and stator ring.
-  const envMap = useMemo(() => createStudioEquirect(512, 256), [])
-  useEffect(() => {
-    material.setEnv(envMap)
-  }, [material, envMap])
 
   const portalMaterial = useMemo(
     () =>
@@ -375,8 +350,13 @@ export const FinaleGate = () => {
           uHandshake: { value: 0 },
           uOpacity: { value: 0 },
           uSwallow: { value: 0 },
+          uHorizon: { value: 0.1 },
+          uSpin: { value: 0 },
+          uDiskIn: { value: 1.16 },
           uInner: { value: sceneColors.ink.clone() },
           uOuter: { value: sceneColors.accent.clone() },
+          uChill: { value: sceneColors.ink.clone() },
+          uEmber: { value: new THREE.Color('#6a2a14') },
         },
       }),
     [],
@@ -395,6 +375,8 @@ export const FinaleGate = () => {
         uniforms: {
           uSwallow: { value: 0 },
           uOpacity: { value: 0 },
+          uHorizon: { value: 0.1 },
+          uSpin: { value: 0 },
           uGround: { value: sceneColors.base.clone() },
         },
       }),
@@ -404,114 +386,93 @@ export const FinaleGate = () => {
   useEffect(
     () => () => {
       Object.values(geometries).forEach((geometry) => geometry.dispose())
-      material.dispose()
       portalMaterial.dispose()
       horizonMaterial.dispose()
-      envMap.dispose()
     },
-    [geometries, material, portalMaterial, horizonMaterial, envMap],
+    [geometries, portalMaterial, horizonMaterial],
   )
 
   useFrame((state) => {
     const build = sceneState.build
     const power = livePowerFor(build)
     const swallow = swallowShape(sceneState.swallow)
-    const enter = clamp01((build - 0.7) / 0.24)
-    // Assembled by the corridor, then held fully assembled for the whole ending:
-    // the gate cannot still be arriving while it is taking the room in.
+    const enter = clamp01((build - 0.94) / 0.06)
+    // Present by the end of the corridor, then held for the whole ending.
     const ease = Math.max(softAssemble(enter), swallow.amount)
-    /*
-     * The gate is the *consequence* of the handshake, not a second control.
-     *
-     * The terminals the visitor actually touches are on the contact plate at
-     * reading distance; this stands eleven metres down the corridor, where a
-     * clickable target would be a few pixels across. Scroll assembles the
-     * structure, and the circuit closing is what powers it — so the last beat of
-     * the room is something the visitor did, seen at the scale of the building.
-     */
     const handshake = reactorControl.uplink
     const time = state.clock.elapsedTime
 
-    material.setShape({
-      spread: THREE.MathUtils.lerp(0.7, 0.05, ease),
-      jitter: THREE.MathUtils.lerp(0.14, 0.02, ease),
-      drift: THREE.MathUtils.lerp(1, 0.04, ease),
-    })
-    material.sync({
-      build,
-      live: Math.max(power, handshake, swallow.amount),
-      focus: ease * 0.45 + handshake * 0.5 + swallow.pull * 0.5,
-      time,
-      velocity: sceneState.velocity,
-      assembleAt: ease * 0.88,
-    })
     /*
-     * The columns are the last thing to go.
+     * The billboard stands down when the composer is drawing the well for real.
      *
-     * Everything else the room is made of is inside `SwallowField` and is drawn
-     * in bodily; the gate is the mouth, so it stays until the very end and then
-     * fades rather than travelling. `beyond` is the final stretch of the swallow,
-     * after the corridor has already gone.
+     * Two accretion disks in one aperture is not twice the light, it is a bright
+     * smear with no structure in it — and the geodesic pass draws *over* this one,
+     * so what survived would be a wrong-shaped halo around a right-shaped hole.
+     * `visible` rather than a faded opacity, because a mesh that is only invisible
+     * still costs its draw call and its fragments.
      */
-    material.uniforms.uOpacity.value =
-      ease *
-      (0.5 + power * 0.35 + handshake * 0.3 + swallow.pull * 0.25) *
-      (1 - swallow.beyond * 0.92)
+    const billboard = !holeRender.lensing
 
     /*
-     * The stator turns, and turns harder as the field takes hold.
+     * The shadow's apparent radius, in the billboard's own coordinates.
      *
-     * The rotation used to accumulate `delta` into a ref, which meant the one part
-     * of the finale with any visible motion could not be scrubbed: scrolling back
-     * up ran the room backwards while the ring kept turning the same way, and the
-     * position it held depended on how long the page had been open. It is a pure
-     * function of scroll now, with only the idle drift left on the clock — so
-     * reversing the wheel reverses the mechanism, which is the entire point of
-     * this ending.
+     * Derived from the real geometry rather than authored, so the cheap version and
+     * the expensive one are pictures of the same object: 2.6 Rs is what a distant
+     * viewer measures the black disc to be, and the plane it is drawn on is
+     * `RING_RADIUS * 1.7` across, hence the half-width below.
+     *
+     * Capped at a bit over a third, because the billboard's own coordinates are
+     * where the whole image is laid out: the disk's inner edge, its outer fade and
+     * both lensed arcs are multiples of this, so a shadow allowed to grow past a
+     * third squeezes the band it is meant to sit inside out to the plane's rim.
+     * The *apparent* size still grows with the ending — it grows because the plane
+     * does. See `mouth` below.
      */
-    spin.current = time * 0.12 + swallow.amount * Math.PI * 5.5
-    if (ring.current) {
-      ring.current.rotation.z = spin.current + power * 0.6 + handshake * 1.4
-    }
+    const shadow = Math.min(
+      0.36,
+      (captureRs(HOLE_SPIN) * holeRadiusFor(build, sceneState.swallow)) /
+        (RING_RADIUS * 1.7 * 0.5),
+    )
 
     portalMaterial.uniforms.uTime.value = time
     portalMaterial.uniforms.uPower.value = Math.max(power, swallow.pull)
     portalMaterial.uniforms.uHandshake.value = handshake
     portalMaterial.uniforms.uSwallow.value = swallow.amount
+    portalMaterial.uniforms.uHorizon.value = shadow
+    portalMaterial.uniforms.uSpin.value = HOLE_SPIN
+    portalMaterial.uniforms.uDiskIn.value =
+      iscoRs(HOLE_SPIN) / captureRs(HOLE_SPIN)
     portalMaterial.uniforms.uOpacity.value = Math.max(
       THREE.MathUtils.smoothstep(ease, 0.45, 0.95) * (0.35 + power * 0.65),
       swallow.amount,
     )
     portalMaterial.uniforms.uInner.value
-      .copy(sceneColors.signal)
+      .set('#ffd4a0')
       .lerp(sceneColors.ink, 0.3 + handshake * 0.25)
     portalMaterial.uniforms.uOuter.value
-      .copy(sceneColors.accent)
-      .lerp(sceneColors.signal, 0.35)
+      .set('#bd6d3e')
+    portalMaterial.uniforms.uChill.value.copy(sceneColors.ink).lerp(WHITE, 0.5)
 
     horizonMaterial.uniforms.uSwallow.value = swallow.amount
+    horizonMaterial.uniforms.uHorizon.value = shadow
+    horizonMaterial.uniforms.uSpin.value = HOLE_SPIN
     horizonMaterial.uniforms.uGround.value.copy(sceneColors.base)
     horizonMaterial.uniforms.uOpacity.value =
-      THREE.MathUtils.smoothstep(ease, 0.5, 0.95) * (0.25 + swallow.pull * 0.75)
+      THREE.MathUtils.smoothstep(ease, 0.5, 0.95) * (0.4 + swallow.pull * 0.6)
 
     /*
-     * Only the aperture moves.
-     *
-     * The whole gate used to be scaled by the swallow — `root.scale` took
-     * `1 + pull * 1.35 + beyond * 2.2` — so scrolling through the finale visibly
-     * inflated the columns, the lintel and the brackets along with the field. A
-     * building does not grow when you fall into the doorway. The structure now
-     * holds a fixed scale and every bit of the ending's motion belongs to the two
-     * things that should have it: the stator turning, and the well opening.
-     *
-     * The plane still has to grow, and by more than the group ever did, because
-     * "the portal swallows everything" ends with the aperture being the entire
-     * frame. Both discs scale together so the horizon stays exactly concentric
-     * with the photon ring drawn around it.
+     * The plane grows with the drain so the well can take the frame. Both
+     * discs scale together so the horizon stays concentric with the ring.
      */
-    const mouth = 1 + swallow.pull * 1.6 + swallow.beyond * 3.4
-    if (portal.current) portal.current.scale.setScalar(mouth)
-    if (horizon.current) horizon.current.scale.setScalar(mouth)
+    const mouth = 1 + swallow.drain * 2.2
+    if (portal.current) {
+      portal.current.scale.setScalar(mouth)
+      portal.current.visible = billboard
+    }
+    if (horizon.current) {
+      horizon.current.scale.setScalar(mouth)
+      horizon.current.visible = billboard
+    }
 
     const root = group.current
     if (root) {
@@ -524,35 +485,10 @@ export const FinaleGate = () => {
   return (
     <group
       ref={group}
-      position={[PORTAL_POSITION[0], 0, PORTAL_POSITION[2] + 2.4]}
+      position={[PORTAL_POSITION[0], 0, PORTAL_POSITION[2] + GATE_APERTURE_Z_AHEAD]}
       visible={false}
     >
-      <mesh
-        geometry={geometries.column}
-        material={material}
-        position={[-COLUMN_X, 0, 0]}
-        frustumCulled={false}
-      />
-      <mesh
-        geometry={geometries.column}
-        material={material}
-        position={[COLUMN_X, 0, 0]}
-        frustumCulled={false}
-      />
-      <mesh
-        geometry={geometries.lintel}
-        material={material}
-        position={[0, COLUMN_HEIGHT - 0.05, 0]}
-        frustumCulled={false}
-      />
-      <mesh
-        ref={ring}
-        geometry={geometries.ring}
-        material={material}
-        position={[0, RING_Y, 0.1]}
-        frustumCulled={false}
-      />
-      {/* Drawn first: the darkness the accretion ring is a ring *around*. */}
+      {/* Drawn first: the darkness the accretion ring is a ring around. */}
       <mesh
         ref={horizon}
         geometry={geometries.horizon}

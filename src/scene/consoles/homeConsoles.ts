@@ -271,7 +271,8 @@ export const homeConsoleSpecs = (
       z: -18.4,
       side: 0,
       lateral: 0,
-      rise: 0.12,
+      // No lift — a positive rise with the late path put the plate in the ceiling.
+      rise: 0,
       uplink: true,
       rows: [
         // The mail address is not a footer button here — it is the frequency the

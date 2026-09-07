@@ -176,7 +176,12 @@ export const UplinkGate = ({
     const build = sceneState.build
     const progress = clamp01((build - enter) / Math.max(span, 0.001))
     const leaving = clamp01((build - exit) / Math.max(exitSpan, 0.001))
-    const presence = softAssemble(progress) * (1 - leaving)
+    // The handshake is a control, so it leaves with the rest of them when the
+    // ending starts. See `ActionPlate`.
+    const presence =
+      softAssemble(progress) *
+      (1 - leaving) *
+      (1 - clamp01(sceneState.swallow / 0.08))
 
     const node = group.current
     if (node) node.visible = presence > 0.02

@@ -43,6 +43,7 @@ const SETTLE: Record<string, number> = {
   fueradecontexto: 4000,
   'ag-valores': 2500,
   nonconformist: 2500,
+  'a3-mercados': 2500,
 }
 
 const DEFAULT_SETTLE = 1500
