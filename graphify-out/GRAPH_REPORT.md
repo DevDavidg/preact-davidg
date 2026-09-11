@@ -1,16 +1,16 @@
 # Graph Report - preact-davidg  (2026-09-11)
 
 ## Corpus Check
-- 155 files · ~1,927,154 words
+- 155 files · ~1,924,643 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1215 nodes · 3059 edges · 75 communities (60 shown, 15 thin omitted)
+- 1215 nodes · 3059 edges · 73 communities (58 shown, 15 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 16 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `12804a6a`
+- Built from commit: `aeac80d9`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -38,11 +38,11 @@
 - capture-shots.ts
 - useCopy
 - Kerr / realismo del pozo — plan para Kimi
-- lib/routes.ts
+- Nav.tsx
 - vercel.json
 - blackHole.ts
 - sceneState
-- not-found.tsx
+- react-dom
 - diagnose.ts
 - diff-hydration.ts
 - review-shots.ts
@@ -82,8 +82,6 @@
 - Planets.tsx
 - AGENTS.md
 - seo.ts
-- Action.tsx
-- lenis
 
 ## God Nodes (most connected - your core abstractions)
 1. `react` - 53 edges
@@ -98,21 +96,21 @@
 10. `SwallowShape` - 24 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `meta()` --calls--> `pageMeta()`  [EXTRACTED]
-  app/routes/locale-gate.tsx → src/lib/seo.ts
-- `every` --calls--> `casePath()`  [EXTRACTED]
-  scripts/check-routes.ts → src/lib/routes.ts
 - `Layout()` --calls--> `localeFromPath()`  [EXTRACTED]
   app/root.tsx → src/lib/locale.ts
 - `ErrorBoundary()` --calls--> `homePath()`  [EXTRACTED]
   app/root.tsx → src/lib/routes.ts
-- `meta()` --calls--> `findCase()`  [EXTRACTED]
+- `meta()` --calls--> `casePath()`  [EXTRACTED]
+  app/routes/case.tsx → src/lib/routes.ts
+- `meta()` --calls--> `samePath()`  [EXTRACTED]
+  app/routes/case.tsx → src/lib/routes.ts
+- `Case()` --calls--> `findCase()`  [EXTRACTED]
   app/routes/case.tsx → src/content/index.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (75 total, 15 thin omitted)
+## Communities (73 total, 15 thin omitted)
 
 ### Community 0 - "ModuleRig.tsx"
 Cohesion: 0.06
@@ -131,8 +129,8 @@ Cohesion: 0.19
 Nodes (21): editable(), LONGEST_WORD, useOperatorConsole(), WORDS, COMMANDS, installReactorConsole(), isLaw(), ReactorConsoleApi (+13 more)
 
 ### Community 4 - "sceneState.ts"
-Cohesion: 0.10
-Nodes (49): Case(), meta(), Cv(), meta(), Home(), meta(), react, BootGate() (+41 more)
+Cohesion: 0.11
+Nodes (41): Case(), Cv(), Home(), react, BootGate(), release(), JsonLd(), SkipLink() (+33 more)
 
 ### Community 5 - "consoleLayout.ts"
 Cohesion: 0.14
@@ -176,7 +174,7 @@ Nodes (17): Atmosphere(), createDustGeometry(), createGlowTexture(), createShard
 
 ### Community 15 - "dependencies"
 Cohesion: 0.07
-Nodes (27): gsap, isbot, maath, dependencies, gsap, isbot, maath, postprocessing (+19 more)
+Nodes (27): gsap, isbot, lenis, maath, dependencies, gsap, isbot, lenis (+19 more)
 
 ### Community 16 - "portraitVoxels.ts"
 Cohesion: 0.36
@@ -206,9 +204,9 @@ Nodes (23): About(), Contact(), Experience(), FinaleCard(), Hero(), HomeDocument
 Cohesion: 0.11
 Nodes (17): Contrato que no se rompe, Decisiones (no reabrirlas en el minion), Diagnóstico (qué falta, no el wishlist), Fuera de alcance (si lo piden, plan nuevo), Kerr / realismo del pozo — plan para Kimi, Prompt para pegarle a Kimi (una tarea), Serie vs paralelo, Tarea 10 — Verificar y parar [x] (+9 more)
 
-### Community 23 - "lib/routes.ts"
-Cohesion: 0.13
-Nodes (33): .react-router/**, CaseDocument(), CvDocument(), Footer(), Nav(), NAV_SECTIONS, NavSection, SiteShell() (+25 more)
+### Community 23 - "Nav.tsx"
+Cohesion: 0.12
+Nodes (35): .react-router/**, every, CaseDocument(), CvDocument(), Footer(), Nav(), NAV_SECTIONS, NavSection (+27 more)
 
 ### Community 24 - "vercel.json"
 Cohesion: 0.20
@@ -221,10 +219,6 @@ Nodes (39): corridorEnd, deepestRs, ENDING_DISTANCE, halfDiagonal, lensAt(), nuc
 ### Community 26 - "sceneState"
 Cohesion: 0.31
 Nodes (8): _dir, _fwd, pointerOnPlane(), crossGeometry(), CursorProbe(), _probe, ringGeometry(), sceneState
-
-### Community 27 - "not-found.tsx"
-Cohesion: 0.25
-Nodes (7): BOOT_HOLD_STYLE, ErrorBoundary(), Layout(), meta(), NotFound(), localeFromPath(), NOT_FOUND_PATH
 
 ### Community 28 - "diagnose.ts"
 Cohesion: 0.50
@@ -283,8 +277,8 @@ Cohesion: 0.11
 Nodes (29): buildGlyphAtlas(), collectRequests(), FALLBACK_FAMILY, fontString(), glyphAlphaAt(), glyphKey(), GlyphMetric, readFamily() (+21 more)
 
 ### Community 50 - "index.ts"
-Cohesion: 0.14
-Nodes (13): LocaleGate(), meta(), CLIENT, every, FallbackProps, SceneErrorBoundary, CASE_SLUGS, COPY (+5 more)
+Cohesion: 0.08
+Nodes (32): BOOT_HOLD_STYLE, ErrorBoundary(), Layout(), meta(), meta(), meta(), LocaleGate(), meta() (+24 more)
 
 ### Community 51 - "placement.ts"
 Cohesion: 0.12
@@ -326,10 +320,6 @@ Nodes (14): holeAxis(), spiralFall(), ANCHOR, AXIS, FLASH, MAPS, Planets(), RADI
 Cohesion: 0.09
 Nodes (40): buildIcons(), buildSocialCards(), Encoder, encodeWithinBudget(), escapeXml(), ICON_DIR, main(), monogramSvg() (+32 more)
 
-### Community 73 - "Action.tsx"
-Cohesion: 0.43
-Nodes (6): Action(), ActionProps, isExternal(), MagneticProps, Variant, AnalyticsEvent
-
 ## Knowledge Gaps
 - **435 isolated node(s):** `$schema`, `typescript`, `oxc`, `build/**`, `react/rules-of-hooks` (+430 more)
   These have ≤1 connection - possible missing edges or undocumented components.
@@ -347,7 +337,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `CinemaLayer.tsx` be split into smaller, more focused modules?**
   _Cohesion score 0.09057971014492754 - nodes in this community are weakly interconnected._
 - **Should `sceneState.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.09543193125282677 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11252268602540835 - nodes in this community are weakly interconnected._
 - **Should `consoleLayout.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.14130434782608695 - nodes in this community are weakly interconnected._
 - **Should `HeroStage.tsx` be split into smaller, more focused modules?**

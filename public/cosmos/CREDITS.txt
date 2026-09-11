@@ -1,5 +1,5 @@
-Planet and sky textures
-=======================
+Planet textures
+===============
 
 Solar System Scope / INOVE — CC BY 4.0
 https://www.solarsystemscope.com/textures/
@@ -10,7 +10,6 @@ https://creativecommons.org/licenses/by/4.0/
   moon.webp     from "2k_moon"                — 1536x768,  135 kB
   saturn.webp   from "2k_saturn"              — 2048x1024,  48 kB
   ring.webp     from "2k_saturn_ring_alpha"   — 1024x8,      2 kB
-  sky.webp      from "2k_stars_milky_way"     — 2048x1024,  66 kB
 
   Changes: converted to WebP; quality chosen per map to stay under the site's
   150 kB per-image budget (see scripts/bundle-budget.mjs). The moon was reduced to

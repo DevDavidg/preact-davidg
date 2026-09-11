@@ -1026,15 +1026,15 @@
     "semantic_hash": ""
   },
   "src/scene/CosmicWorld.tsx": {
-    "mtime": 1789099278.1603694,
-    "seen": 1789099362.695477,
-    "ast_hash": "5a52c2132737e5652328c44ed8395f86",
+    "mtime": 1789128669.183033,
+    "seen": 1789128672.383471,
+    "ast_hash": "23642ed47ff0b4a1c4e3c58fc695a671",
     "semantic_hash": ""
   },
   "public/cosmos/CREDITS.txt": {
-    "mtime": 1788755599.3154695,
-    "seen": 1788788066.57668,
-    "ast_hash": "b139d77146904355f624d154c693ae84",
+    "mtime": 1789128669.3234277,
+    "seen": 1789128672.3835158,
+    "ast_hash": "e1066ae551a0cbe80849a49a8ec8d4bb",
     "semantic_hash": ""
   },
   "public/cosmos/earth.webp": {
@@ -1059,12 +1059,6 @@
     "mtime": 1788753519.853118,
     "seen": 1788788066.5766861,
     "ast_hash": "08eba838a66da0ad1b3f312cd2572a90",
-    "semantic_hash": ""
-  },
-  "public/cosmos/sky.webp": {
-    "mtime": 1788753520.0898468,
-    "seen": 1788788066.576687,
-    "ast_hash": "ab0633b5df7c36dbe20e16f99a914dec",
     "semantic_hash": ""
   },
   "scripts/check-kerr.ts": {

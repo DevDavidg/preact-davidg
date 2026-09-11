@@ -439,11 +439,63 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "navsection",
       "source_file": "src/components/Nav.tsx",
       "source_location": "L20"
+    },
+    {
+      "id": "src_components_ui_action_actionprops",
+      "label": "ActionProps",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 23,
+      "community_name": "Nav.tsx",
+      "file_type": "code",
+      "norm_label": "actionprops",
+      "source_file": "src/components/ui/Action.tsx",
+      "source_location": "L20"
+    },
+    {
+      "id": "src_components_ui_action_magneticprops",
+      "label": "MagneticProps",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 23,
+      "community_name": "Nav.tsx",
+      "file_type": "code",
+      "norm_label": "magneticprops",
+      "source_file": "src/components/ui/Action.tsx",
+      "source_location": "L95"
+    },
+    {
+      "id": "src_components_ui_action_variant",
+      "label": "Variant",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 23,
+      "community_name": "Nav.tsx",
+      "file_type": "code",
+      "norm_label": "variant",
+      "source_file": "src/components/ui/Action.tsx",
+      "source_location": "L6"
+    },
+    {
+      "id": "src_lib_analytics_analyticsevent",
+      "label": "AnalyticsEvent",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 23,
+      "community_name": "Nav.tsx",
+      "file_type": "code",
+      "norm_label": "analyticsevent",
+      "source_file": "src/lib/analytics.ts",
+      "source_location": "L14"
     },
     {
       "id": "src_lib_analytics_analyticswindow",
@@ -452,7 +504,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "analyticswindow",
       "source_file": "src/lib/analytics.ts",
@@ -465,24 +517,11 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "trackedevent",
       "source_file": "src/lib/analytics.ts",
       "source_location": "L34"
-    },
-    {
-      "id": "src_lib_routes_sectionid",
-      "label": "SectionId",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "lib/routes.ts",
-      "file_type": "code",
-      "norm_label": "sectionid",
-      "source_file": "src/lib/routes.ts",
-      "source_location": "L60"
     },
     {
       "id": "src_scene_control_reactorconsole_reactorconsoleapi",
@@ -625,7 +664,7 @@
       "file_type": "code",
       "norm_label": "stellar",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L195"
+      "source_location": "L193"
     },
     {
       "id": "src_scene_layout_artifactplacement",
@@ -665,19 +704,6 @@
       "norm_label": "signalconduitsprops",
       "source_file": "src/scene/SignalConduits.tsx",
       "source_location": "L142"
-    },
-    {
-      "id": "src_components_scrollrail_railchapter",
-      "label": "RailChapter",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "sceneState.ts",
-      "file_type": "code",
-      "norm_label": "railchapter",
-      "source_file": "src/components/ScrollRail.tsx",
-      "source_location": "L10"
     },
     {
       "id": "src_scene_capability_experiencestate",
@@ -1330,6 +1356,32 @@
       "source_location": "L19"
     },
     {
+      "id": "src_components_scrollrail_railchapter",
+      "label": "RailChapter",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "railchapter",
+      "source_file": "src/components/ScrollRail.tsx",
+      "source_location": "L10"
+    },
+    {
+      "id": "src_lib_routes_sectionid",
+      "label": "SectionId",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "sectionid",
+      "source_file": "src/lib/routes.ts",
+      "source_location": "L60"
+    },
+    {
       "id": "src_scene_aboutportrait_aboutportraitprops",
       "label": "AboutPortraitProps",
       "_callable": true,
@@ -1588,58 +1640,6 @@
       "norm_label": "encoder",
       "source_file": "scripts/build-assets.ts",
       "source_location": "L50"
-    },
-    {
-      "id": "src_components_ui_action_actionprops",
-      "label": "ActionProps",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 73,
-      "community_name": "Action.tsx",
-      "file_type": "code",
-      "norm_label": "actionprops",
-      "source_file": "src/components/ui/Action.tsx",
-      "source_location": "L20"
-    },
-    {
-      "id": "src_components_ui_action_magneticprops",
-      "label": "MagneticProps",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 73,
-      "community_name": "Action.tsx",
-      "file_type": "code",
-      "norm_label": "magneticprops",
-      "source_file": "src/components/ui/Action.tsx",
-      "source_location": "L95"
-    },
-    {
-      "id": "src_components_ui_action_variant",
-      "label": "Variant",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 73,
-      "community_name": "Action.tsx",
-      "file_type": "code",
-      "norm_label": "variant",
-      "source_file": "src/components/ui/Action.tsx",
-      "source_location": "L6"
-    },
-    {
-      "id": "src_lib_analytics_analyticsevent",
-      "label": "AnalyticsEvent",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 73,
-      "community_name": "Action.tsx",
-      "file_type": "code",
-      "norm_label": "analyticsevent",
-      "source_file": "src/lib/analytics.ts",
-      "source_location": "L14"
     },
     {
       "id": "src_scene_control_reactorcontrol_beat",
@@ -3210,7 +3210,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "casedocument()",
       "source_file": "src/components/CaseDocument.tsx",
@@ -3222,7 +3222,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "cvdocument()",
       "source_file": "src/components/CvDocument.tsx",
@@ -3234,7 +3234,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "footer()",
       "source_file": "src/components/Footer.tsx",
@@ -3246,7 +3246,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "nav()",
       "source_file": "src/components/Nav.tsx",
@@ -3258,11 +3258,35 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "siteshell()",
       "source_file": "src/components/SiteShell.tsx",
       "source_location": "L11"
+    },
+    {
+      "id": "src_components_ui_action_action",
+      "label": "Action()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 23,
+      "community_name": "Nav.tsx",
+      "file_type": "code",
+      "norm_label": "action()",
+      "source_file": "src/components/ui/Action.tsx",
+      "source_location": "L45"
+    },
+    {
+      "id": "src_components_ui_action_isexternal",
+      "label": "isExternal()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 23,
+      "community_name": "Nav.tsx",
+      "file_type": "code",
+      "norm_label": "isexternal()",
+      "source_file": "src/components/ui/Action.tsx",
+      "source_location": "L34"
     },
     {
       "id": "src_components_ui_casecard_arrow",
@@ -3270,7 +3294,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "arrow()",
       "source_file": "src/components/ui/CaseCard.tsx",
@@ -3282,7 +3306,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "caseimage()",
       "source_file": "src/components/ui/CaseCard.tsx",
@@ -3294,7 +3318,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "caseimagename()",
       "source_file": "src/components/ui/CaseCard.tsx",
@@ -3306,7 +3330,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "compactcard()",
       "source_file": "src/components/ui/CaseCard.tsx",
@@ -3318,7 +3342,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "externalarrow()",
       "source_file": "src/components/ui/CaseCard.tsx",
@@ -3330,7 +3354,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "featuredcard()",
       "source_file": "src/components/ui/CaseCard.tsx",
@@ -3342,7 +3366,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "kindbadge()",
       "source_file": "src/components/ui/CaseCard.tsx",
@@ -3354,7 +3378,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "taglist()",
       "source_file": "src/components/ui/CaseCard.tsx",
@@ -3366,7 +3390,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "worldnav()",
       "source_file": "src/components/WorldNav.tsx",
@@ -3378,7 +3402,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "allcases()",
       "source_file": "src/content/index.ts",
@@ -3390,7 +3414,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "nextcase()",
       "source_file": "src/content/index.ts",
@@ -3402,7 +3426,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "otherlocale()",
       "source_file": "src/content/index.ts",
@@ -3414,7 +3438,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "observewebvitals()",
       "source_file": "src/lib/analytics.ts",
@@ -3426,7 +3450,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "trackevent()",
       "source_file": "src/lib/analytics.ts",
@@ -3438,7 +3462,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "rememberlocale()",
       "source_file": "src/lib/locale.ts",
@@ -3450,23 +3474,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "casepath()",
       "source_file": "src/lib/routes.ts",
       "source_location": "L16"
-    },
-    {
-      "id": "src_lib_routes_cvpath",
-      "label": "cvPath()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "lib/routes.ts",
-      "file_type": "code",
-      "norm_label": "cvpath()",
-      "source_file": "src/lib/routes.ts",
-      "source_location": "L19"
     },
     {
       "id": "src_lib_routes_homepath",
@@ -3474,23 +3486,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "homepath()",
       "source_file": "src/lib/routes.ts",
       "source_location": "L14"
-    },
-    {
-      "id": "src_lib_routes_staticpaths",
-      "label": "staticPaths()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "lib/routes.ts",
-      "file_type": "code",
-      "norm_label": "staticpaths()",
-      "source_file": "src/lib/routes.ts",
-      "source_location": "L66"
     },
     {
       "id": "src_lib_routes_translatepath",
@@ -3498,23 +3498,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "translatepath()",
       "source_file": "src/lib/routes.ts",
       "source_location": "L77"
-    },
-    {
-      "id": "src_motion_ticker_scrolltosection",
-      "label": "scrollToSection()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "lib/routes.ts",
-      "file_type": "code",
-      "norm_label": "scrolltosection()",
-      "source_file": "src/motion/ticker.ts",
-      "source_location": "L56"
     },
     {
       "id": "src_scene_consoles_resolveaction_resolveaction",
@@ -3522,7 +3510,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "resolveaction()",
       "source_file": "src/scene/consoles/resolveAction.ts",
@@ -3793,90 +3781,6 @@
       "source_location": "L32"
     },
     {
-      "id": "app_root_app",
-      "label": "App()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 27,
-      "community_name": "not-found.tsx",
-      "file_type": "code",
-      "norm_label": "app()",
-      "source_file": "app/root.tsx",
-      "source_location": "L154"
-    },
-    {
-      "id": "app_root_errorboundary",
-      "label": "ErrorBoundary()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 27,
-      "community_name": "not-found.tsx",
-      "file_type": "code",
-      "norm_label": "errorboundary()",
-      "source_file": "app/root.tsx",
-      "source_location": "L162"
-    },
-    {
-      "id": "app_root_layout",
-      "label": "Layout()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 27,
-      "community_name": "not-found.tsx",
-      "file_type": "code",
-      "norm_label": "layout()",
-      "source_file": "app/root.tsx",
-      "source_location": "L122"
-    },
-    {
-      "id": "app_root_links",
-      "label": "links()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 27,
-      "community_name": "not-found.tsx",
-      "file_type": "code",
-      "norm_label": "links()",
-      "source_file": "app/root.tsx",
-      "source_location": "L40"
-    },
-    {
-      "id": "app_routes_not_found_meta",
-      "label": "meta()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 27,
-      "community_name": "not-found.tsx",
-      "file_type": "code",
-      "norm_label": "meta()",
-      "source_file": "app/routes/not-found.tsx",
-      "source_location": "L12"
-    },
-    {
-      "id": "app_routes_not_found_notfound",
-      "label": "NotFound()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 27,
-      "community_name": "not-found.tsx",
-      "file_type": "code",
-      "norm_label": "notfound()",
-      "source_file": "app/routes/not-found.tsx",
-      "source_location": "L23"
-    },
-    {
-      "id": "src_lib_locale_localefrompath",
-      "label": "localeFromPath()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 27,
-      "community_name": "not-found.tsx",
-      "file_type": "code",
-      "norm_label": "localefrompath()",
-      "source_file": "src/lib/locale.ts",
-      "source_location": "L15"
-    },
-    {
       "id": "scripts_diagnose_check",
       "label": "check()",
       "_callable": true,
@@ -4078,7 +3982,7 @@
       "file_type": "code",
       "norm_label": "cosmicintro()",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L730"
+      "source_location": "L728"
     },
     {
       "id": "src_scene_reactorscene_clearcolour",
@@ -4174,7 +4078,7 @@
       "file_type": "code",
       "norm_label": "attach()",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L263"
+      "source_location": "L261"
     },
     {
       "id": "src_scene_cosmicworld_cosmicworld",
@@ -4186,7 +4090,7 @@
       "file_type": "code",
       "norm_label": "cosmicworld()",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L531"
+      "source_location": "L529"
     },
     {
       "id": "src_scene_cosmicworld_deepgeometry",
@@ -4198,7 +4102,7 @@
       "file_type": "code",
       "norm_label": "deepgeometry()",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L365"
+      "source_location": "L363"
     },
     {
       "id": "src_scene_cosmicworld_fieldgeometry",
@@ -4210,7 +4114,7 @@
       "file_type": "code",
       "norm_label": "fieldgeometry()",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L407"
+      "source_location": "L405"
     },
     {
       "id": "src_scene_cosmicworld_galaxygeometry",
@@ -4222,7 +4126,7 @@
       "file_type": "code",
       "norm_label": "galaxygeometry()",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L269"
+      "source_location": "L267"
     },
     {
       "id": "src_scene_cosmicworld_gauss",
@@ -4234,7 +4138,7 @@
       "file_type": "code",
       "norm_label": "gauss()",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L185"
+      "source_location": "L183"
     },
     {
       "id": "src_scene_cosmicworld_random",
@@ -4246,7 +4150,7 @@
       "file_type": "code",
       "norm_label": "random()",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L181"
+      "source_location": "L179"
     },
     {
       "id": "src_scene_cosmicworld_starmaterial",
@@ -4258,7 +4162,7 @@
       "file_type": "code",
       "norm_label": "starmaterial()",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L238"
+      "source_location": "L236"
     },
     {
       "id": "src_scene_cosmicworld_stellarmaterial",
@@ -4270,7 +4174,7 @@
       "file_type": "code",
       "norm_label": "stellarmaterial()",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L506"
+      "source_location": "L504"
     },
     {
       "id": "src_scene_cosmicworld_swarm",
@@ -4282,7 +4186,7 @@
       "file_type": "code",
       "norm_label": "swarm()",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L210"
+      "source_location": "L208"
     },
     {
       "id": "scripts_check_cosmos_at",
@@ -4501,18 +4405,6 @@
       "source_location": "L58"
     },
     {
-      "id": "app_routes_case_meta",
-      "label": "meta()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "sceneState.ts",
-      "file_type": "code",
-      "norm_label": "meta()",
-      "source_file": "app/routes/case.tsx",
-      "source_location": "L26"
-    },
-    {
       "id": "app_routes_cv_cv",
       "label": "Cv()",
       "_callable": true,
@@ -4525,18 +4417,6 @@
       "source_location": "L37"
     },
     {
-      "id": "app_routes_cv_meta",
-      "label": "meta()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "sceneState.ts",
-      "file_type": "code",
-      "norm_label": "meta()",
-      "source_file": "app/routes/cv.tsx",
-      "source_location": "L25"
-    },
-    {
       "id": "app_routes_home_home",
       "label": "Home()",
       "_callable": true,
@@ -4547,18 +4427,6 @@
       "norm_label": "home()",
       "source_file": "app/routes/home.tsx",
       "source_location": "L47"
-    },
-    {
-      "id": "app_routes_home_meta",
-      "label": "meta()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "sceneState.ts",
-      "file_type": "code",
-      "norm_label": "meta()",
-      "source_file": "app/routes/home.tsx",
-      "source_location": "L32"
     },
     {
       "id": "src_components_bootgate_bootgate",
@@ -4681,18 +4549,6 @@
       "source_location": "L27"
     },
     {
-      "id": "src_content_index_islocale",
-      "label": "isLocale()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "sceneState.ts",
-      "file_type": "code",
-      "norm_label": "islocale()",
-      "source_file": "src/content/index.ts",
-      "source_location": "L12"
-    },
-    {
       "id": "src_hooks_useexperience_useexperience",
       "label": "useExperience()",
       "_callable": true,
@@ -4739,6 +4595,18 @@
       "norm_label": "usesectiontracking()",
       "source_file": "src/hooks/useSectionTracking.ts",
       "source_location": "L12"
+    },
+    {
+      "id": "src_lib_routes_cvpath",
+      "label": "cvPath()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "sceneState.ts",
+      "file_type": "code",
+      "norm_label": "cvpath()",
+      "source_file": "src/lib/routes.ts",
+      "source_location": "L19"
     },
     {
       "id": "src_lib_routes_samepath",
@@ -4789,18 +4657,6 @@
       "source_location": "L66"
     },
     {
-      "id": "src_lib_seo_pagemeta",
-      "label": "pageMeta()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "sceneState.ts",
-      "file_type": "code",
-      "norm_label": "pagemeta()",
-      "source_file": "src/lib/seo.ts",
-      "source_location": "L82"
-    },
-    {
       "id": "src_motion_scroll_useanchorscroll",
       "label": "useAnchorScroll()",
       "_callable": true,
@@ -4847,6 +4703,18 @@
       "norm_label": "refreshlayout()",
       "source_file": "src/motion/ticker.ts",
       "source_location": "L104"
+    },
+    {
+      "id": "src_motion_ticker_scrolltosection",
+      "label": "scrollToSection()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "sceneState.ts",
+      "file_type": "code",
+      "norm_label": "scrolltosection()",
+      "source_file": "src/motion/ticker.ts",
+      "source_location": "L56"
     },
     {
       "id": "src_scene_capability_oncapabilitychange",
@@ -5497,6 +5365,90 @@
       "source_location": "L180"
     },
     {
+      "id": "app_root_app",
+      "label": "App()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "app()",
+      "source_file": "app/root.tsx",
+      "source_location": "L154"
+    },
+    {
+      "id": "app_root_errorboundary",
+      "label": "ErrorBoundary()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "errorboundary()",
+      "source_file": "app/root.tsx",
+      "source_location": "L162"
+    },
+    {
+      "id": "app_root_layout",
+      "label": "Layout()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "layout()",
+      "source_file": "app/root.tsx",
+      "source_location": "L122"
+    },
+    {
+      "id": "app_root_links",
+      "label": "links()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "links()",
+      "source_file": "app/root.tsx",
+      "source_location": "L40"
+    },
+    {
+      "id": "app_routes_case_meta",
+      "label": "meta()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "meta()",
+      "source_file": "app/routes/case.tsx",
+      "source_location": "L26"
+    },
+    {
+      "id": "app_routes_cv_meta",
+      "label": "meta()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "meta()",
+      "source_file": "app/routes/cv.tsx",
+      "source_location": "L25"
+    },
+    {
+      "id": "app_routes_home_meta",
+      "label": "meta()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "meta()",
+      "source_file": "app/routes/home.tsx",
+      "source_location": "L32"
+    },
+    {
       "id": "app_routes_locale_gate_localegate",
       "label": "LocaleGate()",
       "_callable": true,
@@ -5519,6 +5471,30 @@
       "norm_label": "meta()",
       "source_file": "app/routes/locale-gate.tsx",
       "source_location": "L18"
+    },
+    {
+      "id": "app_routes_not_found_meta",
+      "label": "meta()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "meta()",
+      "source_file": "app/routes/not-found.tsx",
+      "source_location": "L12"
+    },
+    {
+      "id": "app_routes_not_found_notfound",
+      "label": "NotFound()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "notfound()",
+      "source_file": "app/routes/not-found.tsx",
+      "source_location": "L23"
     },
     {
       "id": "scripts_check_routes_escape",
@@ -5581,6 +5557,30 @@
       "source_location": "L24"
     },
     {
+      "id": "src_content_index_islocale",
+      "label": "isLocale()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "islocale()",
+      "source_file": "src/content/index.ts",
+      "source_location": "L12"
+    },
+    {
+      "id": "src_lib_locale_localefrompath",
+      "label": "localeFromPath()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "localefrompath()",
+      "source_file": "src/lib/locale.ts",
+      "source_location": "L15"
+    },
+    {
       "id": "src_lib_locale_readpreferredlocale",
       "label": "readPreferredLocale()",
       "_callable": true,
@@ -5591,6 +5591,30 @@
       "norm_label": "readpreferredlocale()",
       "source_file": "src/lib/locale.ts",
       "source_location": "L37"
+    },
+    {
+      "id": "src_lib_routes_staticpaths",
+      "label": "staticPaths()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "staticpaths()",
+      "source_file": "src/lib/routes.ts",
+      "source_location": "L66"
+    },
+    {
+      "id": "src_lib_seo_pagemeta",
+      "label": "pageMeta()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "pagemeta()",
+      "source_file": "src/lib/seo.ts",
+      "source_location": "L82"
     },
     {
       "id": "src_scene_consoles_placement_assertnooverlap",
@@ -6286,7 +6310,7 @@
       "file_type": "code",
       "norm_label": "spiralfall()",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L448"
+      "source_location": "L446"
     },
     {
       "id": "src_scene_planets_planets",
@@ -6851,30 +6875,6 @@
       "norm_label": "normaliseorigin()",
       "source_file": "src/lib/site.ts",
       "source_location": "L9"
-    },
-    {
-      "id": "src_components_ui_action_action",
-      "label": "Action()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 73,
-      "community_name": "Action.tsx",
-      "file_type": "code",
-      "norm_label": "action()",
-      "source_file": "src/components/ui/Action.tsx",
-      "source_location": "L45"
-    },
-    {
-      "id": "src_components_ui_action_isexternal",
-      "label": "isExternal()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 73,
-      "community_name": "Action.tsx",
-      "file_type": "code",
-      "norm_label": "isexternal()",
-      "source_file": "src/components/ui/Action.tsx",
-      "source_location": "L34"
     },
     {
       "id": "src_scene_control_reactorcontrol_advancecontrol",
@@ -8118,6 +8118,17 @@
       "source_location": "L25"
     },
     {
+      "id": "package_dependencies_lenis",
+      "label": "lenis",
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "dependencies",
+      "file_type": "code",
+      "norm_label": "lenis",
+      "source_file": "package.json",
+      "source_location": "L26"
+    },
+    {
       "id": "package_dependencies_maath",
       "label": "maath",
       "_origin": "ast",
@@ -8149,17 +8160,6 @@
       "norm_label": "react",
       "source_file": "package.json",
       "source_location": "L29"
-    },
-    {
-      "id": "package_dependencies_react_dom",
-      "label": "react-dom",
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "dependencies",
-      "file_type": "code",
-      "norm_label": "react-dom",
-      "source_file": "package.json",
-      "source_location": "L30"
     },
     {
       "id": "package_dependencies_react_router",
@@ -8261,6 +8261,17 @@
       "source_location": "L25"
     },
     {
+      "id": "lenis",
+      "label": "lenis",
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "dependencies",
+      "file_type": "concept",
+      "norm_label": "lenis",
+      "source_file": "package.json",
+      "source_location": "L26"
+    },
+    {
       "id": "maath",
       "label": "maath",
       "_origin": "ast",
@@ -8292,17 +8303,6 @@
       "norm_label": "react",
       "source_file": "package.json",
       "source_location": "L29"
-    },
-    {
-      "id": "react_dom",
-      "label": "react-dom",
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "dependencies",
-      "file_type": "concept",
-      "norm_label": "react-dom",
-      "source_file": "package.json",
-      "source_location": "L30"
     },
     {
       "id": "react_router",
@@ -9636,22 +9636,22 @@
       "source_location": "L370"
     },
     {
-      "id": "react_router_config",
-      "label": "react-router.config.ts",
+      "id": "scripts_check_routes_every",
+      "label": "every",
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
-      "norm_label": "react-router.config.ts",
-      "source_file": "react-router.config.ts",
-      "source_location": "L1"
+      "norm_label": "every",
+      "source_file": "scripts/check-routes.ts",
+      "source_location": "L24"
     },
     {
       "id": "src_components_casedocument",
       "label": "CaseDocument.tsx",
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "casedocument.tsx",
       "source_file": "src/components/CaseDocument.tsx",
@@ -9662,7 +9662,7 @@
       "label": "CvDocument.tsx",
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "cvdocument.tsx",
       "source_file": "src/components/CvDocument.tsx",
@@ -9673,7 +9673,7 @@
       "label": "Footer.tsx",
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "footer.tsx",
       "source_file": "src/components/Footer.tsx",
@@ -9684,7 +9684,7 @@
       "label": "Nav.tsx",
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "nav.tsx",
       "source_file": "src/components/Nav.tsx",
@@ -9695,7 +9695,7 @@
       "label": "NAV_SECTIONS",
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "nav_sections",
       "source_file": "src/components/Nav.tsx",
@@ -9706,10 +9706,21 @@
       "label": "SiteShell.tsx",
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "siteshell.tsx",
       "source_file": "src/components/SiteShell.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_ui_action",
+      "label": "Action.tsx",
+      "_origin": "ast",
+      "community": 23,
+      "community_name": "Nav.tsx",
+      "file_type": "code",
+      "norm_label": "action.tsx",
+      "source_file": "src/components/ui/Action.tsx",
       "source_location": "L1"
     },
     {
@@ -9717,7 +9728,7 @@
       "label": "CaseCard.tsx",
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "casecard.tsx",
       "source_file": "src/components/ui/CaseCard.tsx",
@@ -9728,7 +9739,7 @@
       "label": "WorldNav.tsx",
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "worldnav.tsx",
       "source_file": "src/components/WorldNav.tsx",
@@ -9739,40 +9750,18 @@
       "label": "analytics.ts",
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "analytics.ts",
       "source_file": "src/lib/analytics.ts",
       "source_location": "L1"
     },
     {
-      "id": "src_lib_routes",
-      "label": "lib/routes.ts",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "lib/routes.ts",
-      "file_type": "code",
-      "norm_label": "lib/routes.ts",
-      "source_file": "src/lib/routes.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_lib_routes_case_segment",
-      "label": "CASE_SEGMENT",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "lib/routes.ts",
-      "file_type": "code",
-      "norm_label": "case_segment",
-      "source_file": "src/lib/routes.ts",
-      "source_location": "L9"
-    },
-    {
       "id": "src_lib_site_site_name",
       "label": "SITE_NAME",
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "site_name",
       "source_file": "src/lib/site.ts",
@@ -9783,7 +9772,7 @@
       "label": "resolveAction.ts",
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "code",
       "norm_label": "resolveaction.ts",
       "source_file": "src/scene/consoles/resolveAction.ts",
@@ -9794,7 +9783,7 @@
       "label": ".react-router/**",
       "_origin": "ast",
       "community": 23,
-      "community_name": "lib/routes.ts",
+      "community_name": "Nav.tsx",
       "file_type": "concept",
       "norm_label": ".react-router/**",
       "source_file": ".oxlintrc.json",
@@ -10263,48 +10252,26 @@
       "source_location": "L31"
     },
     {
-      "id": "app_root",
-      "label": "root.tsx",
+      "id": "package_dependencies_react_dom",
+      "label": "react-dom",
       "_origin": "ast",
       "community": 27,
-      "community_name": "not-found.tsx",
+      "community_name": "react-dom",
       "file_type": "code",
-      "norm_label": "root.tsx",
-      "source_file": "app/root.tsx",
-      "source_location": "L1"
+      "norm_label": "react-dom",
+      "source_file": "package.json",
+      "source_location": "L30"
     },
     {
-      "id": "app_root_boot_hold_style",
-      "label": "BOOT_HOLD_STYLE",
+      "id": "react_dom",
+      "label": "react-dom",
       "_origin": "ast",
       "community": 27,
-      "community_name": "not-found.tsx",
-      "file_type": "code",
-      "norm_label": "boot_hold_style",
-      "source_file": "app/root.tsx",
-      "source_location": "L106"
-    },
-    {
-      "id": "app_routes_not_found",
-      "label": "not-found.tsx",
-      "_origin": "ast",
-      "community": 27,
-      "community_name": "not-found.tsx",
-      "file_type": "code",
-      "norm_label": "not-found.tsx",
-      "source_file": "app/routes/not-found.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_lib_routes_not_found_path",
-      "label": "NOT_FOUND_PATH",
-      "_origin": "ast",
-      "community": 27,
-      "community_name": "not-found.tsx",
-      "file_type": "code",
-      "norm_label": "not_found_path",
-      "source_file": "src/lib/routes.ts",
-      "source_location": "L36"
+      "community_name": "react-dom",
+      "file_type": "concept",
+      "norm_label": "react-dom",
+      "source_file": "package.json",
+      "source_location": "L30"
     },
     {
       "id": "scripts_diagnose",
@@ -10843,7 +10810,7 @@
       "file_type": "code",
       "norm_label": "axis",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L504"
+      "source_location": "L502"
     },
     {
       "id": "src_scene_cosmicworld_far_galaxies",
@@ -10854,7 +10821,7 @@
       "file_type": "code",
       "norm_label": "far_galaxies",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L492"
+      "source_location": "L490"
     },
     {
       "id": "src_scene_cosmicworld_field_centre",
@@ -10865,7 +10832,7 @@
       "file_type": "code",
       "norm_label": "field_centre",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L340"
+      "source_location": "L338"
     },
     {
       "id": "src_scene_cosmicworld_hii_region",
@@ -10876,7 +10843,7 @@
       "file_type": "code",
       "norm_label": "hii_region",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L194"
+      "source_location": "L192"
     },
     {
       "id": "src_scene_cosmicworld_old_stars",
@@ -10887,7 +10854,7 @@
       "file_type": "code",
       "norm_label": "old_stars",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L192"
+      "source_location": "L190"
     },
     {
       "id": "src_scene_cosmicworld_spin",
@@ -10898,7 +10865,7 @@
       "file_type": "code",
       "norm_label": "spin",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L505"
+      "source_location": "L503"
     },
     {
       "id": "src_scene_cosmicworld_star_geometry",
@@ -10909,7 +10876,7 @@
       "file_type": "code",
       "norm_label": "star_geometry",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L208"
+      "source_location": "L206"
     },
     {
       "id": "src_scene_cosmicworld_up",
@@ -10920,7 +10887,7 @@
       "file_type": "code",
       "norm_label": "up",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L503"
+      "source_location": "L501"
     },
     {
       "id": "src_scene_cosmicworld_young_stars",
@@ -10931,7 +10898,7 @@
       "file_type": "code",
       "norm_label": "young_stars",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L193"
+      "source_location": "L191"
     },
     {
       "id": "scripts_check_cosmos",
@@ -11394,61 +11361,6 @@
       "norm_label": "usesectiontracking.ts",
       "source_file": "src/hooks/useSectionTracking.ts",
       "source_location": "L1"
-    },
-    {
-      "id": "src_lib_routes_section_ids",
-      "label": "SECTION_IDS",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "sceneState.ts",
-      "file_type": "code",
-      "norm_label": "section_ids",
-      "source_file": "src/lib/routes.ts",
-      "source_location": "L41"
-    },
-    {
-      "id": "src_lib_sceneroutes",
-      "label": "sceneRoutes.ts",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "sceneState.ts",
-      "file_type": "code",
-      "norm_label": "sceneroutes.ts",
-      "source_file": "src/lib/sceneRoutes.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_lib_sceneroutes_case_section_ids",
-      "label": "CASE_SECTION_IDS",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "sceneState.ts",
-      "file_type": "code",
-      "norm_label": "case_section_ids",
-      "source_file": "src/lib/sceneRoutes.ts",
-      "source_location": "L81"
-    },
-    {
-      "id": "src_lib_sceneroutes_cv_section_ids",
-      "label": "CV_SECTION_IDS",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "sceneState.ts",
-      "file_type": "code",
-      "norm_label": "cv_section_ids",
-      "source_file": "src/lib/sceneRoutes.ts",
-      "source_location": "L75"
-    },
-    {
-      "id": "src_lib_sceneroutes_home_chapter_vh",
-      "label": "HOME_CHAPTER_VH",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "sceneState.ts",
-      "file_type": "code",
-      "norm_label": "home_chapter_vh",
-      "source_file": "src/lib/sceneRoutes.ts",
-      "source_location": "L53"
     },
     {
       "id": "src_motion_scroll",
@@ -11935,6 +11847,28 @@
       "source_location": "L144"
     },
     {
+      "id": "app_root",
+      "label": "root.tsx",
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "root.tsx",
+      "source_file": "app/root.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "app_root_boot_hold_style",
+      "label": "BOOT_HOLD_STYLE",
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "boot_hold_style",
+      "source_file": "app/root.tsx",
+      "source_location": "L106"
+    },
+    {
       "id": "app_routes_locale_gate",
       "label": "locale-gate.tsx",
       "_origin": "ast",
@@ -11943,6 +11877,28 @@
       "file_type": "code",
       "norm_label": "locale-gate.tsx",
       "source_file": "app/routes/locale-gate.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "app_routes_not_found",
+      "label": "not-found.tsx",
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "not-found.tsx",
+      "source_file": "app/routes/not-found.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "react_router_config",
+      "label": "react-router.config.ts",
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "react-router.config.ts",
+      "source_file": "react-router.config.ts",
       "source_location": "L1"
     },
     {
@@ -11966,17 +11922,6 @@
       "norm_label": "client",
       "source_file": "scripts/check-routes.ts",
       "source_location": "L51"
-    },
-    {
-      "id": "scripts_check_routes_every",
-      "label": "every",
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "index.ts",
-      "file_type": "code",
-      "norm_label": "every",
-      "source_file": "scripts/check-routes.ts",
-      "source_location": "L24"
     },
     {
       "id": "src_components_sceneboundary",
@@ -12045,6 +11990,28 @@
       "source_location": "L7"
     },
     {
+      "id": "src_lib_routes",
+      "label": "lib/routes.ts",
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "lib/routes.ts",
+      "source_file": "src/lib/routes.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_lib_routes_case_segment",
+      "label": "CASE_SEGMENT",
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "case_segment",
+      "source_file": "src/lib/routes.ts",
+      "source_location": "L9"
+    },
+    {
       "id": "src_lib_routes_locale_gate_path",
       "label": "LOCALE_GATE_PATH",
       "_origin": "ast",
@@ -12054,6 +12021,72 @@
       "norm_label": "locale_gate_path",
       "source_file": "src/lib/routes.ts",
       "source_location": "L38"
+    },
+    {
+      "id": "src_lib_routes_not_found_path",
+      "label": "NOT_FOUND_PATH",
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "not_found_path",
+      "source_file": "src/lib/routes.ts",
+      "source_location": "L36"
+    },
+    {
+      "id": "src_lib_routes_section_ids",
+      "label": "SECTION_IDS",
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "section_ids",
+      "source_file": "src/lib/routes.ts",
+      "source_location": "L41"
+    },
+    {
+      "id": "src_lib_sceneroutes",
+      "label": "sceneRoutes.ts",
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "sceneroutes.ts",
+      "source_file": "src/lib/sceneRoutes.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_lib_sceneroutes_case_section_ids",
+      "label": "CASE_SECTION_IDS",
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "case_section_ids",
+      "source_file": "src/lib/sceneRoutes.ts",
+      "source_location": "L81"
+    },
+    {
+      "id": "src_lib_sceneroutes_cv_section_ids",
+      "label": "CV_SECTION_IDS",
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "cv_section_ids",
+      "source_file": "src/lib/sceneRoutes.ts",
+      "source_location": "L75"
+    },
+    {
+      "id": "src_lib_sceneroutes_home_chapter_vh",
+      "label": "HOME_CHAPTER_VH",
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "index.ts",
+      "file_type": "code",
+      "norm_label": "home_chapter_vh",
+      "source_file": "src/lib/sceneRoutes.ts",
+      "source_location": "L53"
     },
     {
       "id": "src_scene_consoles_placement",
@@ -13758,39 +13791,6 @@
       "norm_label": "depth.mjs",
       "source_file": "work/cosmic-upgrade/depth.mjs",
       "source_location": "L1"
-    },
-    {
-      "id": "src_components_ui_action",
-      "label": "Action.tsx",
-      "_origin": "ast",
-      "community": 73,
-      "community_name": "Action.tsx",
-      "file_type": "code",
-      "norm_label": "action.tsx",
-      "source_file": "src/components/ui/Action.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "package_dependencies_lenis",
-      "label": "lenis",
-      "_origin": "ast",
-      "community": 75,
-      "community_name": "lenis",
-      "file_type": "code",
-      "norm_label": "lenis",
-      "source_file": "package.json",
-      "source_location": "L26"
-    },
-    {
-      "id": "lenis",
-      "label": "lenis",
-      "_origin": "ast",
-      "community": 75,
-      "community_name": "lenis",
-      "file_type": "concept",
-      "norm_label": "lenis",
-      "source_file": "package.json",
-      "source_location": "L26"
     },
     {
       "id": "package_devdependencies",
@@ -18775,7 +18775,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L734",
+      "source_location": "L732",
       "weight": 1.0
     },
     {
@@ -18787,7 +18787,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L535",
+      "source_location": "L533",
       "weight": 1.0
     },
     {
@@ -18799,7 +18799,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L540",
+      "source_location": "L538",
       "weight": 1.0
     },
     {
@@ -18811,7 +18811,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L540",
+      "source_location": "L538",
       "weight": 1.0
     },
     {
@@ -18823,7 +18823,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L548",
+      "source_location": "L546",
       "weight": 1.0
     },
     {
@@ -18835,7 +18835,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L548",
+      "source_location": "L546",
       "weight": 1.0
     },
     {
@@ -18847,7 +18847,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L549",
+      "source_location": "L547",
       "weight": 1.0
     },
     {
@@ -18859,7 +18859,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L550",
+      "source_location": "L548",
       "weight": 1.0
     },
     {
@@ -18871,7 +18871,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L602",
+      "source_location": "L600",
       "weight": 1.0
     },
     {
@@ -18883,7 +18883,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L603",
+      "source_location": "L601",
       "weight": 1.0
     },
     {
@@ -18895,7 +18895,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L603",
+      "source_location": "L601",
       "weight": 1.0
     },
     {
@@ -18907,7 +18907,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L372",
+      "source_location": "L370",
       "weight": 1.0
     },
     {
@@ -18919,7 +18919,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L414",
+      "source_location": "L412",
       "weight": 1.0
     },
     {
@@ -18931,7 +18931,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L278",
+      "source_location": "L276",
       "weight": 1.0
     },
     {
@@ -18943,7 +18943,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L297",
+      "source_location": "L295",
       "weight": 1.0
     },
     {
@@ -18955,7 +18955,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L186",
+      "source_location": "L184",
       "weight": 1.0
     },
     {
@@ -44752,7 +44752,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L181",
+      "source_location": "L179",
       "weight": 1.0
     },
     {
@@ -44763,7 +44763,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L185",
+      "source_location": "L183",
       "weight": 1.0
     },
     {
@@ -44774,7 +44774,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L192",
+      "source_location": "L190",
       "weight": 1.0
     },
     {
@@ -44785,7 +44785,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L193",
+      "source_location": "L191",
       "weight": 1.0
     },
     {
@@ -44796,7 +44796,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L194",
+      "source_location": "L192",
       "weight": 1.0
     },
     {
@@ -44807,7 +44807,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L195",
+      "source_location": "L193",
       "weight": 1.0
     },
     {
@@ -44818,7 +44818,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L208",
+      "source_location": "L206",
       "weight": 1.0
     },
     {
@@ -44829,7 +44829,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L210",
+      "source_location": "L208",
       "weight": 1.0
     },
     {
@@ -44840,7 +44840,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L238",
+      "source_location": "L236",
       "weight": 1.0
     },
     {
@@ -44851,7 +44851,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L263",
+      "source_location": "L261",
       "weight": 1.0
     },
     {
@@ -44862,7 +44862,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L269",
+      "source_location": "L267",
       "weight": 1.0
     },
     {
@@ -44873,7 +44873,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L340",
+      "source_location": "L338",
       "weight": 1.0
     },
     {
@@ -44884,7 +44884,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L365",
+      "source_location": "L363",
       "weight": 1.0
     },
     {
@@ -44895,7 +44895,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L407",
+      "source_location": "L405",
       "weight": 1.0
     },
     {
@@ -44906,7 +44906,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L448",
+      "source_location": "L446",
       "weight": 1.0
     },
     {
@@ -44917,7 +44917,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L492",
+      "source_location": "L490",
       "weight": 1.0
     },
     {
@@ -44928,7 +44928,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L503",
+      "source_location": "L501",
       "weight": 1.0
     },
     {
@@ -44939,7 +44939,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L504",
+      "source_location": "L502",
       "weight": 1.0
     },
     {
@@ -44950,7 +44950,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L505",
+      "source_location": "L503",
       "weight": 1.0
     },
     {
@@ -44961,7 +44961,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L506",
+      "source_location": "L504",
       "weight": 1.0
     },
     {
@@ -44972,7 +44972,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L531",
+      "source_location": "L529",
       "weight": 1.0
     },
     {
@@ -44983,7 +44983,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/scene/CosmicWorld.tsx",
-      "source_location": "L730",
+      "source_location": "L728",
       "weight": 1.0
     },
     {
@@ -49832,5 +49832,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "12804a6a0f083a2a7afc71cf77083066be223ded"
+  "built_at_commit": "aeac80d91f22fb329ffb0625a88d96bce00edcba"
 }

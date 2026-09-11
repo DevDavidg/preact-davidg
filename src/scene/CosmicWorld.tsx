@@ -18,8 +18,6 @@ import { reactorControl } from "./control/reactorControl";
 /*
  * The sky, drawn rather than sampled.
  *
- * sky.webp is a 66 kB plate of the milky way. Mapped onto a 96 m dome it is a
- * stretched sprite, which is what the opening frame was showing behind the type.
  * Stars are geometry. The dome only holds a faint equatorial glow so the void
  * is not a flat clear-colour.
  */
