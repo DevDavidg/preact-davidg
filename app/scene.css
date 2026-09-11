@@ -22,6 +22,17 @@
   background-color: var(--color-reactor);
 }
 
+/*
+ * The probe (`CursorProbe`) is the room's own reticle; the OS arrow drawn on
+ * top of it is a second one nobody asked for. `data-probe-live` is written by
+ * the probe itself, only in cinema, only once a real pointer has moved — so a
+ * touch visitor or a lower quality never loses a cursor they never got a
+ * reticle to replace.
+ */
+:root[data-probe-live='true'] .stage {
+  cursor: none;
+}
+
 .cosmic-intro {
   position: absolute;
   inset: auto 6vw 7vh;
@@ -163,10 +174,6 @@
   opacity: calc(0.035 + var(--overclock, 0) * 0.045);
 }
 
-/* Blueprint mode dims the screen-space warmth so the lines carry the read. */
-:root[data-wire='on'] .stage-vignette {
-  opacity: 0.45;
-}
 
 @media (prefers-reduced-motion: reduce) {
   /* Modes stay available — they are looks, not motion — but the heat wash is
@@ -194,8 +201,8 @@
  * The operator panel, out of the notch.
  *
  * It is fixed to the top-right corner, which on a phone in portrait is exactly
- * where the status bar and the camera cutout are. The inset keeps the sound and
- * law controls tappable on hardware that has a corner taken out of it, and the
+ * where the status bar and the camera cutout are. The inset keeps the
+ * law control tappable on hardware that has a corner taken out of it, and the
  * `max()` means nothing moves on a screen that has no inset to report.
  */
 .operator-bar {
@@ -204,31 +211,58 @@
 }
 
 /*
- * The keyboard index for the 3D routes (`WorldNav`).
+ * The index for the 3D routes (`WorldNav`).
  *
- * Off-screen at zero size — not `display: none`, which would take it out of the
- * tab order and defeat the point — and pulled into view the moment anything
- * inside it is focused. `:focus-within` rather than `:focus` so the whole list
- * stays visible while the visitor walks down it, instead of flickering one row at
- * a time.
+ * The panel is off-screen at zero size — not `display: none`, which would take it
+ * out of the tab order and defeat the point — and pulled into view the moment
+ * anything inside it is focused. `:focus-within` rather than `:focus` so the whole
+ * list stays visible while the visitor walks down it, instead of flickering one
+ * row at a time.
+ *
+ * Touch has no Tab, so on a coarse pointer or below the desktop breakpoint a real
+ * toggle button appears and the same panel opens via `data-open` instead.
  */
 .world-nav {
   position: fixed;
   left: max(var(--spacing-gutter), env(safe-area-inset-left));
   top: max(var(--spacing-gutter), env(safe-area-inset-top));
   z-index: var(--z-index-boot);
+}
+
+.world-nav-toggle {
+  display: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-ink);
+  border: 1px solid var(--color-line-strong);
+  /* The scene behind it moves; the control needs its own ground to sit on. */
+  background-color: color-mix(in srgb, var(--color-reactor) 72%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+@media (pointer: coarse), (max-width: 63.99rem) {
+  .world-nav-toggle {
+    display: flex;
+  }
+}
+
+.world-nav-panel {
   width: 1px;
   height: 1px;
   overflow: hidden;
   clip-path: inset(50%);
 }
 
-.world-nav:focus-within {
+.world-nav-panel:focus-within,
+.world-nav[data-open='true'] .world-nav-panel {
   width: min(26rem, calc(100vw - var(--spacing-gutter) * 2));
   height: auto;
-  max-height: calc(100vh - var(--spacing-gutter) * 2);
+  max-height: calc(100dvh - var(--spacing-gutter) * 2 - 3.25rem);
   overflow-y: auto;
   clip-path: none;
+  margin-top: 0.5rem;
   padding: 0.75rem;
   background-color: var(--color-graphite);
   border: 1px solid var(--color-line-strong);

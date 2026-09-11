@@ -22,13 +22,16 @@ import {
   captureRs,
   captureRsRetro,
   claimLensing,
+  LENS_FAR,
+  LENS_NEAR,
   DISK_OUTER_RS,
   HOLE_SPIN,
   holeAxis,
   holeCenter,
-  holeGateFor,
+  holeGlowFor,
   holeRadiusFor,
   iscoRs,
+  ringWidthFor,
 } from '../blackHole'
 import { BlackHoleEffect } from './BlackHoleEffect'
 
@@ -86,6 +89,36 @@ const GEODESIC_STEPS: Record<Fidelity, number> = {
 const BlackHole = wrapEffect(BlackHoleEffect)
 
 /**
+ * Window-space depth of a point `metres` down the lens axis.
+ *
+ * Read straight off the projection matrix rather than derived from `near` and
+ * `far`, because window depth is violently non-linear and a hand-rolled
+ * conversion that drifts from the actual projection puts the line in the wrong
+ * place by more than the whole range it has to resolve. At this lens, twenty-four
+ * metres and twenty-one metres are three thousandths of window depth apart — which
+ * is also why the guard's soft edge has to be computed here, in metres, instead of
+ * being a small number added to a depth.
+ */
+const windowDepth = (projection: ArrayLike<number>, metres: number): number => {
+  const z = -metres
+  const w = projection[11] * z + projection[15]
+  return Math.abs(w) < 1e-6
+    ? 0
+    : ((projection[10] * z + projection[14]) / w) * 0.5 + 0.5
+}
+
+/**
+ * What a fully-charged quiescent nucleus is worth on the `uCharge` scale.
+ *
+ * `holeGlowFor` is normalised, and this is the unit it is spent in. The room's own
+ * ignition term reaches about 1.12 at the end of the corridor, so a nucleus that
+ * tops out at half of that leaves the corridor's charge still visibly *lighting*
+ * the well rather than being lost under a floor — which is the story the room is
+ * telling and the one thing a floor could have taken away from it.
+ */
+const NUCLEUS_CHARGE = 0.56
+
+/**
  * The far end of the temperature ramp, in the renderer's working space.
  *
  * The composer runs linear, and `sceneColors` are already linear because
@@ -94,6 +127,17 @@ const BlackHole = wrapEffect(BlackHoleEffect)
  * point is mixed the same way as every other colour in the scene.
  */
 const WHITE = new THREE.Color(1, 1, 1)
+/*
+ * The well under its laws. CHAOS is ember over black at every stop of the
+ * ramp; VACUUM is the hue drained out, pale and cold.
+ */
+const CHAOS_HOT = new THREE.Color('#ff3a1a')
+const CHAOS_COOL = new THREE.Color('#a31608')
+const CHAOS_CHILL = new THREE.Color('#6e1004')
+const CHAOS_EMBER = new THREE.Color('#330502')
+const VACUUM_HOT = new THREE.Color('#779bac')
+const VACUUM_COOL = new THREE.Color('#334858')
+const VACUUM_EMBER = new THREE.Color('#101d2d')
 
 export const CinemaLayer = ({ fidelity }: CinemaLayerProps) => {
   const gl = useThree((state) => state.gl)
@@ -173,11 +217,29 @@ export const CinemaLayer = ({ fidelity }: CinemaLayerProps) => {
       1 - Math.abs(build - HERO_BUILD) / (HERO_BUILD * 0.5),
     )
 
+    const camera = state.camera
+    const rs = holeRadiusFor(build, sceneState.swallow)
+    /*
+     * How much of the frame the shadow covers, in half-frame-heights.
+     *
+     * Hoisted out of the pass's own block because bloom below reads it too: the
+     * one honest answer to "is the well the picture yet" is how big the well is,
+     * and having the composer's two passes derive that from the same line is what
+     * stops one of them from glowing over an event horizon the other has already
+     * drawn. Measured on the shadow's *worst* side — with spin the retrograde edge
+     * of the D reaches further, and a figure fitted to the narrow side would claim
+     * the frame was clear while half of it was black.
+     */
+    const distance = camera.position.distanceTo(holeCenter)
+    const shadow = captureRsRetro(HOLE_SPIN) * rs
+    const halfFov = THREE.MathUtils.degToRad(
+      camera instanceof THREE.PerspectiveCamera ? camera.fov : 42,
+    )
+    const subtended = Math.atan2(shadow, Math.max(distance, shadow * 1.02))
+    const apparent = Math.tan(Math.min(subtended, 1.45)) / Math.tan(halfFov / 2)
+
     const holeEffect = hole.current
     if (holeEffect) {
-      const camera = state.camera
-      const rs = holeRadiusFor(build, sceneState.swallow)
-
       /*
        * The disk's plane, rebuilt from the axis.
        *
@@ -199,30 +261,28 @@ export const CinemaLayer = ({ fidelity }: CinemaLayerProps) => {
       /*
        * How much of the frame the pass is allowed to touch.
        *
-       * Derived from the shadow's own apparent size — the angle 2.6 Rs subtends
-       * from here, expressed in half-frame-heights through the lens's actual
-       * field of view — so the mask tracks the object rather than a scroll value,
-       * and neither a wider lens nor a taller viewport can leave the ring hanging
-       * outside the region that draws it.
+       * Tracks `apparent` above — the object, not a scroll value — so neither a
+       * wider lens nor a taller viewport can leave the ring hanging outside the
+       * region that draws it.
        *
        * The multiplier is the one part of this that belongs to the story rather
        * than to the geometry. While the room is still standing the mask has to
        * cover the disk (about three retro-shadow radii) without reaching the
        * contact console at reading distance. Once the swallow begins it opens,
        * because from there on the room bending around the well is the ending.
+       *
+       * And it is floored by nothing, which is a decision rather than an omission.
+       * A masked screen-space lens can take light *out* of its own disc — every
+       * pixel inside it is sampled from a ray that landed somewhere else — but it
+       * cannot put the matching light back outside, because outside is not its to
+       * write. The footprint is therefore a net loss of whatever was standing
+       * there, and against a sparse sky that reads as a dark bite rather than as a
+       * lens. Floored at a third of a half-frame on the establishing shot it took
+       * the galaxy's near arm with it, which is the one thing this whole change
+       * exists in order not to do. Sized to the object, the loss is confined to the
+       * few degrees the object was always going to dominate — and inside them there
+       * is a shadow, a photon ring and a disk to dominate with.
        */
-      const distance = camera.position.distanceTo(holeCenter)
-      // The mask is sized off the shadow's *worst* side: with spin, the
-      // retrograde edge of the D reaches further than the prograde one, and a
-      // mask fit to the smaller side would clip the ring on the wide side.
-      const shadow = captureRsRetro(HOLE_SPIN) * rs
-      const halfFov = THREE.MathUtils.degToRad(
-        camera instanceof THREE.PerspectiveCamera ? camera.fov : 42,
-      )
-      const subtended = Math.atan2(shadow, Math.max(distance, shadow * 1.02))
-      const apparent =
-        Math.tan(Math.min(subtended, 1.45)) / Math.tan(halfFov / 2)
-
       /*
        * Toward the end the well is the frame, so the mask has to be able to reach
        * the corners — and by then the interior is shadow, which costs nothing.
@@ -262,13 +322,25 @@ export const CinemaLayer = ({ fidelity }: CinemaLayerProps) => {
         Math.max(1 - rs / Math.max(distance, rs * 1.02), 0.02),
       )
       flow.current +=
-        delta * (0.22 + swallow.drain * 4.6 + swallow.surge * 7.2) * dilate
+        Math.min(delta, 0.1) * (0.22 + swallow.drain * 4.6 + swallow.surge * 7.2 + reactorControl.lawMix.CHAOS * 3) * dilate * (1 - reactorControl.lawMix.VACUUM * 0.92)
 
-      const charge = Math.max(
-        THREE.MathUtils.smoothstep(build, 0.78, 0.96) *
-          (0.22 + power * 0.9 + reactorControl.uplink * 0.5),
-        swallow.amount * 0.7,
-      ) *
+      /*
+       * How hard the disk is burning — and it never stops burning.
+       *
+       * The two terms below are the *room's* contributions: the corridor's own
+       * ignition, and the ending. Both are zero for the first three quarters of the
+       * page, and since every emissive term in the pass is multiplied by this, the
+       * well was drawn dark for exactly as long as it was drawn at all. `holeGlowFor`
+       * is the floor under them — the nucleus's own accretion, which is what a
+       * galaxy's middle is doing whether or not anyone is flying toward it.
+       */
+      const charge =
+        Math.max(
+          holeGlowFor(build) * NUCLEUS_CHARGE,
+          THREE.MathUtils.smoothstep(build, 0.78, 0.96) *
+            (0.22 + power * 0.9 + reactorControl.uplink * 0.5),
+          swallow.amount * 0.7,
+        ) *
         (1 + swallow.suction * 1.15)
 
       holeEffect.setSteps(GEODESIC_STEPS[fidelity])
@@ -295,28 +367,74 @@ export const CinemaLayer = ({ fidelity }: CinemaLayerProps) => {
        * across in its own units, which is what `DISK_OUTER_RS` is documented to be,
        * and the growth the visitor sees is the well's, not the disk's.
        */
-      holeEffect.uniform('uOuter').value =
-        DISK_OUTER_RS * rs * (1 + swallow.drain * 0.18 + swallow.suction * 0.15)
+      holeEffect.uniform('uOuter').value = Math.min(
+        DISK_OUTER_RS * rs * (1 + swallow.drain * 0.18 + swallow.suction * 0.15),
+        /*
+         * ...but never past the lens, which the 18% above did not settle. `rs` more
+         * than doubled after that trim and swallowed the saving: at the crossing it
+         * reaches ~2.7 m, so ten Rs of disk is 32 m against a lens parked at
+         * `PLUNGE_RADIUS`, 10.2 m out. The camera was ending the page three Rs deep
+         * *inside* its own accretion disk, and what a disk draws from in there is not
+         * a disk — it is a foreground wing with no outer edge, which is the formless
+         * brown fog over the left half of both finale screenshots. James et al. gave
+         * Gargantua 4.6 to 9.4 Rs, a 2:1 annulus, with the camera well outside it.
+         *
+         * 0.72 of the lens's own distance keeps the object in front of the observer
+         * at every stop and gives the disk back an edge. A no-op for the whole
+         * corridor: on the establishing shot ten Rs is 0.78 m against a ceiling of
+         * 23 m, and at the bottom of the corridor 2.4 m against 8.1 m.
+         */
+        distance * 0.72,
+      )
       holeEffect.uniform('uMask').value = mask
-      holeEffect.uniform('uGate').value = holeGateFor(build)
+      /*
+       * The photon ring's width. `ringWidthFor` carries the reasoning; the only
+       * thing decided here is which edge of the D the pixel floor is fitted to, and
+       * it is the prograde one — `apparent` is the retrograde edge, and the
+       * flattened side of the D is `captureRs / captureRsRetro` of it.
+       */
+      holeEffect.uniform('uRingWidth').value = ringWidthFor(
+        apparent * (captureRs(HOLE_SPIN) / captureRsRetro(HOLE_SPIN)),
+        state.size.height,
+      )
       /*
        * The near guard, in the same window-space depth the depth texture holds.
        *
-       * Read straight off the projection matrix rather than derived from `near`
-       * and `far`, because window depth is violently non-linear — at this lens
-       * twenty-four metres and twenty-one metres are three thousandths apart — and
-       * a hand-rolled conversion that drifts from the actual projection would put
-       * the line in the wrong place by more than the whole range it has to
-       * resolve. Seven tenths of the way to the singularity clears the gate, which
-       * stands almost at it, and still catches a console at reading distance.
+       * Almost all the way to the singularity, with the soft edge a tenth short —
+       * both computed in metres by `windowDepth` above. The gate is *at* the well
+       * so it clears both and is bent around it, which is right; everything the
+       * corridor contains is inside them, which is also right, because the corridor
+       * is in front of the well and nothing in front of a well is lensed by it.
+       *
+       * The pair replaced one line at seven tenths with the soft edge written as
+       * `uNearGuard - 0.004`, and three thousandths of window depth at this lens is
+       * most of the corridor: everything from about fifteen metres out was inside
+       * the transition. That did not matter while the guard only decided whether to
+       * *overwrite* a fragment, because the things it was protecting sat at reading
+       * distance and were clear of the band anyway. It matters now that the same
+       * line decides whether a bent ray may *fetch* one (see the guard at the end of
+       * `bhSky`): every body in the corridor landed somewhere inside that band and
+       * came back as a half-strength ghost of itself lensed beside the nucleus while
+       * the body itself stood untouched elsewhere in the frame.
+       *
+       * The width is `LENS_NEAR`/`LENS_FAR` rather than a pair of numbers written
+       * here, because the band's edges are a *rule* about what the well may lens
+       * and not a fit to this shot — see `blackHole.ts`, where the rule and the
+       * measurement that forces it are recorded together. The first attempt at
+       * this pair was fitted to the establishing frame and read 0.86/0.97, which
+       * left Saturn at 0.933 of the lens's own distance sitting inside the
+       * transition: three quarters of its ghost survived, rings and all, hanging
+       * above the nucleus on the opening shot.
        */
       const projection = camera.projectionMatrix.elements
-      const guardZ = -distance * 0.7
-      const guardW = projection[11] * guardZ + projection[15]
-      holeEffect.uniform('uNearGuard').value =
-        Math.abs(guardW) < 1e-6
-          ? 0
-          : ((projection[10] * guardZ + projection[14]) / guardW) * 0.5 + 0.5
+      holeEffect.uniform('uNearGuard').value = windowDepth(
+        projection,
+        distance * LENS_FAR,
+      )
+      holeEffect.uniform('uNearSoft').value = windowDepth(
+        projection,
+        distance * LENS_NEAR,
+      )
       /*
        * Hold the guard to the room's remaining span, not raw scroll.
        *
@@ -337,6 +455,14 @@ export const CinemaLayer = ({ fidelity }: CinemaLayerProps) => {
 
       holeEffect.uniform('uSwallow').value = swallow.amount
       /*
+       * The bend's own schedule — see `uLensGain` in the effect for why it is not
+       * the tide's. Six percent through the corridor, which is a nucleus that sits
+       * *in* its sky rather than on it, and full once the ending is underway.
+       * Driven off `drain` rather than off `build` so it opens for whichever law
+       * got there: VISCOUS by scroll, CHAOS and VACUUM on their own clocks.
+       */
+      holeEffect.uniform('uLensGain').value = 0.06 + swallow.drain * 0.94
+      /*
        * The crossing, at nearly full authority.
        *
        * Held at 0.12 before, because at full strength the ending was an empty
@@ -354,7 +480,12 @@ export const CinemaLayer = ({ fidelity }: CinemaLayerProps) => {
       // the palette slides toward ink, so the ending is a dimming and a reddening
       // rather than a cut to black.
       holeEffect.uniform('uCharge').value =
-        charge * (1 - swallow.crossing * 0.35)
+        charge *
+        (1 - swallow.crossing * 0.35) *
+        // VACUUM starves the disk as well as draining its hue: an empty sky is
+        // fed by a quieter well.
+        (1 - reactorControl.lawMix.VACUUM * 0.78) *
+        (1 + reactorControl.lawMix.CHAOS * 0.5)
       holeEffect.uniform('uSuction').value = swallow.suction
 
       /*
@@ -366,12 +497,45 @@ export const CinemaLayer = ({ fidelity }: CinemaLayerProps) => {
        * lean. A literal blackbody ramp would put a blue-white wedge in a room that
        * has no blue in it anywhere — physically correct and completely foreign.
        */
-      scratch.hot.set('#ffd4a0')
-      scratch.cool.set('#bd6d3e')
+      /*
+       * Re-fitted against the reference render's own ramp rather than against the
+       * room's accent, because the old triple was brown in linear light and brown is
+       * exactly what it drew. `THREE.Color.set` converts sRGB on the way in, and in
+       * linear #bd6d3e is R:G:B = 1 : 0.29 : 0.10 against the 1 : 0.064 : 0.006 of
+       * the #bf3507 the tint ramp in the pass cites as its outer arc — seventeen
+       * times too much blue, and that ratio is the whole of the difference between
+       * amber and mud. Same fault in #6a2a14 at 1 : 0.156 : 0.047. The hue is what is
+       * being corrected here; the *values* are the disk's own brightness law's job.
+       */
+      scratch.hot.set('#fff1d8')
+      scratch.cool.set('#c85212')
       scratch.chill.copy(sceneColors.ink).lerp(WHITE, 0.5 * (1 - swallow.crossing * 0.6))
       // The cold end of the Doppler ramp: a receding limb does not go blue in
       // this room, it burns down to ember and then toward ink.
-      scratch.ember.set('#6a2a14')
+      scratch.ember.set('#5a1204')
+      /*
+       * Law wear on the well itself.
+       *
+       * The laws recolour the sky and the worlds (`CosmicWorld`); the disk the
+       * sky is falling into has to answer the same law or the frame disagrees
+       * with itself. CHAOS spends the whole ramp on ember-red over black — the
+       * hot rim, the cool flow and both Doppler ends — and VACUUM drains it to
+       * a pale, cold disc and dims the feed, which is what an empty room orbits.
+       */
+      const chaosMix = reactorControl.lawMix.CHAOS
+      const vacuumMix = reactorControl.lawMix.VACUUM
+      if (chaosMix > 1e-3) {
+        scratch.hot.lerp(CHAOS_HOT, chaosMix * 0.85)
+        scratch.cool.lerp(CHAOS_COOL, chaosMix * 0.9)
+        scratch.chill.lerp(CHAOS_CHILL, chaosMix * 0.85)
+        scratch.ember.lerp(CHAOS_EMBER, chaosMix * 0.9)
+      }
+      if (vacuumMix > 1e-3) {
+        scratch.hot.lerp(VACUUM_HOT, vacuumMix * 0.85)
+        scratch.cool.lerp(VACUUM_COOL, vacuumMix * 0.85)
+        scratch.chill.lerp(VACUUM_COOL, vacuumMix * 0.95)
+        scratch.ember.lerp(VACUUM_EMBER, vacuumMix * 0.85)
+      }
       holeEffect.uniform('uHot').value.copy(scratch.hot)
       holeEffect.uniform('uCool').value.copy(scratch.cool)
       holeEffect.uniform('uChill').value.copy(scratch.chill)
@@ -392,21 +556,64 @@ export const CinemaLayer = ({ fidelity }: CinemaLayerProps) => {
        * grey and fought the hole for the same pixels (and flashed black when the
        * luminance buffer went empty for a frame).
        */
-      const holeOwns = holeGateFor(build) * (0.55 + swallow.amount * 0.45)
-      // Keep an empty luminance mip from blanking the composer for a frame.
-      bloomEffect.intensity = Math.max(
-        0.08,
-        (0.35 +
-          transit * transit * 1.5 +
-          power * 0.55 +
-          swallow.surge * 1.8 +
-          swallow.pull * 0.45 +
-          reactorControl.uplink * 0.45) *
-          (1 - holeOwns * 0.9),
+      /*
+       * ...and it stands down on the shadow, not on a scroll value.
+       *
+       * This used to ride the finale's build ramp and cap the room's terms at a
+       * tenth of themselves. A tenth is not nothing when one of those terms is
+       * `surge * 1.8`: `surge` is `suction` squared and `suction` peaks at 1.62, so
+       * at the third gulp — the exact stop where the shadow already covers the
+       * viewport — half a unit of bloom was still being spread across an event
+       * horizon, and the darkest thing the site draws measured tan grey. The middle
+       * of this object has to be the darkest thing in frame; there is no reading of
+       * it in which that is negotiable.
+       *
+       * `apparent` is the honest trigger, and it is the same line the mask is sized
+       * from. Under a twelfth of a half-frame the well is a jewel in a galaxy and
+       * the room owns the light; by a third of one the shadow is the largest thing
+       * in frame and there is nothing left for a room bloom to be about. A window
+       * fitted to the *end* of the rail instead — where the shadow is nearly two
+       * half-frames across — leaves the stand-down at a fifth through the gulps,
+       * which is the stretch that needed it.
+       */
+      const holeOwns = THREE.MathUtils.smoothstep(apparent, 0.08, 0.32)
+      /*
+       * Crossfaded to a kiss, not scaled toward one.
+       *
+       * The room's bloom used to be multiplied by `1 - holeOwns * 0.9`, and a tenth
+       * of `surge * 1.8` is not a tenth of nothing: `surge` is `suction` squared and
+       * `suction` peaks at 1.62, so the third gulp still spread half a unit of bloom
+       * over an event horizon and the shadow's interior measured tan grey. A lerp to
+       * a fixed 0.16 ends that outright — past the stand-down the only bloom in the
+       * chain is the one the ring is entitled to, and the gulp's own flash lives in
+       * the disk, where `uSuction` already spends it.
+       *
+       * 0.08 is still the floor on the room's side: an empty luminance mip blanks
+       * the composer for a frame, and the corridor's quiet stretches can produce one.
+       */
+      bloomEffect.intensity = THREE.MathUtils.lerp(
+        Math.max(
+          0.08,
+          (0.35 +
+            transit * transit * 1.5 +
+            power * 0.55 +
+            swallow.surge * 1.8 +
+            swallow.pull * 0.45 +
+            reactorControl.uplink * 0.45) *
+            // VACUUM gets no halo either — a starved disk on a black sky has
+            // nothing for a haze to feed on.
+            (1 - reactorControl.lawMix.VACUUM * 0.4),
+        ),
+        0.16,
+        holeOwns,
       )
-      // CHAOS runs hot, so it lowers the bar for what counts as a highlight.
+      // CHAOS runs hot, so it lowers the bar for what counts as a highlight;
+      // VACUUM raises it — the few lights left are hard points, not a glow.
       bloomEffect.luminanceMaterial.threshold =
-        0.62 - liveLaw.heat * 0.22 + holeOwns * 0.18
+        0.62 -
+        liveLaw.heat * 0.22 +
+        holeOwns * 0.18 +
+        reactorControl.lawMix.VACUUM * 0.12
     }
 
     const aberrationEffect = aberration.current
@@ -431,8 +638,18 @@ export const CinemaLayer = ({ fidelity }: CinemaLayerProps) => {
        * against `surge`'s real peak now, so the beat lands at about the same fringe
        * `grip` carries.
        */
-      const amount =
-        swallow.grip * 0.0022 + transit * 0.0012 + swallow.surge * 0.0011
+      /*
+       * `surge` trimmed again, for the same reason it was trimmed the first time and
+       * one the first pass missed: it is not merely large at its peak, it is large
+       * *where the frame is busiest*. The third gulp is the stop where the room's
+       * type and shards are wound into filaments a pixel or two wide right across
+       * the lensed region, and 0.0011 against a peak of 2.62 put four pixels of
+       * split on every one of them — magenta and cyan piping along every strand.
+       * At 0.0006 the beat still reads as the glass flexing and the filaments stay
+       * one colour.
+       */
+      const amount = sceneState.distortion *
+        (swallow.grip * 0.0022 + swallow.surge * 0.0006)
       aberrationEffect.offset.set(amount, amount * 0.6)
     }
   })

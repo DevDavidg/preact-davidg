@@ -32,6 +32,7 @@ varying vec3 vNormalW;
 varying vec3 vViewDir;
 varying float vSettled;
 varying float vFog;
+varying float vNear;
 
 vec4 quatFromAxisAngle(vec3 axis, float angle) {
   float halfAngle = angle * 0.5;
@@ -82,9 +83,28 @@ void main() {
   vec4 viewPos = viewMatrix * world;
 
   vColor = aColor;
-  vNormalW = normalize(mat3(modelMatrix) * rotatedN);
-  vViewDir = normalize(cameraPosition - world.xyz);
+  vec3 normalW = mat3(modelMatrix) * rotatedN;
+  vNormalW = normalW / max(length(normalW), 1e-5);
+  // Guarded rather than normalize()d: the corridor camera scrolls *through* the
+  // depth this face occupies, so a mid-flight shard can land on the eye itself,
+  // and normalize(vec3(0.0)) is a NaN that bloom then smears over the frame.
+  vec3 toEye = cameraPosition - world.xyz;
+  vViewDir = toEye / max(length(toEye), 1e-4);
   vSettled = settled;
+
+  /*
+   * Fade the last half-metre in front of the lens.
+   *
+   * Debris sprays toward the camera, and the camera is travelling toward the
+   * portrait's plane, so during assemble/disassemble a shard can cross the near
+   * plane (0.1 m). A clipped cube straddling the eye covers most of the frame in
+   * a single dark quad, and it is also where the view vector degenerates. Dying
+   * off smoothly before it gets there keeps the assembly intact — at the
+   * portrait's reading distance this term is a constant 1.0 — and costs the
+   * effect nothing anybody can see.
+   */
+  float eyeDepth = -viewPos.z;
+  vNear = smoothstep(0.16, 0.75, eyeDepth);
 
   float depth = length(viewPos.xyz);
   vFog = 1.0 - exp(-uFogDensity * uFogDensity * depth * depth);
@@ -104,20 +124,27 @@ varying vec3 vNormalW;
 varying vec3 vViewDir;
 varying float vSettled;
 varying float vFog;
+varying float vNear;
 
 layout(location = 0) out vec4 fragColor;
 
 void main() {
-  vec3 normal = normalize(vNormalW);
+  // Interpolated vectors are only *nearly* unit, and a degenerate one must not
+  // become a NaN: this material renders into the cinema composer's half-float
+  // target, where one bad fragment is enough for bloom's downsample chain to
+  // hand the whole frame to the tone mapper as black.
+  vec3 normal = vNormalW / max(length(vNormalW), 1e-5);
   if (!gl_FrontFacing) normal = -normal;
-  vec3 view = normalize(vViewDir);
+  vec3 view = vViewDir / max(length(vViewDir), 1e-5);
   vec3 keyLight = normalize(vec3(0.45, 0.82, 0.34));
   vec3 fillLight = normalize(vec3(-0.6, 0.3, -0.5));
 
   float key = max(dot(normal, keyLight), 0.0);
   float fill = max(dot(normal, fillLight), 0.0) * 0.35;
-  float fresnel = pow(1.0 - max(dot(normal, view), 0.0), 2.6);
-  float spec = pow(max(dot(reflect(-keyLight, normal), view), 0.0), 40.0);
+  // clamp, not max: renormalised interpolants put dot() a hair over 1.0, and
+  // pow() of a negative base by a fractional exponent is a NaN.
+  float fresnel = pow(clamp(1.0 - dot(normal, view), 0.0, 1.0), 2.6);
+  float spec = pow(clamp(dot(reflect(-keyLight, normal), view), 0.0, 1.0), 40.0);
   float lit = mix(0.4, 1.0, vSettled);
 
   // Lift midtones so skin/hair survive corridor fog instead of washing to grey.
@@ -130,10 +157,14 @@ void main() {
   // Settled face is nearly opaque — transparency made skin look hollow.
   float alpha = mix(0.75, 1.0, smoothstep(0.55, 0.95, vSettled)) * uOpacity;
   alpha *= 1.0 - vFog * 0.22;
-  if (alpha < 0.02) discard;
+  alpha *= vNear;
+  // Written as a failed >= so a nonfinite alpha discards too. alpha < 0.02
+  // is false for NaN, which is precisely the fragment that must not be drawn.
+  if (!(alpha >= 0.02)) discard;
 
   shade = mix(shade, uFogColor, vFog * 0.18);
-  fragColor = vec4(shade, clamp(alpha, 0.0, 1.0));
+  // Ordered clamp — the last stop before the composer's half-float target.
+  fragColor = vec4(clamp(shade, vec3(0.0), vec3(8.0)), clamp(alpha, 0.0, 1.0));
 }
 `
 
@@ -149,6 +180,17 @@ export interface PortraitVoxelSync {
   exitSpan: number
 }
 
+/**
+ * Every number that reaches the shader passes through here.
+ *
+ * `sceneState.velocity` is Lenis' raw velocity — a delta over a frame time that
+ * can arrive as `Infinity` or `NaN` on the first frame after a tab wakes, or on
+ * a hard fling — and one nonfinite uniform turns five thousand instances into
+ * NaN geometry and NaN colour at once.
+ */
+const finite = (value: number, fallback: number) =>
+  Number.isFinite(value) ? value : fallback
+
 export class PortraitVoxelMaterial extends THREE.ShaderMaterial {
   constructor() {
     super({
@@ -157,7 +199,8 @@ export class PortraitVoxelMaterial extends THREE.ShaderMaterial {
       fragmentShader,
       transparent: true,
       side: THREE.DoubleSide,
-      depthWrite: true,
+      // Starts off and is earned — see the hysteresis in `sync`.
+      depthWrite: false,
       uniforms: {
         uBuild: { value: 0 },
         uTime: { value: 0 },
@@ -177,19 +220,37 @@ export class PortraitVoxelMaterial extends THREE.ShaderMaterial {
 
   sync(state: PortraitVoxelSync) {
     const { uniforms } = this
-    uniforms.uBuild.value = state.build
-    uniforms.uLive.value = state.live
-    uniforms.uTime.value = state.time
-    uniforms.uVelocity.value = state.velocity
-    uniforms.uOpacity.value = state.opacity
+    const opacity = THREE.MathUtils.clamp(finite(state.opacity, 0), 0, 1)
+    uniforms.uBuild.value = finite(state.build, 0)
+    uniforms.uLive.value = finite(state.live, 0)
+    uniforms.uTime.value = finite(state.time, 0)
+    // Clamped as well as sanitised: the shader only reads velocity up to ~125,
+    // and a wheel spike beyond that is jitter nobody asked for.
+    uniforms.uVelocity.value = THREE.MathUtils.clamp(
+      finite(state.velocity, 0),
+      -200,
+      200,
+    )
+    uniforms.uOpacity.value = opacity
     uniforms.uWindow.value.set(
-      state.enter,
-      state.span,
-      state.exit,
-      state.exitSpan,
+      finite(state.enter, 0),
+      Math.max(finite(state.span, 1), 1e-4),
+      finite(state.exit, 1),
+      Math.max(finite(state.exitSpan, 0.05), 1e-4),
     )
     uniforms.uAccent.value.copy(sceneColors.accent)
     uniforms.uFogColor.value.copy(sceneColors.base)
-    this.depthWrite = state.opacity > 0.85
+    /*
+     * Hysteresis, not a threshold.
+     *
+     * The opacity that feeds this is damped, so a single cut-off sat right in the
+     * band it spends every assemble and every retire crossing — and flipping
+     * depth writes on a transparent double-sided mesh frame to frame makes the
+     * face alternately occlude and reveal everything else in the transparent
+     * pass. Two edges mean it commits once on the way in and once on the way out.
+     */
+    if (this.depthWrite ? opacity < 0.7 : opacity > 0.9) {
+      this.depthWrite = !this.depthWrite
+    }
   }
 }

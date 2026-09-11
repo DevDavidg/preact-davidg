@@ -6,6 +6,7 @@ import type { Quality } from './capability'
 import { FOG_DENSITY, PORTAL_POSITION } from './layout'
 import { idleAmount, objectPhase, pulse, pulseAt, sectionPhase } from './pulse'
 import { sceneColors } from './sceneColors'
+import { reactorControl } from './control/reactorControl'
 import { livePowerFor, sceneState, swallowShape } from './sceneState'
 
 /**
@@ -210,6 +211,7 @@ export const Atmosphere = ({ quality }: { quality: Quality }) => {
   useFrame((state, delta) => {
     const power = livePowerFor(sceneState.build)
     const time = state.clock.elapsedTime
+    const vacuum = reactorControl.lawMix.VACUUM
     // Dust settles in after the hero product shot, then rides the corridor.
     const dustPresence = THREE.MathUtils.smoothstep(sceneState.build, 0.08, 0.28)
     const volumePresence =
@@ -237,7 +239,10 @@ export const Atmosphere = ({ quality }: { quality: Quality }) => {
       fog.current.density =
         FOG_DENSITY *
         (1 - power * 0.16) *
-        (1 + swallowAir.drain * 4.2 + swallowAir.surge * 1.8)
+        (1 + swallowAir.drain * 4.2 + swallowAir.surge * 1.8) *
+        // Fog is a medium, and VACUUM is the law with none: the air thins out
+        // and the room's far end goes properly black instead of hazy.
+        (1 - vacuum * 0.55)
       fog.current.color.lerp(
         sceneColors.accent,
         swallowAir.drain * swallowAir.drain * 0.42 + swallowAir.surge * 0.15,
@@ -291,7 +296,9 @@ export const Atmosphere = ({ quality }: { quality: Quality }) => {
 
     dustMaterial.color.copy(sceneColors.signal).lerp(sceneColors.accent, 0.12 + power * 0.18)
     dustMaterial.opacity =
-      (0.14 + power * 0.12) * dustPresence * (1 - swallow.drain * 0.7)
+      (0.14 + power * 0.12) * dustPresence * (1 - swallow.drain * 0.7) *
+      // Motes need something to hang in. None left, none visible.
+      (1 - vacuum * 0.85)
     if (dust.current) {
       // The shared channel, not a local one: the air has to be going in at the
       // same rate as the matter it is between. A gulp is a small kick on top.

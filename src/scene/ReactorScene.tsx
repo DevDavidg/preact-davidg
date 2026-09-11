@@ -19,6 +19,7 @@ import { FinaleGate } from "./FinaleGate";
 import { advancePulse, setPulseDepth } from "./pulse";
 import { refreshSceneColors, sceneColors } from "./sceneColors";
 import {
+  advanceCollapse,
   livePowerFor,
   sceneState,
   swallowShape,
@@ -113,9 +114,13 @@ const ReadySignal = () => {
  * steady half-light instead of breathing.
  */
 const PulseDriver = () => {
+  const reducedMotion = useRef(false);
   useEffect(() => {
     const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const apply = () => setPulseDepth(query.matches ? 0 : 1);
+    const apply = () => {
+      reducedMotion.current = query.matches;
+      setPulseDepth(query.matches ? 0 : 1);
+    };
     apply();
     query.addEventListener("change", apply);
     return () => {
@@ -134,6 +139,7 @@ const PulseDriver = () => {
     // frame sees the law, the modes and the impulses computed for *this* frame,
     // rather than a mix of this frame's scroll and last frame's physics.
     advanceControl(delta);
+    advanceCollapse(delta, reactorControl.law, reducedMotion.current);
   }, -1);
 
   return null;
@@ -247,7 +253,7 @@ const DemandDriver = () => {
       last.current = position;
       settle.current = Math.max(settle.current, SETTLE_SECONDS);
     }
-    if (settle.current > 0) {
+    if (settle.current > 0 || reactorControl.law !== "VISCOUS" || sceneState.autonomousSwallow > 0.001) {
       // Real delta, not a hardcoded 1/60: on a device rendering at 30fps the
       // fixed step made the settle window twice as long as it was written to be.
       settle.current -= delta;
@@ -449,9 +455,9 @@ const SwallowField = ({ children }: { children: ReactNode }) => {
     const gulpIn = 1 - suction * 0.12;
     // Flattening onto the disk plane, on the drain rather than on raw scroll, so
     // the room is a disk by the third gulp instead of only at the very end.
-    const flatten = 1 - drain * drain * 0.88;
+    const flatten = 1 - drain * drain * 0.88 * sceneState.distortion;
     const across = radius * gulpIn;
-    const along = radius * (1 - tide * 0.42) * gulpIn;
+    const along = radius * (1 - tide * 0.42 * sceneState.distortion) * gulpIn;
 
     node.scale.set(across, across * flatten, Math.max(0.05, along));
     /*

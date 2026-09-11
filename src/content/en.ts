@@ -30,8 +30,6 @@ export const en: Copy = {
     cta: "LET'S TALK",
     menuOpen: 'Open menu',
     menuClose: 'Close menu',
-    soundOn: 'Turn on observatory sound',
-    soundOff: 'Mute the observatory',
     langGroup: 'Language',
     langNames: { es: 'Español', en: 'English' },
   },

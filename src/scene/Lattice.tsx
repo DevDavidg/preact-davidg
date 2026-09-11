@@ -247,7 +247,7 @@ export const Lattice = ({ quality }: { quality: Quality }) => {
     /*
      * A ghost while the room stands — a lattice at 0.3 opacity has no business
      * cutting holes in the consoles behind it. But once the swallow begins the
-     * lattice must occlude: `sync` keeps writers off under WIRE, and the lensing
+     * lattice must occlude: `sync` keeps loose shards translucent, and the lensing
      * pass only spares depth-written geometry. Without an explicit true here the
      * hole paints over wires that are still in front of it.
      */

@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { PORTAL_POSITION } from './layout'
-import { clamp01, swallowShape } from './sceneState'
+import { swallowShape } from './sceneState'
 
 /**
  * The well at the end of the corridor, as a physical object.
@@ -115,10 +115,39 @@ export const captureRsRetro = (a: number): number => {
 /**
  * Gravitational radius while the well is merely charged, in metres.
  *
- * Sized so the shadow (~1.3 m at a = 0.85) and the disk (~4 m) carry the
- * weight the stator used to: the thing at the end of the corridor.
+ * Sized against the room it has to stand next to, not against the finale. At the
+ * bottom of the corridor the lens is 11.2 m from the singularity, so one metre of
+ * Rs is worth `3.374 / 11.2 / tan(23°)` = 0.71 half-frame-heights on the
+ * retrograde edge. 0.52 put the fully-charged shadow at 0.37 of a half-height — a
+ * black disc three quarters of the frame tall standing beside a console panel that
+ * is still assembled, which is what a visitor described as the hole having already
+ * swallowed the page before the ending starts. 0.24 puts it at 0.17: the largest
+ * thing in the frame, unmistakably the destination, and still an object *in* a room
+ * rather than the room's replacement. The shadow is then ~0.62 m and the disk
+ * ~2.4 m.
+ *
+ * The size the ending needs is not taken away by this — `RS_OPEN` is reached
+ * through `swell` and is unchanged, so lowering this makes the finale a 12.3×
+ * opening instead of a 5.7× one. The licence was always meant to be spent at the
+ * end.
  */
-const RS_CHARGED = 0.4
+const RS_CHARGED = 0.24
+
+/**
+ * ...and how much of that it already has on the opening frame.
+ *
+ * Re-derived, not retuned: `RS_CHARGED · RS_DORMANT` is 0.078 m either side of the
+ * change above, bit for bit, because the opening frame was never the thing that was
+ * wrong. The well is the galaxy's nucleus and the galaxy is drawn from frame one,
+ * so the shadow starts at 0.019 half-frame-heights — 6.9 px of radius on the
+ * shortest frame the cinema path is given, against a floor of 3 — and the accretion
+ * disk starts at 0.057, comfortably inside the bulge it is the middle of. Both are
+ * asserted in `scripts/check-kerr.ts` and both are unmoved.
+ *
+ * A third rather than a seventh only because `RS_CHARGED` came down by the same
+ * factor. The ratio is the free variable here; the product is the measurement.
+ */
+const RS_DORMANT = 0.325
 
 /**
  * ...and once the room is going in.
@@ -247,6 +276,34 @@ export const PLUNGE_DEPTH = 1.8
  */
 export const PLUNGE_RADIUS = APPROACH_Z - PLUNGE_DEPTH - holeCenter.z
 
+/**
+ * Where the lens stops trusting a screen-space fetch, as fractions of the lens's
+ * own distance to the singularity.
+ *
+ * A bent ray fetches whatever texel it lands on with no idea how far away that
+ * texel was, so the pass has to decide for itself what counts as *behind* the
+ * well. These two are that line: the sample is taken at `LENS_FAR` and beyond,
+ * dropped below `LENS_NEAR`, and cross-faded between them so the rim has no edge.
+ *
+ * They are this tight because of what they have to separate, and the separation
+ * is not available at any wider setting. The rule is "only what is *at* the well
+ * is lensed by it": the gate's aperture is centred on the singularity and reads
+ * 1.000, while the gate's own structure reaches `GATE_APERTURE_Z_AHEAD` toward
+ * the lens and reads 0.926 — and a body standing in the corridor can read 0.933,
+ * which is nearer the well than the gate's columns are. So a band wide enough to
+ * spare the mechanism is also wide enough to lens the corridor, and the mechanism
+ * loses: a column two metres in front of a black hole is not bent around it
+ * either.
+ *
+ * Written as fractions rather than metres because the lens closes on the well
+ * throughout, and a fixed distance would mean something different at every point
+ * of the approach. `scripts/check-kerr.ts` holds the width honest — widen the
+ * band and the corridor starts coming back as ghosts of itself lensed beside the
+ * nucleus, which is the regression these numbers exist to prevent.
+ */
+export const LENS_NEAR = 0.96
+export const LENS_FAR = 0.995
+
 /** Closest the lens may sit, in metres: authored floor vs the Kerr photon orbit. */
 export const closestApproach = (rs: number, a = HOLE_SPIN): number =>
   Math.max(PLUNGE_RADIUS, photonRs(a) * rs * 1.15)
@@ -254,14 +311,38 @@ export const closestApproach = (rs: number, a = HOLE_SPIN): number =>
 /**
  * Gravitational radius for a given point in the story.
  *
- * The well is charged by the corridor and opened by the ending, and it is
- * deliberately never zero: a hole of no size still has to be *somewhere* for the
- * shader's early-out to have a centre to measure from, and a smoothly growing Rs
- * is what makes the aperture arrive as light gathering rather than as an object
- * being switched on.
+ * The well is charged by the corridor and opened by the ending, but it is never
+ * *created* by either: it starts at `RS_DORMANT` of its charged radius on the
+ * opening frame, because the galaxy it is the nucleus of is drawn on the opening
+ * frame too. The corridor feeds it; it does not switch it on.
  */
 export const holeRadiusFor = (build: number, swallow: number): number => {
-  const charge = clamp01((build - 0.46) / 0.5)
+  /*
+   * The corridor charges the well *late*, and the third power is the whole fix.
+   *
+   * `smoothstep(build, 0.1, 0.96)` spent its steepest stretch at build 0.5, so the
+   * well was at 40% of charge before the visitor had read half the consoles and at
+   * 68% by 0.6 — the object at the end of the corridor arrived at the middle of it,
+   * and there was nothing left for the last screen of scroll to do. Cubing a curve
+   * that is already eased at both ends moves the work to the end without introducing
+   * a knee: the well is at 4% of charge at build 0.4 and 23% at 0.6, and the *whole*
+   * of the second half of the rail is the growth.
+   *
+   * The upper edge is 1 rather than 0.96 for the same reason — 0.96 finished the
+   * charge four percent of scroll early, which with the lens still closing over that
+   * stretch is a well that visibly stops growing before the corridor ends. The lower
+   * edge moves 0.1 → 0.06 to put a little charge under the hero transit, so the
+   * nucleus is already feeding while the lens is inside the optic.
+   *
+   * Measured against the failure this replaces: the apparent shadow's steepest rate
+   * of change over the corridor falls from 0.84 to 0.48 half-frame-heights per unit
+   * build, and the worst growth inside any five percent of scroll from 1.28× to
+   * 1.23×. The late curve is *smoother* than the one it replaces, not poppier — the
+   * old curve's peak rate was the camera closing and the charge ramping at the same
+   * moment, and separating the two is what buys both the small corridor and the
+   * absence of a switch-on.
+   */
+  const charge = THREE.MathUtils.smoothstep(build, 0.06, 1) ** 3
   const open = swallowShape(swallow)
   /*
    * The drain leads, `grip` holds the end of the schedule.
@@ -277,11 +358,11 @@ export const holeRadiusFor = (build: number, swallow: number): number => {
   const swell = Math.min(1, open.drain * 0.45 + open.grip * 0.55)
   return (
     THREE.MathUtils.lerp(
-      RS_CHARGED * (0.35 + charge * 0.65),
+      RS_CHARGED * (RS_DORMANT + charge * (1 - RS_DORMANT)),
       RS_OPEN,
       swell,
     ) *
-    (1 + open.suction * 0.1) *
+    (1 + open.drain * 0.1) *
     // ...and the crossing takes it the rest of the way out of the frame.
     (1 + open.crossing * CROSSING_SWELL)
   )
@@ -310,21 +391,67 @@ export const apparentShadow = (
   Math.tan(THREE.MathUtils.degToRad(fovDegrees) / 2)
 
 /**
- * How present the well is, 0 → 1. One ramp, read by everything that hands over
- * to it.
+ * The photon ring's Gaussian σ, as a fraction of the capture radius.
  *
- * Fades up from 0.52 so it serves as the galactic nucleus during the corridor's
- * transmit phase (the galaxy itself ramps 0.25–0.72). It used to wait until 0.94
- * so it arrived fully formed with the gate mechanism, but that left a galaxy
- * with an empty middle during the flight. It reaches full strength by 0.94 so
- * the finale still peaks exactly as the gate locks into place.
+ * 2.2% is the figure the references carry: EHT's published rings are beam-blurred
+ * to roughly half their own diameter, but the intrinsic ring behind those papers —
+ * and the filament tracing the top of the shadow in NASA's edge-on render — is on
+ * the order of one percent of the shadow's *diameter*.
  *
- * `Atmosphere`'s ambient glow at the end of the room reads the same ramp from the
- * other side: it holds the corridor's far end until this takes the job over, so
- * there is never a moment where the destination is neither lit nor drawn.
+ * It is also a width in metres at the hole, and what has to stay legible is a
+ * width in pixels. For the whole corridor the well is thirty metres off and the
+ * narrow edge of its D covers about a dozen pixels of radius, so the honest 2.2%
+ * is a quarter of a pixel — and a Gaussian narrower than the grid it is sampled on
+ * does not draw faint, it draws as a dashed line that crawls along the rim as the
+ * camera moves. That is not a black hole with a subtle ring, it is an artefact,
+ * and it is what would have made the nucleus at corridor distance read as a bug.
+ *
+ * So the fraction is floored at whatever buys `RING_PIXELS` of them. A frame is two
+ * half-frame-heights tall, hence the 2. `narrow` is the *prograde* edge's apparent
+ * radius — the flattened side of the D, and therefore the side that runs out of
+ * pixels first; fitting the floor to the wide side would leave the narrow one
+ * dashed. Above that size the physical width wins and this does nothing at all.
  */
-export const holeGateFor = (build: number): number =>
-  THREE.MathUtils.smoothstep(build, 0.52, 0.94)
+export const RING_SIGMA = 0.022
+const RING_PIXELS = 1.25
+
+export const ringWidthFor = (narrow: number, framePixels: number): number =>
+  Math.max(
+    RING_SIGMA,
+    (RING_PIXELS * 2) / (framePixels * Math.max(narrow, 1e-4)),
+  )
+
+/**
+ * How hot the nucleus burns, before the room's own light is added, 0 → 1.
+ *
+ * This replaces a ramp called `holeGateFor` that answered "how present is the
+ * well" with a number that started at zero and reached one at build 0.94, and
+ * every layer multiplied itself by it — so for three quarters of the page the
+ * answer to "where is the black hole" was that there wasn't one. That was
+ * defensible while the well was a mechanism at the end of a corridor waiting to
+ * be switched on. It stopped being defensible the moment the galaxy was centred
+ * on it: a spiral with a hole where its nucleus should be is not a galaxy with a
+ * surprise coming, it is a galaxy with a bug.
+ *
+ * So presence is no longer a ramp at all — the well is drawn from the first
+ * frame, at `RS_DORMANT` of its size — and what is left for a ramp to describe is
+ * the only thing that honestly varies: how hard the thing is feeding. A quiescent
+ * nucleus at two fifths, climbing as the corridor charges. Never zero, because an
+ * accretion disk that goes out is not a dimmer nucleus, it is a different object —
+ * and two fifths rather than three tenths because the billboard the no-post-chain
+ * path draws has nothing else to carry the object with, so a floor that reads on
+ * cinema as a restrained disk reads on lite as an empty circle.
+ *
+ * Normalised, not in any layer's own units: the finale's light and the room's
+ * ignition are both far brighter than a quiescent nucleus, so each caller scales
+ * this into whatever it is comparing against rather than the ramp guessing.
+ *
+ * `Atmosphere`'s ambient glow at the end of the room hands over on
+ * `holeRender.lensing` rather than on this, so there is still never a moment
+ * where the destination is neither lit nor drawn.
+ */
+export const holeGlowFor = (build: number): number =>
+  0.4 + THREE.MathUtils.smoothstep(build, 0.08, 0.82) * 0.6
 
 /**
  * The disk's axis, in world space.

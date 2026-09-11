@@ -1,16 +1,28 @@
 /**
  * The swallow curve's one runnable check.
  *
- * The whole ending is a pure function of one scroll value, so this is the only
- * place the contract can actually be tested: monotonicity, the endpoints, and
- * the fact that the room's span never re-opens between gulps — which is the
- * exact bug that made the finale read as the corridor breathing rather than
- * being eaten.
+ * The whole ending is a pure function of one number, so this is the only place the
+ * contract can actually be tested: monotonicity, the endpoints, and the fact that
+ * the room's span never re-opens between gulps — which is the exact bug that made
+ * the finale read as the corridor breathing rather than being eaten.
+ *
+ * One number, no longer one *scroll* value. `sceneState.swallow` is now
+ * `max(scrollSwallow, autonomousSwallow)`: VISCOUS is still scroll and nothing
+ * else, but CHAOS and VACUUM consume the scene on a clock whether the visitor
+ * scrolls or not, which is what those laws now mean. `swallowShape` is unchanged
+ * and still pure, so every assertion below still holds — it is only the *source*
+ * of its argument that gained a second channel, and `advanceCollapse` in
+ * `sceneState.ts` owns that.
  *
  *   pnpm exec tsx scripts/check-swallow.ts
  */
 import assert from 'node:assert/strict'
-import { swallowShape } from '../src/scene/sceneState'
+import {
+  advanceCollapse,
+  resetSceneMotion,
+  sceneState,
+  swallowShape,
+} from '../src/scene/sceneState'
 
 const SAMPLES = 2001
 const at = (s: number) => swallowShape(s)
@@ -105,9 +117,100 @@ neverGivesBack((s) => {
   return Math.min(0.97, grav * (1 + suction * 0.3))
 }, 'shard infall')
 
+/*
+ * The document's own half of the ending.
+ *
+ * `StageTreatment` flies the operator panel — the only chrome a 3D route has — into
+ * the middle of the frame on `drain / PAGE_EATEN`, and `app/swallow.css` is what
+ * draws it. Two things have to hold and neither is visible from either file alone.
+ *
+ * The panel has to be gone before `beyond` opens, because `beyond` is the channel
+ * that means "the room is inside the well and what is left in frame is its own
+ * light" — a HUD still crossing the viewport at that point is the page announcing
+ * that it was never really being swallowed. And the schedule has to reach 1 with
+ * scroll left over, or the panel is still mid-flight at the bottom of the rail.
+ */
+const PAGE_EATEN = 0.62
+const eatenAt = (s: number) => Math.min(1, at(s).drain / PAGE_EATEN)
+let pageGone = 1
+for (let index = 0; index < SAMPLES; index += 1) {
+  const s = index / (SAMPLES - 1)
+  if (eatenAt(s) < 1) continue
+  pageGone = s
+  break
+}
+assert.ok(pageGone < 1, 'the page never finishes going in')
+assert.equal(at(pageGone).beyond, 0, 'the page is still in frame at the crossing')
+assert.ok(
+  at(pageGone).drain > 0.6,
+  'the page left before the well had taken most of the room',
+)
+// Monotone, like everything else on this axis: the panel must not fly back out
+// between gulps.
+neverGivesBack(eatenAt, 'page swallow')
+
+/*
+ * The two destruction gates never both open, and neither opens by accident.
+ *
+ * `distortion` is the VISCOUS tide and `chaosBurn` is the CHAOS fracture, and the
+ * whole point of them being separate channels is that the two endings stay
+ * different shots. Nothing else in the repo can catch them crossing: they are
+ * written by a damped integrator in `advanceCollapse` rather than derived by a
+ * pure function, so `swallowShape` — everything above this line — never sees them.
+ *
+ * Driven at a real frame time for a real number of frames rather than solved,
+ * because what is being asserted is the integrator's behaviour, not an identity.
+ */
+const settle = (law: 'VISCOUS' | 'CHAOS' | 'VACUUM', reduced = false) => {
+  resetSceneMotion()
+  sceneState.scrollSwallow = 1
+  for (let i = 0; i < 600; i += 1) advanceCollapse(1 / 60, law, reduced)
+  return { burn: sceneState.chaosBurn, distortion: sceneState.distortion }
+}
+
+const viscous = settle('VISCOUS')
+assert.ok(
+  viscous.burn < 1e-6,
+  `VISCOUS lit the CHAOS fracture: chaosBurn ${viscous.burn}`,
+)
+assert.ok(
+  viscous.distortion > 0.99,
+  `VISCOUS never reached full tide at the end of the rail: ${viscous.distortion}`,
+)
+
+const chaos = settle('CHAOS')
+assert.ok(chaos.burn > 0.99, `CHAOS never reached full burn: ${chaos.burn}`)
+assert.ok(
+  chaos.distortion < 1e-6,
+  `CHAOS deformed the scene — the tide belongs to VISCOUS: ${chaos.distortion}`,
+)
+
+const vacuum = settle('VACUUM')
+assert.ok(
+  vacuum.burn < 1e-6 && vacuum.distortion < 1e-6,
+  `VACUUM opened a destruction gate: burn ${vacuum.burn}, tide ${vacuum.distortion}`,
+)
+
+// Reduced motion is the one setting that must silence both, whatever the law.
+const quiet = settle('CHAOS', true)
+assert.ok(
+  quiet.burn < 1e-6 && quiet.distortion < 1e-6,
+  `reduced motion still destroyed the scene: burn ${quiet.burn}`,
+)
+resetSceneMotion()
+
 console.log(
   `swallow ok — radius ${at(0).radius.toFixed(3)} → ${at(1).radius.toFixed(3)}, ` +
     `drain ${[0.16, 0.28, 0.42, 0.55, 0.68, 0.83, 1]
       .map((s) => `${s}:${at(s).drain.toFixed(2)}`)
       .join(' ')}`,
+)
+// Measured, not quoted: the gate lives in `sceneState`, and a printed literal
+// goes stale silently the first time the curve is retuned.
+const beyondAt =
+  [...Array(SAMPLES).keys()]
+    .map((i) => i / (SAMPLES - 1))
+    .find((s) => at(s).beyond > 0) ?? 1
+console.log(
+  `  page in by s=${pageGone.toFixed(3)}, beyond opens at s=${beyondAt.toFixed(3)}`,
 )

@@ -188,6 +188,9 @@ const _probe = new THREE.Vector3()
 const _right = new THREE.Vector3()
 const _forward = new THREE.Vector3()
 
+const isFinitePosition = (value: THREE.Vector3) =>
+  Number.isFinite(value.x) && Number.isFinite(value.y) && Number.isFinite(value.z)
+
 /**
  * How far to the side of the About plate the portrait sits, in metres.
  *
@@ -274,7 +277,10 @@ const CinemaAboutPortrait = ({ windows }: { windows: SectionWindows }) => {
      */
     const root = group.current
     const beat = beatFor('about')
-    if (root && beat) {
+    // A nonfinite console position would put NaN in the model matrix, and from
+    // there into every instance's world position and normal. Placement comes
+    // from outside this file, so it is checked here rather than trusted.
+    if (root && beat && isFinitePosition(beat.position)) {
       camera.getWorldDirection(_forward)
       _right.crossVectors(_forward, camera.up).normalize()
       if (_right.lengthSq() < 1e-4) _right.set(1, 0, 0)
@@ -290,9 +296,14 @@ const CinemaAboutPortrait = ({ windows }: { windows: SectionWindows }) => {
     // difference between one matrix inverse a frame and five thousand.
     const node = mesh.current
     if (node) {
-      _inverse.copy(node.matrixWorld).invert()
-      _probe.copy(reactorControl.probe).applyMatrix4(_inverse)
-      material.uniforms.uProbe.value.copy(_probe)
+      // `Matrix4.invert` answers the zero matrix for a singular input, which
+      // would drop the probe onto the face's own origin and swell the middle of
+      // the head. Keeping the last good probe is the honest fallback.
+      if (Math.abs(node.matrixWorld.determinant()) > 1e-12) {
+        _inverse.copy(node.matrixWorld).invert()
+        _probe.copy(reactorControl.probe).applyMatrix4(_inverse)
+        if (isFinitePosition(_probe)) material.uniforms.uProbe.value.copy(_probe)
+      }
       material.uniforms.uProbeAmount.value = THREE.MathUtils.damp(
         material.uniforms.uProbeAmount.value as number,
         reactorControl.probeLive ? opacityRef.current : 0,

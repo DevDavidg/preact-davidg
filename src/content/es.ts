@@ -40,8 +40,6 @@ export const es: Copy = {
     cta: 'HABLEMOS',
     menuOpen: 'Abrir menú',
     menuClose: 'Cerrar menú',
-    soundOn: 'Activar sonido del observatorio',
-    soundOff: 'Silenciar el observatorio',
     langGroup: 'Idioma',
     langNames: { es: 'Español', en: 'English' },
   },

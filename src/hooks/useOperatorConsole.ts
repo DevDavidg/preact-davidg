@@ -5,7 +5,6 @@ import { installReactorConsole } from '../scene/control/reactorConsole'
 import {
   MODES,
   cycleLaw,
-  play,
   pushLog,
   reactorControl,
   setMode,
@@ -20,14 +19,13 @@ import { scrollToSection } from '../motion/ticker'
  *
  * Typing a word is deliberately not a key combination. A chord is something a
  * visitor has to be told about; a word is something they can guess from the
- * vocabulary the room is already using on screen — the HUD says WIRE, so typing
- * WIRE does the obvious thing. Nothing is captured while focus is in a field, so
+ * vocabulary the room is already using on screen — the console says CRT, so typing
+ * CRT does the obvious thing. Nothing is captured while focus is in a field, so
  * this can never eat a real keystroke.
  */
 
 /** Typed words that engage a mode. Matched against the tail of the buffer. */
 const WORDS: Record<string, ModeId> = {
-  WIRE: 'wire',
   CRT: 'crt',
   GHOST: 'ghost',
   OVERCLOCK: 'overclock',
@@ -125,8 +123,6 @@ export const useOperatorConsole = (
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
     window.addEventListener('blur', handleBlur)
-
-    play('tick')
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown)

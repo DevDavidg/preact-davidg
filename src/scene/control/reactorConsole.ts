@@ -3,8 +3,8 @@
  *
  * People who open devtools on a WebGL portfolio are looking for something. A
  * cute `console.log` is a dead end; a real object is a subsystem. Every command
- * here does exactly what a physical control would do — it changes a uniform,
- * plays a voice, and writes a line to the operator log the room is already
+ * here does exactly what a physical control would do — it changes a uniform and
+ * writes a line to the operator log the room is already
  * showing — so what the visitor types and what the machine does are the same
  * event.
  *
@@ -17,10 +17,8 @@ import {
   LAWS,
   MODES,
   decomposeCore,
-  play,
   pushLog,
   reactorControl,
-  requestSound,
   setLaw,
   setMode,
   toggleMode,
@@ -43,15 +41,12 @@ const COMMANDS: Array<[string, string]> = [
   ['reactor.help()', 'this list'],
   ['reactor.status()', 'current law, modes, charge'],
   [`reactor.law('${LAWS.join("' | '")}')`, 'change the physics'],
-  ['reactor.wire()', 'blueprint mode — the corridor as a diagram'],
   ['reactor.crt()', 'terminal mode — scanlines and aberration'],
   ['reactor.overclock()', 'chaos law + heat. the governor may abort it'],
   ['reactor.ghost()', 'loosen every settled glyph'],
   ['reactor.decompose()', 'blow the core apart, then let it reassemble'],
   ['reactor.uplink()', 'travel to the contact beat'],
   ['reactor.hardcopy()', 'the operator dossier, print-ready'],
-  ['reactor.quiet()', 'mute'],
-  ['reactor.loud()', 'unmute'],
 ]
 
 export interface ReactorStatus {
@@ -69,15 +64,12 @@ export interface ReactorConsoleApi {
   help: () => void
   status: () => ReactorStatus
   law: (id?: string) => void
-  wire: (on?: boolean) => void
   crt: (on?: boolean) => void
   overclock: (on?: boolean) => void
   ghost: (on?: boolean) => void
   decompose: () => void
   uplink: () => void
   hardcopy: () => void
-  quiet: () => void
-  loud: () => void
 }
 
 declare global {
@@ -128,7 +120,6 @@ export const installReactorConsole = (
         DIM,
       )
       if (!context.armed) standby('reactor.help()')
-      else play('tick')
     },
     status: () => {
       const modes = MODES.filter((mode) => reactorControl.modes[mode])
@@ -157,12 +148,10 @@ export const installReactorConsole = (
           BANNER,
           KEY,
         )
-        play('deny')
         return
       }
       setLaw(next)
     },
-    wire: flag('wire'),
     crt: flag('crt'),
     overclock: flag('overclock'),
     ghost: flag('ghost'),
@@ -178,8 +167,6 @@ export const installReactorConsole = (
       pushLog('dossier · hardcopy')
       context.navigate(context.cvPath)
     },
-    quiet: () => requestSound(false),
-    loud: () => requestSound(true),
   }
 
   window.reactor = api

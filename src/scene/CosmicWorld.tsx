@@ -1,261 +1,123 @@
-import { useEffect, useMemo, useRef } from 'react'
-import { useFrame, useLoader } from '@react-three/fiber'
-import * as THREE from 'three'
-import type { Quality } from './capability'
-import type { Copy } from '../content'
-import { addTick } from '../motion/ticker'
+import { useEffect, useMemo, useRef } from "react";
+import { useFrame } from "@react-three/fiber";
+import * as THREE from "three";
+import type { Quality } from "./capability";
+import type { Copy } from "../content";
+import { Planets } from "./Planets";
+import { CosmicEvents } from "./CosmicEvents";
+import { addTick } from "../motion/ticker";
 import {
   captureRs,
   HOLE_SPIN,
   holeAxis,
   holeCenter,
   holeRadiusFor,
-} from './blackHole'
-import { sceneState, swallowShape, type SwallowShape } from './sceneState'
-
+} from "./blackHole";
+import { sceneState, swallowShape, type SwallowShape } from "./sceneState";
+import { reactorControl } from "./control/reactorControl";
 /*
- * Cosmic observatory: three worlds and a galaxy, all of it falling into the well
- * at the end of the corridor once the finale starts.
+ * The sky, drawn rather than sampled.
  *
- * Two things here are worth knowing before reading any of it.
- *
- * The first is that the galaxy is not a backdrop that happens to sit behind the
- * aperture — the singularity *is* its nucleus. The point cloud is centred exactly
- * on `holeCenter` and its plane is `holeAxis`, the accretion disk's own plane, so
- * the bulge, the arms and the disk the well is being fed by are one object seen
- * from one angle. Anything that drifts those two apart turns the ending back into
- * a ring of dots parked near a hole.
- *
- * The second is that the collapse does not integrate. Fall, stretch and swallow-
- * winding are a pure function of `swallowShape(sceneState.swallow)` — scroll up
- * and the galaxy comes back out. Corridor motion (a slow Keplerian cruise as
- * `build` rises) is added in `useFrame` on top of that, never inside `spiralFall`.
- * `scripts/check-cosmos.ts` is where the fall is actually asserted.
+ * sky.webp is a 66 kB plate of the milky way. Mapped onto a 96 m dome it is a
+ * stretched sprite, which is what the opening frame was showing behind the type.
+ * Stars are geometry. The dome only holds a faint equatorial glow so the void
+ * is not a flat clear-colour.
  */
-
-const vertex = /* glsl */ `
-uniform vec3 uTideDir; uniform float uTide; uniform float uSqueeze;
-varying vec3 vP; varying vec3 vN; varying vec3 vT; varying vec3 vView; varying vec2 vUv; varying vec3 vSun;
-const vec3 SUN=normalize(vec3(-1.0,0.45,0.35));
+const skyVertex = /* glsl */ `
+varying vec3 vDir;
 void main(){
-  vP=position;vUv=uv;
-  mat3 m=mat3(modelMatrix);
-  vN=normalize(m*normal);
-  // East on the sphere. The relief basis and the cloud shadow's parallax are both
-  // texture-space directions, so they need the surface's own tangent frame rather
-  // than anything the camera knows about.
-  vec3 east=cross(vec3(0.0,1.0,0.0),normal);
-  vT=normalize(m*(dot(east,east)>1e-8?east:vec3(1.0,0.0,0.0)));
-  // The sun in object space: mᵀ·sun, since m is a rotation and a uniform scale and
-  // normalize takes the scale back out. Saturn's ring shadow is a ray cast in the
-  // planet's own equatorial plane, which is the one place that frame is needed.
-  vSun=normalize(vec3(dot(m[0],SUN),dot(m[1],SUN),dot(m[2],SUN)));
-  vec4 world=modelMatrix*vec4(position,1.0);
-  /*
-   * Spaghettification, as a linear map about the body's own centre: elongate along
-   * the line to the well, compress across it. It is diagonal in the
-   * {radial, transverse} basis, so the normal transform is the same decomposition
-   * with its eigenvalues inverted — which is what keeps the terminator honest while
-   * the planet is being drawn out into a filament. Done here rather than with a
-   * non-uniform group scale because a parent scale between two rotations shears,
-   * and because mat3(modelMatrix) is the wrong normal matrix the moment it does.
-   */
-  vec3 centre=modelMatrix[3].xyz;
-  vec3 rel=world.xyz-centre;
-  float along=dot(rel,uTideDir);
-  world.xyz=centre+uTideDir*along*(1.0+uTide)+(rel-uTideDir*along)*uSqueeze;
-  float na=dot(vN,uTideDir);
-  vN=normalize((vN-uTideDir*na)/uSqueeze+uTideDir*(na/(1.0+uTide)));
-  vView=cameraPosition-world.xyz;
-  gl_Position=projectionMatrix*viewMatrix*world;
+  vDir = normalize(position);
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
-`
-
-/*
- * One shader, three very different objects, because what separates them is which
- * physics is allowed to be skipped rather than how they are drawn.
- *
- * Earth gets the full treatment: relief, a cloud deck with its own rotation and its
- * own shadow, water-only specular and Rayleigh scattering. The moon gets none of
- * it and instead gets the scattering law a dark regolith actually obeys. Saturn is
- * a scattering atmosphere with no surface at all, plus the one detail that makes it
- * unmistakable — its rings' shadow, cast for real.
- *
- * `uMask` is a channel-packed map, three.js's own packing: R is elevation, G is
- * roughness (land is rough, water is glass) and B is cloud cover. Three maps for
- * one fetch, and no alpha plane to pay for. Saturn binds the ring map here instead.
- */
-const planetFragment = /* glsl */ `
-uniform vec3 uAir; uniform float uKind; uniform float uCloudSpin; uniform float uRelief;
-uniform sampler2D uSurface; uniform sampler2D uNight; uniform sampler2D uMask;
-varying vec3 vP; varying vec3 vN; varying vec3 vT; varying vec3 vView; varying vec2 vUv; varying vec3 vSun;
-const vec3 SUN=normalize(vec3(-1.0,0.45,0.35));
-const vec2 TEXEL=vec2(1.0/2048.0,1.0/1024.0);
-/** Height-field gradient as a tangent-space tilt. Four taps beat shipping a normal map. */
-vec2 slope(sampler2D map,vec2 uv){
-  return vec2(texture2D(map,uv-vec2(TEXEL.x,0.0)).r-texture2D(map,uv+vec2(TEXEL.x,0.0)).r,
-              texture2D(map,uv-vec2(0.0,TEXEL.y)).r-texture2D(map,uv+vec2(0.0,TEXEL.y)).r);
-}
-void main(){
-  vec3 n0=normalize(vN),eye=normalize(vView);
-  vec3 east=normalize(vT-n0*dot(vT,n0)),north=cross(n0,east);
-  float geo=dot(n0,SUN);
-  float grazing=1.0-max(dot(n0,eye),0.0);
-  vec3 surface=texture2D(uSurface,vUv).rgb;
-  vec3 col;
-  if(uKind<0.5){
-    vec3 mask=texture2D(uMask,vUv).rgb;
-    float land=mask.g,ocean=1.0-land;
-    // Relief on land only: the sea is flat, and a bumped ocean reads as a static
-    // crawling over the water. It shows up at the terminator and nowhere else,
-    // which is exactly where a planet stops looking like a printed globe.
-    vec2 tilt=slope(uMask,vUv);
-    vec3 n=normalize(n0+(east*tilt.x+north*tilt.y)*uRelief*land);
-    // The sun is half a degree wide, so the terminator is a band, not an edge.
-    float day=max(dot(n,SUN),0.0)*smoothstep(-0.05,0.06,geo);
-    // Real ocean albedo is ~0.06 against land's ~0.25, and the map is a photograph
-    // with the sky's own blue already in the water.
-    col=surface*mix(0.70,1.0,land)*(0.006+day*1.55);
-    // Sun glint, water only, on the *geometric* normal — waves are not in the map,
-    // and the specular is what tells an eye which parts of the blue are liquid.
-    vec3 halfv=normalize(SUN+eye);
-    float fres=0.02+0.98*pow(1.0-max(dot(eye,n0),0.0),5.0);
-    col+=vec3(1.0,0.95,0.86)*pow(max(dot(n0,halfv),0.0),190.0)*fres*ocean*2.8;
-    /*
-     * Clouds: their own layer, their own rotation, and their own shadow. The
-     * shadow lookup is offset along the sun's direction *in texture space*, which
-     * is the whole trick — the parallax between deck and ground is what makes the
-     * cloud read as floating above the surface rather than painted onto it.
-     */
-    vec2 cloudUv=vUv+vec2(uCloudSpin,0.0);
-    float cloud=smoothstep(0.05,0.55,texture2D(uMask,cloudUv).b);
-    vec2 sunUv=vec2(dot(SUN,east),dot(SUN,north))*TEXEL*16.0;
-    col*=1.0-smoothstep(0.06,0.6,texture2D(uMask,cloudUv-sunUv).b)*0.5*step(0.0,geo);
-    // Cloud tops are bright and forward-scatter hard, which is why a lit rim of
-    // cloud survives at the terminator after the ground under it has gone dark.
-    float forward=pow(max(dot(eye,-SUN),0.0),3.0)*0.55*smoothstep(-0.28,0.14,geo);
-    col=mix(col,vec3(0.96,0.97,1.0)*(0.012+day*1.2+forward),cloud*0.93);
-    // Night side: city light, put out by whatever cloud is above it.
-    col+=texture2D(uNight,vUv).rgb*(1.0-smoothstep(-0.10,0.07,geo))*(1.0-cloud*0.8)*0.85;
-    /*
-     * Rayleigh. Three terms, and all three are the reason the limb is blue: the
-     * optical depth along the view ray grows toward the edge of the disc, the phase
-     * function is 1 + cos²θ so the scatter is strongest toward and away from the
-     * sun, and none of it arrives at all unless the air itself is lit.
-     */
-    float cosT=dot(eye,-SUN);
-    col+=uAir*pow(grazing,3.2)*0.75*(1.0+cosT*cosT)*smoothstep(-0.32,0.28,geo)*1.4;
-    // ...and the path through the terminator is long enough to have scattered the
-    // blue out of itself, which is what a sunset is.
-    col+=vec3(1.0,0.40,0.14)*pow(grazing,5.5)*smoothstep(0.22,0.0,abs(geo))*2.2;
-    // Aerial perspective: even at noon you are looking through air.
-    col+=uAir*day*0.05;
-  }else if(uKind>1.5){
-    // The map is a photograph, so its own luminance is the height field: crater
-    // floors are dark because they are down. Doubling as bump costs four taps.
-    vec2 g=vec2(dot(texture2D(uSurface,vUv-vec2(TEXEL.x,0.0)).rgb-texture2D(uSurface,vUv+vec2(TEXEL.x,0.0)).rgb,vec3(0.34)),
-                dot(texture2D(uSurface,vUv-vec2(0.0,TEXEL.y)).rgb-texture2D(uSurface,vUv+vec2(0.0,TEXEL.y)).rgb,vec3(0.34)));
-    vec3 n=normalize(n0+(east*g.x+north*g.y)*uRelief);
-    float mu0=max(dot(n,SUN),0.0),muv=max(dot(n,eye),0.0);
-    /*
-     * Lommel-Seeliger, not Lambert: mu0/(mu0+mu). A dark, porous regolith scatters
-     * once and the emergent brightness barely falls off toward the limb, which is
-     * why the full moon reads as a flat disc rather than a shaded ball. Lambert
-     * gives you the grey plastic sphere, and no amount of tuning gets it back.
-     */
-    float scatter=mu0/max(0.05,mu0+muv);
-    // Opposition surge: at small phase angles the regolith hides its own shadows,
-    // so the disc brightens far faster than geometry says it should.
-    float phase=acos(clamp(dot(SUN,eye),-1.0,1.0));
-    // Geometric albedo 0.12 against Earth's 0.31, and the map is scanned to
-    // mid-grey — so it has to come down by roughly that ratio to be asphalt.
-    col=surface*0.44*scatter*(1.0+0.55*exp(-phase*5.5))*2.4*smoothstep(-0.04,0.05,geo);
-  }else{
-    // A gas giant has no surface: the light comes back out of a deep scattering
-    // atmosphere, so it limb-darkens hard and has no specular anywhere.
-    col=surface*(0.004+max(geo,0.0)*1.5)*pow(max(dot(n0,eye),0.02),0.42);
-    /*
-     * The rings' shadow on the planet, cast rather than faked: walk the sun ray
-     * from this point down to the equatorial plane and ask the ring's own alpha
-     * map what is standing in the way. It cannot be a painted gradient because it
-     * has to move with the axial tilt, and it is the single detail that makes the
-     * silhouette unmistakably Saturn.
-     */
-    vec3 p=normalize(vP);
-    float t=-p.y/(abs(vSun.y)<1e-3?1e-3:vSun.y);
-    float u=(length((p+vSun*t).xz)-1.24)/1.03;
-    if(t>0.0&&u>0.0&&u<1.0)col*=1.0-texture2D(uMask,vec2(u,0.5)).a*0.72;
-  }
-  // Saturn's own limb haze. Earth built its atmosphere above; the moon has none.
-  col+=uAir*pow(grazing,4.0)*smoothstep(-0.25,0.3,geo)*((uKind>0.5&&uKind<1.5)?0.5:0.0);
-  gl_FragColor=vec4(col,1.0);
-  #include <tonemapping_fragment>
-  #include <colorspace_fragment>
-}
-`
-
-const ringFragment = /* glsl */ `
-uniform vec3 uColor; uniform sampler2D uMask;
-varying vec3 vP; varying vec3 vN; varying vec3 vView; varying vec3 vSun;
-const vec3 SUN=normalize(vec3(-1.0,0.45,0.35));
-void main(){
-  float u=(length(vP.xy)-1.24)/1.03;
-  if(u<0.0||u>1.0)discard;
-  vec4 ring=texture2D(uMask,vec2(u,0.5));
-  /*
-   * The planet's shadow on the ring. The ring point lies in the equatorial plane
-   * and the planet is the unit sphere at the origin of this mesh's own frame, so
-   * the umbra is just "does the ray to the sun miss the sphere" — a dot product and
-   * a length. The soft edge is the penumbra; the floor is Saturn-shine, because a
-   * shadowed ring is lit by the planet next to it and never goes fully black.
-   */
-  vec3 q=vec3(vP.xy,0.0);
-  float s=-dot(q,vSun);
-  float umbra=s>0.0?mix(0.12,1.0,smoothstep(0.96,1.06,length(q+vSun*s))):1.0;
-  // Beer-Lambert through a slab: seen edge-on the same ice is optically thicker,
-  // which is why the ring thins to a bright line as the tilt closes.
-  float slant=1.0/max(0.10,abs(dot(normalize(vN),normalize(vView))));
-  // Ice forward-scatters, so the limb of the ring pointing away from you is the
-  // bright one. A ring of uniform brightness is the giveaway of a flat decal.
-  float forward=1.0+max(-dot(normalize(vView),SUN),0.0)*0.6;
-  gl_FragColor=vec4(uColor*ring.rgb*2.1*forward*umbra,1.0-pow(1.0-ring.a,slant));
-  #include <tonemapping_fragment>
-  #include <colorspace_fragment>
-}
-`
-
+`;
 const nebulaFragment = /* glsl */ `
-uniform float uFade; uniform sampler2D uSky; varying vec2 vUv;
-void main(){vec2 p=(vUv-0.5)*vec2(0.82,0.85);
-p=mat2(0.94,-0.34,0.34,0.94)*p;
-vec3 col=texture2D(uSky,p+vec2(0.5,0.51)).rgb*0.7;
-gl_FragColor=vec4(col*uFade,1.0);
+uniform float uFade; uniform float uChaos; uniform float uVacuum;
+varying vec3 vDir;
+void main(){
+  vec3 d = normalize(vDir);
+  vec3 col = vec3(0.014, 0.016, 0.026) * exp(-pow(d.y * 2.9, 2.0));
+  col += vec3(0.010, 0.002, 0.001) * uChaos;
+  col = mix(col, vec3(dot(col, vec3(0.34))) * vec3(0.5, 0.62, 0.78), uVacuum * 0.85);
+  gl_FragColor = vec4(col * uFade, 1.0);
 #include <tonemapping_fragment>
 #include <colorspace_fragment>
 }
-`
-
+`;
 /*
- * Stars and galaxy, one shader, and the infall lives in the vertex stage.
+ * Stars as geometry.
  *
- * On the GPU because there are several thousand of them and the alternative is a
- * per-frame CPU loop over every point; and as a custom material rather than
- * `PointsMaterial` because a galaxy needs *per-point size* — a bulge is thousands
- * of unresolved specks and the arms are the few bright ones that give a point
- * cloud any structure at all. One shared size is the difference between a galaxy
- * and gravel.
+ * These were gl_Points with a Gaussian in the fragment, and no amount of tightening
+ * that curve stopped them reading as sprites — a point sprite is a screen-aligned
+ * quad, so its brightness profile *is* the shape, and the only two outcomes are a
+ * soft ball or an aliased square. Real spheres have a silhouette instead: the disc
+ * has an edge because there is an edge, and the rasteriser resolves it the same way
+ * it resolves every other object in the scene.
  *
- * `uSpan` is the only per-object number: it sets how quickly the fall reaches
- * outward, so the same shader eats a 1-unit galaxy and a 60-metre star box.
- * The CPU twin of this maths is `spiralFall` below, which is what the check
- * script asserts — keep the two in step or the planets and the sky will fall on
- * different schedules.
+ * The radius is angular, not fixed. A star is unresolved — what varies between them
+ * is brightness, not apparent size — so the vertex stage sizes each sphere from its
+ * own view depth to land on the same pixel radius wherever it is. That also means
+ * the near shell and the deep shell match on screen despite sitting forty metres
+ * apart, which a fixed radius could not do.
+ *
+ * The swallow warp is the same arithmetic the points carried, applied to the
+ * instance's own translation before the sphere's vertices are added in view space.
  */
-const stellarVertex = /* glsl */ `
+const starVertex = /* glsl */ `
+attribute vec3 aTint; attribute float aSize; attribute float aSeed;
+uniform vec3 uHole; uniform vec3 uAxis;
+uniform float uDrain; uniform float uSuction; uniform float uTide; uniform float uOrbit;
+uniform float uSpan; uniform float uHollow; uniform float uOpacity; uniform float uAngular;
+uniform float uNear; uniform float uChaos; uniform float uVacuum; uniform float uTime;
+varying vec3 vTint; varying float vAlpha;
+void main(){
+  vec3 base = (instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+  vec3 d = base - uHole;
+  float h = dot(d, uAxis);
+  vec3 plane = d - uAxis * h;
+  float r = length(plane);
+  vec3 radial = r > 1e-4 ? plane / r : vec3(1.0, 0.0, 0.0);
+  vec3 tangent = cross(uAxis, radial);
+  float fall = min(0.985, pow(uDrain, 1.0 + r / uSpan));
+  float wind = uOrbit * min(5.0, pow(max(0.14, 1.0 - fall), -1.5)) * 0.22 * (0.75 + aSeed * 0.5);
+  float rn = r * (1.0 - fall) * (1.0 + uTide * fall * (aSeed - 0.5) * 1.7);
+  vec3 p = uHole + (radial * cos(wind) + tangent * sin(wind)) * rn + uAxis * h * (1.0 - min(1.0, fall * 1.4));
+  vec4 view = viewMatrix * modelMatrix * vec4(p, 1.0);
+  // Angular radius: uAngular is a pixel target divided by the frame, so multiplying
+  // by depth holds the star at that many pixels wherever it is.
+  float radius = uAngular * max(0.35, -view.z) * aSize * (1.0 + fall * 1.6 + uSuction * 0.3);
+  gl_Position = projectionMatrix * (view + vec4(position * radius, 0.0));
+  vTint = mix(aTint, vec3(0.72, 0.85, 1.0), fall * fall * 0.92) * (1.0 + fall * fall * 3.2 + uSuction * 0.4);
+  float starLum = dot(vTint, vec3(0.34));
+  vTint = mix(vTint, vec3(1.3, 0.12, 0.06) * starLum, uChaos * 0.9);
+  vTint = mix(vTint, vec3(0.38, 0.52, 0.66) * starLum, uVacuum);
+  /*
+   * VACUUM, as a sky and not as a dimmer. Two things a vacuum actually does to
+   * starlight: scintillation is the air's, not the star's, so every point burns
+   * steady; and the dim ones go first, which leaves a sparse field of hard bright
+   * points rather than the same field turned down. 'keep' is 1 at uVacuum 0.
+   */
+  float keep = smoothstep(uVacuum * 1.05, uVacuum * 1.05 + 0.4, aSeed * 0.55 + aSize * 0.30);
+  float twinkle = mix(0.84 + 0.16 * sin(uTime * (0.4 + aSeed * 1.4) + aSeed * 97.0), 0.84, uVacuum);
+  vAlpha = twinkle * uOpacity * mix(1.0, keep, uVacuum)
+    * (1.0 - smoothstep(0.80, 0.975, fall))
+    * smoothstep(uHollow * 0.8, uHollow * 1.4, length(p - uHole))
+    * smoothstep(uNear * 0.45, uNear, -view.z);
+}
+`;
+const starFragment = /* glsl */ `
+varying vec3 vTint; varying float vAlpha;
+void main(){
+  // No falloff and nothing to discard: the silhouette is the geometry's.
+  gl_FragColor = vec4(vTint * vAlpha, vAlpha);
+}
+`;
+
+const stellarVertex = `
 attribute vec3 aTint; attribute float aSize; attribute float aSeed;
 uniform vec3 uHole; uniform vec3 uAxis;
 uniform float uDrain; uniform float uSuction; uniform float uTide; uniform float uOrbit;
 uniform float uSpan; uniform float uHollow; uniform float uOpacity; uniform float uSize; uniform float uPixel; uniform float uNear;
+uniform float uChaos; uniform float uVacuum; uniform float uTime;
 varying vec3 vTint; varying float vAlpha;
 void main(){
   vec3 d=position-uHole;
@@ -264,285 +126,325 @@ void main(){
   float r=length(plane);
   vec3 radial=r>1e-4?plane/r:vec3(1.0,0.0,0.0);
   vec3 tangent=cross(uAxis,radial);
-  /*
-   * How far along its fall this star is. The exponent carries the whole idea: it is
-   * 1 at the centre, so the nucleus tracks the drain exactly, and it grows with
-   * radius, so the outskirts hold their orbit while the core is already gone and
-   * then let go all at once near the end. Every star still arrives at drain 1,
-   * which is what stops the outer disk from being left hanging in an empty frame.
-   *
-   * uSuction is deliberately *not* in here. It is a beat — it returns to zero
-   * between gulps — and a beat multiplied onto a position is a star coming back out
-   * of the hole between pulls, which is the one thing the swallow curve exists to
-   * forbid. The gulps are still felt, because four fifths of the drain *is* the
-   * three beats, so this climbs steeply through each one; and the kick itself goes
-   * on brightness and size below, where there is nothing to give back.
-   */
   float fall=min(0.985,pow(uDrain,1.0+r/uSpan));
-  // Angular rate runs away as the orbit decays — r^-3/2, bounded, because the rail
-  // is finite and the real law parks most of the turns in the last few pixels.
   float wind=uOrbit*min(5.0,pow(max(0.14,1.0-fall),-1.5))*0.22*(0.75+aSeed*0.5);
-  // Spaghettification for a cloud: the stream smears along the radius by a
-  // per-star amount, and the disk it came out of collapses into the plane.
   float rn=r*(1.0-fall)*(1.0+uTide*fall*(aSeed-0.5)*1.7);
   vec3 p=uHole+(radial*cos(wind)+tangent*sin(wind))*rn+uAxis*h*(1.0-min(1.0,fall*1.4));
   vec4 view=viewMatrix*modelMatrix*vec4(p,1.0);
   gl_Position=projectionMatrix*view;
-  gl_PointSize=uPixel*uSize*aSize*(1.0+fall*1.6+uSuction*0.3)/max(0.35,-view.z);
-  // Beamed and blueshifted on the way down, then gone: light from inside the
-  // horizon does not come back out, and nothing draws inside the shadow either —
-  // which is also what puts the dark bite in the middle of the bulge. The
-  // convergence to blue-white is heavy on purpose: at a lighter mix the infalling
-  // arms keep their own colours and the whole collapse reads as pink confetti.
+  gl_PointSize=min(24.0,uPixel*uSize*aSize*(1.0+fall*1.6+uSuction*0.3)/max(0.35,-view.z));
   vTint=mix(aTint,vec3(0.72,0.85,1.0),fall*fall*0.92)*(1.0+fall*fall*3.2+uSuction*0.4);
-  vAlpha=uOpacity*(1.0-smoothstep(0.80,0.975,fall))*smoothstep(uHollow*0.8,uHollow*1.4,length(p-uHole))
-    // Nothing within a few metres of the lens. The galaxy shares the accretion
-    // disk's plane, which runs almost straight down the corridor, so the camera
-    // passes *through* its near arm on the way to the gate — and a star three metres
-    // away is a fat coloured blob rather than a star. Fading them is cheaper than
-    // shrinking the galaxy until it no longer frames the aperture it is behind.
+  float starLum=dot(vTint,vec3(0.34));
+  vTint=mix(vTint,vec3(1.3,0.12,0.06)*starLum,uChaos*0.9);
+  vTint=mix(vTint,vec3(0.38,0.52,0.66)*starLum,uVacuum);
+  /*
+   * VACUUM, as a sky and not as a dimmer.
+   *
+   * Two things a vacuum actually does to starlight. Scintillation is the air's,
+   * not the star's — take the medium away and every point burns steady. And the
+   * dim ones go first: a fading uniform opacity is VISCOUS with the brightness
+   * down, while an extinction that climbs the luminance ladder leaves a sparse
+   * field of hard bright points, which is what deep space looks like. 'keep' is
+   * 1 for everything at uVacuum 0, so the other laws pay nothing.
+   */
+  float keep=smoothstep(uVacuum*1.05,uVacuum*1.05+0.4,aSeed*0.55+aSize*0.30);
+  float twinkle=mix(0.84+0.16*sin(uTime*(0.4+aSeed*1.4)+aSeed*97.0),0.84,uVacuum);
+  vAlpha=twinkle*uOpacity*mix(1.0,keep,uVacuum)*(1.0-smoothstep(0.80,0.975,fall))*smoothstep(uHollow*0.8,uHollow*1.4,length(p-uHole))
     *smoothstep(uNear*0.45,uNear,-view.z);
 }
-`
+`;
 const stellarFragment = /* glsl */ `
 varying vec3 vTint; varying float vAlpha;
 void main(){
   vec2 q=gl_PointCoord-0.5;
   float d=dot(q,q);
   if(d>0.25)discard;
-  // Gaussian, not a disc: a star is a point spread function, and a hard circle two
-  // pixels across reads as confetti.
-  float core=exp(-d*11.0);
+  /*
+   * A point, not a puff.
+   *
+   * Two things were making these read as fuzz. The falloff was exp(-46 d), whose
+   * 1/e radius is nearly a third of the quad — on a sprite four or five device
+   * pixels across that is a soft ball, not a star. And there was a second wide term
+   * at a tenth strength filling the rest of the quad, which is invisible on one
+   * sprite and is haze once a few thousand of them overlap additively.
+   *
+   * 150 puts the 1/e radius inside a sixth of the quad, so effectively all the light
+   * lands in the middle pixel or two and the edge is already black before the
+   * discard — which is what stops the quad's own square from showing. The halo is
+   * gone. A star is a point source and the honest way to draw one is to make it
+   * small and let it be bright.
+   */
+  float core=exp(-d*150.0);
   gl_FragColor=vec4(vTint*core,vAlpha*core);
 }
-`
-
+`;
 const random = (seed: number) => {
-  const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453
-  return x - Math.floor(x)
-}
-/** Three uniforms summed: near enough to normal, in one line, and deterministic. */
+  const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+};
 const gauss = (seed: number) =>
-  (random(seed) + random(seed + 101) + random(seed + 211) - 1.5) / 1.5
-
-/**
- * Arm pitch, radians. The Milky Way's is ~12°.
- *
- * The number that decides whether the thing reads as a galaxy. A logarithmic
- * spiral opens out as it goes, which is why real arms sweep; the previous pass
- * placed stars by `i % 3` at a fixed angular rate, and a fixed rate draws an
- * Archimedean spiral — evenly spaced arcs that read as a pinwheel decal.
- */
-const ARM_PITCH = 0.24
-/** Two arms. Grand-design spirals have two; three or more reads as a flower. */
-const ARMS = 2
-/** Scale length of the disk, in galaxy radii. Sets where the light actually is. */
-const DISK_SCALE = 0.2
-/**
- * Outer edge of the bulge, in galaxy radii — its half-light radius lands about a
- * third of the way in.
- *
- * Sized against the *shadow*, not against the disk. The shader hollows out every
- * star inside ~1.4× the shadow's apparent radius, which at the top of the corridor
- * is about 0.1 in these units, so a tighter bulge is a bulge that is entirely behind
- * the hole and therefore invisible. The draw stays under 0.35 R so it does not
- * thicken the disk's flare band; the exponent parks half the light just outside
- * the hollow — a bright halo hugging the shadow, which is the whole image.
- */
-const BULGE_R = 0.33
-/**
- * How many disk stars ignore the arms, and why any of them must.
- *
- * A galaxy is not two ribbons. Real spirals carry a smooth disk underneath the arms,
- * and without it the arm/inter-arm contrast is total — the first pass at this
- * measured nineteen times the mean azimuthal density, which draws as a pinwheel
- * line-art rather than as a mass of stars with structure in it.
- */
-const SMOOTH_DISK = 0.3
-
-/*
- * The two stellar populations, and why they are colours rather than hues.
- *
- * A K-giant bulge and a B-star arm, interpolated in RGB. The first pass ran a hue
- * ramp from 0.1 to 0.6 instead, which is the obvious thing to write and is wrong for
- * one reason: the shortest hue path from yellow to blue goes through *green*, so the
- * mid-radius arms came out teal and the whole object read as a smudge of pond water.
- * Real populations run yellow → white → blue, which is what a straight line in RGB
- * between these two does.
- */
-const OLD_STARS = new THREE.Color('#ffd2a1')
-const YOUNG_STARS = new THREE.Color('#8fb8ff')
-/** HII regions: ionised hydrogen, and the only saturated thing in a real spiral. */
-const HII_REGION = new THREE.Color('#ff86a8')
-
+  (random(seed) + random(seed + 101) + random(seed + 211) - 1.5) / 1.5;
+const ARM_PITCH = 0.24;
+const ARMS = 2;
+const DISK_SCALE = 0.2;
+const BULGE_R = 0.33;
+const SMOOTH_DISK = 0.3;
+const OLD_STARS = new THREE.Color("#ffd2a1");
+const YOUNG_STARS = new THREE.Color("#8fb8ff");
+const HII_REGION = new THREE.Color("#ff86a8");
 interface Stellar {
-  position: Float32Array
-  tint: Float32Array
-  size: Float32Array
-  seed: Float32Array
+  position: Float32Array;
+  tint: Float32Array;
+  size: Float32Array;
+  seed: Float32Array;
 }
+/*
+ * One icosahedron, shared by every star.
+ *
+ * Subdivision zero — twenty triangles. At the pixel and a half these are drawn at,
+ * anything rounder is triangles nobody can see; the silhouette is already smoother
+ * than the pixel grid it lands on.
+ */
+const STAR_GEOMETRY = new THREE.IcosahedronGeometry(1, 0);
+
+const swarm = (
+  { position, tint, size, seed }: Stellar,
+  material: THREE.ShaderMaterial,
+): THREE.InstancedMesh => {
+  const count = size.length;
+  /*
+   * Cloned, not shared. The per-instance attributes below live on the geometry, so
+   * two swarms pointing at one icosahedron would each overwrite the other's tints
+   * and sizes — the second call would silently win and the first field would take
+   * the wrong colours. Twenty triangles is a cheap thing to duplicate twice.
+   */
+  const mesh = new THREE.InstancedMesh(STAR_GEOMETRY.clone(), material, count);
+  const at = new THREE.Matrix4();
+  for (let i = 0; i < count; i += 1) {
+    at.makeTranslation(position[i * 3], position[i * 3 + 1], position[i * 3 + 2]);
+    mesh.setMatrixAt(i, at);
+  }
+  mesh.instanceMatrix.needsUpdate = true;
+  const geometry = mesh.geometry;
+  geometry.setAttribute("aTint", new THREE.InstancedBufferAttribute(tint, 3));
+  geometry.setAttribute("aSize", new THREE.InstancedBufferAttribute(size, 1));
+  geometry.setAttribute("aSeed", new THREE.InstancedBufferAttribute(seed, 1));
+  // Every star is somewhere; culling the swarm as one box would drop the lot the
+  // moment the lens turns away from its centre.
+  mesh.frustumCulled = false;
+  return mesh;
+};
+
+const starMaterial = (span: number, near: number) =>
+  new THREE.ShaderMaterial({
+    vertexShader: starVertex,
+    fragmentShader: starFragment,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    uniforms: {
+      uHole: { value: new THREE.Vector3() },
+      uAxis: { value: new THREE.Vector3(0, 1, 0) },
+      uDrain: { value: 0 },
+      uSuction: { value: 0 },
+      uTide: { value: 0 },
+      uOrbit: { value: 0 },
+      uSpan: { value: span },
+      uHollow: { value: 0.01 },
+      uOpacity: { value: 0 },
+      uAngular: { value: 0.0012 },
+      uNear: { value: near },
+      uChaos: { value: 0 },
+      uVacuum: { value: 0 },
+      uTime: { value: 0 },
+    },
+  });
 
 const attach = ({ position, tint, size, seed }: Stellar) =>
   new THREE.BufferGeometry()
-    .setAttribute('position', new THREE.BufferAttribute(position, 3))
-    .setAttribute('aTint', new THREE.BufferAttribute(tint, 3))
-    .setAttribute('aSize', new THREE.BufferAttribute(size, 1))
-    .setAttribute('aSeed', new THREE.BufferAttribute(seed, 1))
-
-/**
- * A spiral galaxy, in normalised units: everything lands inside radius 1, centred
- * on the origin, with the disk in the XZ plane. The caller scales and orients it,
- * which is what lets the nucleus be pinned to the singularity.
- *
- * Five things have to be true at once or the cloud does not read as a galaxy, and
- * each is one clause below:
- *
- * - **A bulge.** Dense, steeply concentrated, and reaching right up to the middle,
- *   so the eye is handed a single centre. Without one the arms read as an annulus
- *   with a hole in it, which is precisely what a well at the centre must not look
- *   like — the shadow has to be a bite taken out of light, not a gap.
- * - **Logarithmic arms**, at a real pitch, with the scatter falling off as 1/r
- *   because an arm's width is roughly constant in distance rather than in angle.
- * - **An exponential disk.** Sampled as Gamma(2, h) — the sum of two logs — which
- *   is exactly the r·e^(-r/h) profile a disk's star counts follow, so the light
- *   peaks a fifth of the way out and tails off instead of filling to the rim.
- * - **A thin disk that flares**, because the same vertical dispersion carries
- *   further out where the disk's own gravity is weaker.
- * - **A colour gradient.** Old and metal-rich in the middle, still forming stars in
- *   the arms. This is the cue that says which part of the object is its centre,
- *   and it is doing as much work as the density.
- *
- * Deterministic, so the check script can assert on it: `random` is a hash of the
- * attempt index, and rejections do not shift any other point's draw.
- */
+    .setAttribute("position", new THREE.BufferAttribute(position, 3))
+    .setAttribute("aTint", new THREE.BufferAttribute(tint, 3))
+    .setAttribute("aSize", new THREE.BufferAttribute(size, 1))
+    .setAttribute("aSeed", new THREE.BufferAttribute(seed, 1));
 export const galaxyGeometry = (count: number): Stellar => {
-  const position = new Float32Array(count * 3)
-  const tint = new Float32Array(count * 3)
-  const size = new Float32Array(count)
-  const seed = new Float32Array(count)
-  const color = new THREE.Color()
-  let written = 0
+  const position = new Float32Array(count * 3);
+  const tint = new Float32Array(count * 3);
+  const size = new Float32Array(count);
+  const seed = new Float32Array(count);
+  const color = new THREE.Color();
+  let written = 0;
   for (let k = 0; written < count && k < count * 8; k += 1) {
-    // Stride wider than the largest offset used below, or one attempt's hash is the
-    // next attempt's and the "random" numbers are correlated across points.
-    const s = k * 17
-    const bulge = random(s + 1) < 0.34
-    let r: number
-    let x: number
-    let y: number
-    let z: number
+    const s = k * 17;
+    const bulge = random(s + 1) < 0.34;
+    let r: number;
+    let x: number;
+    let y: number;
+    let z: number;
     if (bulge) {
-      // A flattened spheroid, not a ball: a real bulge is boxy and ~0.6 as tall as
-      // it is wide. Power 1.2 still concentrates, but parks the half-light just
-      // outside the hollow — steeper and the nucleus is a bite with nothing around it.
-      r = BULGE_R * random(s + 2) ** 1.2
-      const cosT = random(s + 3) * 2 - 1
-      const phi = random(s + 4) * Math.PI * 2
-      const sinT = Math.sqrt(Math.max(0, 1 - cosT * cosT))
-      x = r * sinT * Math.cos(phi)
-      z = r * sinT * Math.sin(phi)
-      y = r * cosT * 0.6
+      r = BULGE_R * random(s + 2) ** 1.2;
+      const cosT = random(s + 3) * 2 - 1;
+      const phi = random(s + 4) * Math.PI * 2;
+      const sinT = Math.sqrt(Math.max(0, 1 - cosT * cosT));
+      x = r * sinT * Math.cos(phi);
+      z = r * sinT * Math.sin(phi);
+      y = r * cosT * 0.6;
     } else {
       r =
         -DISK_SCALE *
-        (Math.log(1 - random(s + 2) * 0.999) + Math.log(1 - random(s + 3) * 0.999))
-      if (r > 1) continue
-      const off = gauss(s + 5)
-      const inArm = random(s + 12) >= SMOOTH_DISK
-      /*
-       * A dust lane is an absence, not a dark star. Additive points cannot draw
-       * one, so the lane is carved by rejecting the arm stars that fall on the
-       * arm's inner edge — which is also what is physically going on: the dust
-       * sits in front of the light and what reaches you is the hole it leaves.
-       */
-      if (inArm && Math.abs(off + 0.42) < 0.14 && random(s + 6) < 0.85) continue
-      // Arm width is roughly constant in *distance*, so it narrows in angle as the
-      // radius grows — which is why real arms look like they converge on the middle.
+        (Math.log(1 - random(s + 2) * 0.999) +
+          Math.log(1 - random(s + 3) * 0.999));
+      if (r > 1) continue;
+      const off = gauss(s + 5);
+      const inArm = random(s + 12) >= SMOOTH_DISK;
+      if (inArm && Math.abs(off + 0.42) < 0.14 && random(s + 6) < 0.85)
+        continue;
       const theta = inArm
         ? Math.floor(random(s + 4) * ARMS) * ((Math.PI * 2) / ARMS) +
           Math.log(Math.max(r, 0.02) / 0.05) / Math.tan(ARM_PITCH) +
           off * (0.35 + 0.45 / (1 + r * 5))
-        : random(s + 13) * Math.PI * 2
-      x = Math.cos(theta) * r
-      z = Math.sin(theta) * r
-      y = (0.008 + r * 0.05) * gauss(s + 7)
+        : random(s + 13) * Math.PI * 2;
+      x = Math.cos(theta) * r;
+      z = Math.sin(theta) * r;
+      y = (0.008 + r * 0.05) * gauss(s + 7);
     }
-    position.set([x, y, z], written * 3)
-    // Old and yellow in the middle, young and blue in the arms. The bulge is pinned
-    // at zero rather than graded by radius because it is a different population, not
-    // the inner end of the same one — and that step is the cue that tells a viewer
-    // which part of the object is its centre.
-    const hii = !bulge && r > 0.18 && random(s + 8) > 0.982
+    position.set([x, y, z], written * 3);
+    const hii = !bulge && r > 0.18 && random(s + 8) > 0.982;
     color
       .copy(hii ? HII_REGION : OLD_STARS)
       .lerp(YOUNG_STARS, hii || bulge ? 0 : Math.min(1, (r / 0.45) ** 0.8))
-      .multiplyScalar(hii ? 0.55 : 0.26 + random(s + 9) ** 3 * 0.62)
-    color.toArray(tint, written * 3)
+      .multiplyScalar(hii ? 0.55 : 0.26 + random(s + 9) ** 3 * 0.62);
+    color.toArray(tint, written * 3);
     size[written] = hii
       ? 2.0
       : bulge
         ? 0.5 + random(s + 10) * 0.5
-        : 0.65 + random(s + 10) ** 2.4 * 2.3
-    seed[written] = random(s + 6)
-    written += 1
+        : 0.65 + random(s + 10) ** 2.4 * 2.3;
+    seed[written] = random(s + 6);
+    written += 1;
   }
-  return { position, tint, size, seed }
-}
+  return { position, tint, size, seed };
+};
+/*
+ * Field stars, on a shell around the corridor rather than in a slab ahead of it.
+ *
+ * This used to fill a box — x ±32, y ±20, z from 12 down to −53 — which is exactly
+ * the volume a camera pointed down the corridor can see, and nothing else. It was
+ * the right shape until the lens started turning: on the far side of Earth's lap the
+ * shot faces back up the corridor and out to port, where the box has no stars at
+ * all, so the sky went black in the one place the visitor had never looked before.
+ *
+ * A shell instead, centred on the middle of the rail. Radius rather than extent, so
+ * every bearing gets the same density, and the cube root on the radius keeps that
+ * density even through the volume instead of piling stars against the inside face.
+ */
+const FIELD_CENTRE = new THREE.Vector3(0, 2, -14);
 
-/** The far field: a box of stars behind the room, no structure, just depth. */
-const fieldGeometry = (count: number): Stellar => {
-  const position = new Float32Array(count * 3)
-  const tint = new Float32Array(count * 3)
-  const size = new Float32Array(count)
-  const seed = new Float32Array(count)
-  const color = new THREE.Color()
+/*
+ * The deep field: everything out there that is only there to be out there.
+ *
+ * Separate from the star field on purpose, and the difference is not distance, it is
+ * whether the well is allowed to have it. The field drains — it is part of what the
+ * ending eats, and its material is driven every frame from the swallow. This layer
+ * never is: nothing writes `uDrain` on the material it shares with the far galaxies,
+ * so these sit exactly where they are put, through the corridor, through the finale
+ * and through every law. Scenery, not matter.
+ *
+ * A thick shell rather than a sphere, and further out than the field, so it
+ * parallaxes barely at all against it — which is what sells the field as *near*
+ * stars and these as the rest of the universe behind them.
+ *
+ * 58 to 88 metres, and the ceiling is not taste: the camera is built with
+ * `far: 110` (see `ReactorScene`). The first version of this layer sat at 95 to 150
+ * and the sky dome at 150, so the dome was clipped away in its entirety and most of
+ * these with it — which is exactly why the background read as empty no matter what
+ * was put in it. Anything meant to be seen out here has to fit inside 110 metres of
+ * the lens at every point on the rail. Colour runs cool by
+ * default with a sixth warm and a scattering of genuinely red ones, because a sky
+ * where every star is the same hue reads as noise rather than as distance.
+ */
+const deepGeometry = (count: number): Stellar => {
+  const position = new Float32Array(count * 3);
+  const tint = new Float32Array(count * 3);
+  const size = new Float32Array(count);
+  const seed = new Float32Array(count);
+  const color = new THREE.Color();
   for (let i = 0; i < count; i += 1) {
+    const cosT = random(i * 3 + 5) * 2 - 1;
+    const phi = random(i * 3 + 7) * Math.PI * 2;
+    const sinT = Math.sqrt(Math.max(0, 1 - cosT * cosT));
+    const radius = 58 + random(i * 3 + 11) ** (1 / 3) * 30;
     position.set(
       [
-        (random(i + 2) - 0.5) * 64,
-        (random(i + 3) - 0.5) * 40,
-        12 - random(i + 4) * 65,
+        FIELD_CENTRE.x + radius * sinT * Math.cos(phi),
+        FIELD_CENTRE.y + radius * cosT,
+        FIELD_CENTRE.z + radius * sinT * Math.sin(phi),
       ],
       i * 3,
-    )
-    // Mostly hot and blue-white with a scattering of red giants, which is roughly
-    // what a naked-eye sky is and keeps the field from reading as grey noise.
-    color.setHSL(random(i + 7) > 0.84 ? 0.06 : 0.58, 0.2, 0.34 + random(i + 8) ** 3 * 0.6)
-    color.toArray(tint, i * 3)
-    size[i] = 0.5 + random(i + 11) ** 3 * 2.2
-    seed[i] = random(i + 13)
+    );
+    // Same temperature spread as the near field — see the note there.
+    const warm = random(i * 3 + 13);
+    color.setHSL(
+      warm > 0.94 ? 0.03 : warm > 0.82 ? 0.1 : warm > 0.56 ? 0.14 : 0.6,
+      warm > 0.82 ? 0.2 : 0.08,
+      0.3 + random(i * 3 + 19) ** 3 * 0.65,
+    );
+    color.toArray(tint, i * 3);
+    /*
+     * Nearly all the same size, and that is the point.
+     *
+     * A star is a point source: at eighty metres none of these is resolved, so what
+     * separates one from another is how bright it is, not how wide. The first pass
+     * spread the size over eight to one and the bright ones came out twelve pixels
+     * across — which does not read as a bright star, it reads as an out-of-focus
+     * smudge. The variety moved to lightness above, where it belongs.
+     */
+    size[i] = 0.9 + random(i * 3 + 23) ** 2 * 0.85;
+    seed[i] = random(i * 3 + 29);
   }
-  return { position, tint, size, seed }
-}
+  return { position, tint, size, seed };
+};
 
-/**
- * Where a body at orbital radius `r` and height `h` above the disk has got to.
- *
- * The CPU twin of `stellarVertex`'s infall, and the reason both exist: the planets
- * are three objects that also need a tidal *scale*, the stars are thousands that
- * do not, but they have to fall on one schedule or the sky and the worlds in front
- * of it visibly disagree about when the ending is happening.
- *
- * A straight `position.lerp(holeCenter, drain)` — what this replaces — is the one
- * thing infalling matter never does. Three things are needed instead:
- *
- * - The orbit **decays** rather than the position interpolating, and it decays from
- *   the inside out: `pow(drain, 1 + r/span)` is 1 at the centre and steepens with
- *   radius, so the near matter goes first and the far matter holds and then lets go.
- * - The **angular rate runs away**, as r^-3/2 — Kepler's third law, and the single
- *   most recognisable thing about a body falling into a well. Bounded at five times,
- *   because the real law is a divergence and the scroll rail is a few hundred pixels.
- * - The body is **stretched**: gravity's gradient goes as 1/r³ and pulls the near
- *   side harder than the far, so it is drawn out along the line to the hole and
- *   squeezed across it, and the out-of-plane height collapses into the disk.
- *
- * Every channel is a monotone function of the drain, and `suction` is deliberately
- * absent from all of them: a gulp is a beat that returns to zero, so multiplying a
- * *position* by it hands the well's matter back between pulls. The beats are still
- * there — four fifths of the drain is the three gulps, so each one is a steep climb
- * in this curve — and the kick itself lives on brightness in the shader, where there
- * is nothing to give back. `scripts/check-cosmos.ts` asserts all of it.
- */
+const fieldGeometry = (count: number): Stellar => {
+  const position = new Float32Array(count * 3);
+  const tint = new Float32Array(count * 3);
+  const size = new Float32Array(count);
+  const seed = new Float32Array(count);
+  const color = new THREE.Color();
+  for (let i = 0; i < count; i += 1) {
+    const cosT = random(i + 2) * 2 - 1;
+    const phi = random(i + 3) * Math.PI * 2;
+    const sinT = Math.sqrt(Math.max(0, 1 - cosT * cosT));
+    const radius = 46 + (48 * random(i + 4)) ** (1 / 3) * 12;
+    position.set(
+      [
+        FIELD_CENTRE.x + radius * sinT * Math.cos(phi),
+        FIELD_CENTRE.y + radius * cosT * 0.72,
+        FIELD_CENTRE.z + radius * sinT * Math.sin(phi),
+      ],
+      i * 3,
+    );
+    /*
+     * Colour by stellar type rather than by decoration.
+     *
+     * Real starlight is nearly white — the hue is a temperature, and even a deep
+     * orange giant is only faintly orange to the eye. The spread here is roughly the
+     * proportions of a naked-eye sky: mostly white and blue-white, a fifth yellow,
+     * a tenth orange, and the odd red. Saturation stays under a quarter, because the
+     * saturated blue this used to carry is the single thing that made the field read
+     * as confetti instead of as stars.
+     */
+    const kind = random(i + 7)
+    color.setHSL(
+      kind > 0.93 ? 0.04 : kind > 0.8 ? 0.09 : kind > 0.55 ? 0.13 : 0.6,
+      kind > 0.8 ? 0.22 : 0.1,
+      0.34 + random(i + 8) ** 3 * 0.6,
+    );
+    color.toArray(tint, i * 3);
+    size[i] = 0.5 + random(i + 11) ** 3 * 2.2;
+    seed[i] = random(i + 13);
+  }
+  return { position, tint, size, seed };
+};
 export const spiralFall = (
   r: number,
   h: number,
@@ -550,8 +452,8 @@ export const spiralFall = (
   span: number,
   seed = 0.5,
 ) => {
-  const fall = Math.min(0.985, shape.drain ** (1 + r / span))
-  const stretch = 1 + shape.tide * fall * 1.5
+  const fall = Math.min(0.985, shape.drain ** (1 + r / span));
+  const stretch = 1 + shape.tide * fall * 1.5;
   return {
     fall,
     radius: r * (1 - fall) * (1 + shape.tide * fall * (seed - 0.5) * 1.7),
@@ -561,58 +463,46 @@ export const spiralFall = (
       Math.min(5, Math.max(0.14, 1 - fall) ** -1.5) *
       0.22 *
       (0.75 + seed * 0.5),
-    /** Radial elongation of a solid body, 1 → 2.5. */
     stretch,
-    /**
-     * ...and the transverse compression, which is not a free parameter.
-     *
-     * A tidal field shears at fixed density, so the map has to preserve volume:
-     * 1/√stretch is the only squeeze that does. Two independently tuned
-     * coefficients — what this used to be — quietly inflate the body while
-     * elongating it, so a planet on its way in got *bigger* before it got long,
-     * which reads as ballooning rather than as being pulled apart.
-     */
     squeeze: 1 / Math.sqrt(stretch),
-  }
-}
-
-/**
- * The galaxy's radius, in metres.
+  };
+};
+/*
+ * Galaxies the corridor never points at.
  *
- * Bounded from above by the corridor rather than by taste. The disk shares the
- * accretion disk's plane, which runs very nearly straight down the corridor, so a
- * galaxy much wider than this puts its near arm level with the lens at the finale's
- * closest approach (`APPROACH_Z` is 12 m from the singularity) and the visitor
- * watches stars slide past the camera. At 8.4 the near edge stays ~4 m ahead of the
- * lens, and from 12 m out the arms still subtend ~70°, wider than the aperture they
- * frame — which is what makes the gate read as a window cut into a galaxy.
+ * The rail looks one way for its whole length, so everything in this scene was built
+ * where that one view could see it — and the moment the Rig started lapping Earth,
+ * the shot spent half the detour facing directions that had nothing in them but a
+ * flat sky. These are what is out there when the lens turns: three more spirals, far
+ * enough to be a smudge and a few hundred stars, placed off the rail's axis rather
+ * than along it.
+ *
+ * They reuse the nucleus galaxy's own geometry — same generator, same buffer, one
+ * extra draw call each — because a distant galaxy is the near one seen small, and
+ * authoring a second kind of spiral to say that would be a worse answer than a
+ * rotation and a scale.
+ *
+ * Placed on a ring around *Earth* rather than scattered off the rail, which is the
+ * correction that made them show up at all. The lap carries the lens around Earth
+ * looking inward, so the patch of sky behind the planet sweeps a full circle as it
+ * goes; a ring centred on Earth is therefore the one arrangement where each of them
+ * is guaranteed to come up behind it. Scattered anywhere else they were real, lit
+ * and off-frame for the whole detour.
  */
-const GALAXY_RADIUS = 8.4
-/** Infall span for the galaxy, in its own normalised units, and for the far field. */
-const GALAXY_SPAN = 0.22
-const FIELD_SPAN = 14
-/** Span for the worlds, in metres: the corridor's own length, so they fall with it. */
-const PLANET_SPAN = 12
-/**
- * Corridor cruise, radians at r = PLANET_SPAN over build 0→1. Keplerian (r^{-3/2})
- * and a fraction of a radian — they frame the well; they do not cross the lens.
- */
-const CRUISE = 0.16
+const FAR_GALAXIES = [
+  { at: [43.2, 16, 38.5], scale: 5, tilt: [0.5, 0.9, -0.3] },
+  { at: [-59.1, -10, 20.4], scale: 4.2, tilt: [-0.9, 0.2, 0.6] },
+  { at: [7.7, 26, -59.2], scale: 4.6, tilt: [0.2, -1.3, 0.35] },
+  { at: [-38, 30, -52], scale: 3.4, tilt: [1.1, 0.4, 0.2] },
+  { at: [52, -26, -34], scale: 3.8, tilt: [-0.4, -0.7, 0.9] },
+] as const;
 
-const PLANETS = [
-  // Earth. Axial tilt 23.4°, and the only one that gets the whole shader.
-  { at: [0, 1.62, 5.15], size: 1.08, air: '#5f9fe0', kind: 0, tilt: 0.41, spin: 2.8, phase: 2.2, relief: 2.6, ring: false },
-  // Saturn. 26.7° of tilt is what opens the rings to the ~27° they are famous for.
-  { at: [4.1, 3.3, -3.8], size: 1.65, air: '#c8b489', kind: 1, tilt: 0.47, spin: 1.2, phase: 1.7, relief: 0, ring: true },
-  { at: [-4.6, 3.1, -12.8], size: 1.35, air: '#000000', kind: 2, tilt: 0.09, spin: 1.2, phase: 3.4, relief: 1.9, ring: false },
-] as const
-
-const UP = new THREE.Vector3(0, 1, 0)
-const AXIS = new THREE.Vector3()
-const RADIAL = new THREE.Vector3()
-const TANGENT = new THREE.Vector3()
-const SPIN = new THREE.Quaternion()
-
+const GALAXY_RADIUS = 11.4;
+const GALAXY_SPAN = 0.22;
+const FIELD_SPAN = 14;
+const UP = new THREE.Vector3(0, 1, 0);
+const AXIS = new THREE.Vector3();
+const SPIN = new THREE.Quaternion();
 const stellarMaterial = (span: number, size: number, near: number) =>
   new THREE.ShaderMaterial({
     vertexShader: stellarVertex,
@@ -633,265 +523,198 @@ const stellarMaterial = (span: number, size: number, near: number) =>
       uSize: { value: size },
       uPixel: { value: 540 },
       uNear: { value: near },
+      uTime: { value: 0 },
+      uChaos: { value: 0 },
+      uVacuum: { value: 0 },
     },
-  })
-
-const MAPS = [
-  '/cosmos/earth.webp',
-  '/cosmos/earth-mask.webp',
-  '/cosmos/night.webp',
-  '/cosmos/moon.webp',
-  '/cosmos/saturn.webp',
-  '/cosmos/ring.webp',
-  '/cosmos/sky.webp',
-] as const
-
+  });
 export const CosmicWorld = ({ quality }: { quality: Quality }) => {
-  const maps = useLoader(THREE.TextureLoader, [...MAPS])
-  const worlds = useRef<THREE.Group>(null)
-  const galaxy = useRef<THREE.Points>(null)
-  const stars = useRef<THREE.Points>(null)
+  const galaxy = useRef<THREE.Points>(null);
+  const backdrop = useRef<THREE.Mesh>(null);
   const resources = useMemo(() => {
-    const [earth, mask, night, moon, saturn, ring, sky] = maps
-    for (const map of maps) {
-      map.colorSpace = THREE.SRGBColorSpace
-      map.anisotropy = 4
-      // Equirectangular maps wrap in longitude, and the cloud deck is sampled at a
-      // rolling offset — without this the seam clamps into a smear at the dateline.
-      map.wrapS = THREE.RepeatWrapping
-    }
-    // The packed mask is data, not a photograph. Left as sRGB, its elevation, land
-    // and cloud channels all come back gamma-decoded and every threshold below
-    // reads the wrong number.
-    mask.colorSpace = THREE.LinearSRGBColorSpace
-    ring.wrapS = THREE.ClampToEdgeWrapping
-    const surfaces = [earth, saturn, moon]
-    const planets = PLANETS.map(
-      (p, i) =>
-        new THREE.ShaderMaterial({
-          vertexShader: vertex,
-          fragmentShader: planetFragment,
-          uniforms: {
-            uAir: { value: new THREE.Color(p.air) },
-            uKind: { value: p.kind },
-            uCloudSpin: { value: 0 },
-            uRelief: { value: p.relief },
-            uSurface: { value: surfaces[i] },
-            uNight: { value: night },
-            uMask: { value: p.kind === 1 ? ring : mask },
-            uTideDir: { value: new THREE.Vector3(0, 0, -1) },
-            uTide: { value: 0 },
-            uSqueeze: { value: 1 },
-          },
-        }),
-    )
+    const field = starMaterial(FIELD_SPAN, 1.5)
+    const dust = starMaterial(GALAXY_SPAN, 0.4)
     return {
-      planets,
-      rings: PLANETS.map(
-        (p) =>
-          new THREE.ShaderMaterial({
-            vertexShader: vertex,
-            fragmentShader: ringFragment,
-            transparent: true,
-            depthWrite: false,
-            side: THREE.DoubleSide,
-            uniforms: {
-              uColor: { value: new THREE.Color(p.air) },
-              uMask: { value: ring },
-              uTideDir: { value: new THREE.Vector3(0, 0, -1) },
-              uTide: { value: 0 },
-              uSqueeze: { value: 1 },
-            },
-          }),
-      ),
-      sphere: new THREE.SphereGeometry(1, 64, 40),
-      // Inner and outer edge of the real ring system, in planet radii: the C ring
-      // starts at 1.24 and the A ring ends at 2.27. The alpha map's u runs across
-      // exactly that span, so both shaders can invert it from a radius.
-      ring: new THREE.RingGeometry(1.24, 2.27, 200),
-      stars: attach(fieldGeometry(quality === 'cinema' ? 3000 : 1200)),
-      galaxy: attach(galaxyGeometry(quality === 'cinema' ? 9000 : 3200)),
+      field,
+      dust,
+      galaxy: attach(galaxyGeometry(quality === "cinema" ? 9000 : 3200)),
       /*
-       * Point sizes, in the same units three.js's own `sizeAttenuation` uses:
-       * pixels = uSize · aSize · (height·dpr/2) / distance.
-       *
-       * Both were an order of magnitude smaller to begin with — inherited from a
-       * `PointsMaterial` size of 0.041 — and at the twenty-odd metres the galaxy is
-       * seen from down the corridor that works out to under a pixel per star. Which
-       * is why it read as a faint smudge no matter how good the geometry was: the
-       * arms were there, they were just being rendered below the resolution of the
-       * screen. At 0.06 the bright arm stars land at three or four pixels and the
-       * bulge's specks at under one, which is the contrast a galaxy is made of.
+       * Counts down again, and this time it is the geometry that asks for it: each
+       * of these is twenty triangles rather than a quad, and each is a *resolved*
+       * disc rather than a smear, so far fewer of them fill a sky. Nine hundred and
+       * six hundred put roughly eighty stars in a 42-degree frame, which is about
+       * what a dark-sky night gives the naked eye.
        */
-      // 4.2 m for the galaxy is measured, not chosen: at the finale's closest
-      // approach its near arm stands ~4.3 m ahead of the lens, so this clears the
-      // stars the camera is inside of and leaves the ones that frame the aperture.
-      field: stellarMaterial(FIELD_SPAN, 0.036, 1.5),
+      stars: swarm(fieldGeometry(quality === "cinema" ? 600 : 260), field),
+      deep: swarm(deepGeometry(quality === "cinema" ? 900 : 380), dust),
       halo: stellarMaterial(GALAXY_SPAN, 0.06, 4.2),
+      /*
+       * Their own material, and deliberately never driven. Sharing the nucleus's
+       * would drain them into the well along with everything else, and a galaxy
+       * eighty metres off the rail is not in the well's reach — it is the sky.
+       */
+      /*
+       * Point size 0.12 against the nucleus's 0.06, and that is distance arithmetic
+       * rather than taste. These sit sixty-odd metres out where the nucleus sits at
+       * twenty-five, and `gl_PointSize` divides by view depth: at 0.06 every star in
+       * them measured under half a pixel, which does not render as a faint galaxy,
+       * it renders as nothing at all — while 0.22, the first correction, overshot
+       * into blur.
+       */
+      far: stellarMaterial(GALAXY_SPAN, 0.12, 1.0),
       nebula: new THREE.ShaderMaterial({
-        vertexShader: vertex,
+        // Seen from inside, so the winding is backwards and depth is nobody's
+        // business: this is the far wall of everything.
+        side: THREE.BackSide,
+        vertexShader: skyVertex,
         fragmentShader: nebulaFragment,
         depthWrite: false,
         uniforms: {
           uFade: { value: 1 },
-          uSky: { value: sky },
-          uTideDir: { value: new THREE.Vector3(0, 0, -1) },
-          uTide: { value: 0 },
-          uSqueeze: { value: 1 },
+          uChaos: { value: 0 },
+          uVacuum: { value: 0 },
         },
       }),
-    }
-  }, [quality, maps])
+    };
+  }, [quality]);
   useEffect(
     () => () => {
-      resources.sphere.dispose()
-      resources.ring.dispose()
-      resources.stars.dispose()
-      resources.galaxy.dispose()
-      resources.nebula.dispose()
-      resources.field.dispose()
-      resources.halo.dispose()
-      resources.planets.forEach((m) => m.dispose())
-      resources.rings.forEach((m) => m.dispose())
+      resources.stars.dispose();
+      resources.galaxy.dispose();
+      resources.nebula.dispose();
+      resources.field.dispose();
+      resources.halo.dispose();
+      resources.far.dispose();
+      resources.dust.dispose();
+      resources.deep.dispose();
     },
     [resources],
-  )
-
-  useFrame(({ clock, size, viewport }) => {
-    const b = sceneState.build
-    const s = swallowShape(sceneState.swallow)
-    const time = clock.elapsedTime
-    // One axis for the galaxy's plane, the planets' decaying orbits and the disk
-    // the well is actually being fed by. Reading it rather than authoring a second
-    // one is what keeps the nucleus and the accretion disk from drifting apart.
-    const axis = holeAxis(AXIS, time)
-    // The shadow's apparent radius, in metres. Not the horizon: 3√3/2 Rs at rest,
-    // pulled in by the spin. Stars inside it are behind the hole, so they do not
-    // draw — which is what leaves a dark bite in the middle of the bulge instead of
-    // an additive white dot where the singularity is supposed to be.
-    const shadow = captureRs(HOLE_SPIN) * holeRadiusFor(b, sceneState.swallow)
-    const depart = THREE.MathUtils.smoothstep(b, 0.025, 0.11)
-    // Matches three.js's own `sizeAttenuation` scale, read per frame so a resize or
-    // a governor change in device pixel ratio needs no extra wiring.
-    const pixel = size.height * viewport.dpr * 0.5
-    resources.nebula.uniforms.uFade.value = 1 - s.drain * 0.95
-
-    worlds.current?.children.forEach((world, index) => {
-      const spec = PLANETS[index]
-      RADIAL.set(spec.at[0], spec.at[1], spec.at[2])
-      if (index === 0) {
-        RADIAL.x -= depart * 3.7
-        RADIAL.y += depart * 1.1
-      }
-      // Split the offset from the singularity into the disk's plane and the height
-      // above it. Infalling matter joins the disk it is being fed into, so the
-      // well's own axis is the axis every orbit here decays around.
-      RADIAL.sub(holeCenter)
-      const height = RADIAL.dot(axis)
-      RADIAL.addScaledVector(axis, -height)
-      const r = Math.max(1e-4, RADIAL.length())
-      RADIAL.divideScalar(r)
-      TANGENT.crossVectors(axis, RADIAL)
-      const fall = spiralFall(r, height, s, PLANET_SPAN)
-      // On top of spiralFall, never inside it: swallow 0 still means fall=0,
-      // radius=authored, wind=0. Suction stays off the position.
-      const wind =
-        fall.wind + b * CRUISE * Math.min(1.8, (PLANET_SPAN / r) ** 1.5)
-      world.position
-        .copy(holeCenter)
-        .addScaledVector(RADIAL, Math.cos(wind) * fall.radius)
-        .addScaledVector(TANGENT, Math.sin(wind) * fall.radius)
-        .addScaledVector(axis, fall.height)
-      // XYZ Euler order means Rx wraps Ry, so the planet spins about its own axis
-      // *inside* its tilt — which is what axial tilt is, and what lets the ring ride
-      // the tilt without being spun by the day.
-      world.rotation.set(spec.tilt, b * spec.spin + spec.phase, 0)
-      /*
-       * Each world goes out when *it* crosses, not on a shared timer, so the near one
-       * is already gone while the far one is still falling.
-       *
-       * And it goes out far short of the horizon, for a reason that is entirely about
-       * where the lens ends up. The finale is shot from ten metres out and the well's
-       * own pass magnifies anything near the photon ring, while the moon starts only
-       * ten metres from the singularity — so a decaying orbit keeps it at roughly the
-       * camera's own distance the whole way down, and at 0.975 it was a crater field
-       * filling two thirds of the frame with the event horizon behind it. Holding the
-       * window between 0.35 and 0.68 puts the swallowing of the worlds in the first
-       * two gulps, where the camera is still back and the shadow still small.
-       *
-       * `beyond` is the backstop: it is the channel the whole finale already uses for
-       * "the room is inside the well and what is left in frame is its own light", so
-       * anything still standing when it opens is on the wrong side of that statement.
-       */
-      const gone =
-        (1 - THREE.MathUtils.smoothstep(fall.fall, 0.35, 0.68)) * (1 - s.beyond)
-      world.scale.setScalar(spec.size * Math.max(0.001, gone))
-      world.visible = gone > 0.004
-      for (const material of [resources.planets[index], resources.rings[index]]) {
-        const u = material.uniforms
-        u.uTideDir.value.copy(holeCenter).sub(world.position).normalize()
-        u.uTide.value = fall.stretch - 1
-        u.uSqueeze.value = fall.squeeze
-      }
-      // The deck turns about a quarter of a degree per second faster than the
-      // ground. Slow enough to be deniable, fast enough that a second look at the
-      // same frame is not the same frame.
-      resources.planets[index].uniforms.uCloudSpin.value = time * 0.0018 + b * 0.05
-    })
-
+  );
+  useFrame(({ clock, size, viewport, camera }) => {
+    const b = sceneState.build;
+    const chaos = reactorControl.lawMix.CHAOS;
+    const vacuum = reactorControl.lawMix.VACUUM;
+    const s = swallowShape(sceneState.swallow);
+    // The galaxy feeds the nucleus throughout the dolly; the finale takes the rest.
+    const feed = THREE.MathUtils.smoothstep(b, 0.12, 1) * 0.52;
+    const galaxySwallow = swallowShape(Math.max(sceneState.swallow, feed));
+    const time = clock.elapsedTime;
+    const axis = holeAxis(AXIS, time);
+    const shadow = captureRs(HOLE_SPIN) * holeRadiusFor(b, sceneState.swallow);
+    const pixel = size.height * viewport.dpr * 0.5;
+    /*
+     * Metres of star radius per metre of view depth, for a fixed pixel target.
+     *
+     * Read from the live camera because the Rig moves the field of view every frame
+     * — a counter-zoom at the ending, a breath during standby — and a star whose
+     * world radius ignored that would swell and shrink with the lens. 1.15 pixels of
+     * radius is the smallest a lit sphere can be and still resolve rather than
+     * scintillate between pixels.
+     */
+    const angular =
+      camera instanceof THREE.PerspectiveCamera
+        ? (1.15 / pixel) * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)
+        : 0.0012;
+    /*
+     * The sky is a dome the lens sits inside, and only its *position* follows.
+     *
+     * Three versions of this. It began as a 180 × 120 plane parked at z −46, which
+     * is fine for a lens that only ever looks down the corridor and broke the moment
+     * the Rig started lapping Earth: a plane has edges, the shot found one, and a
+     * hard black rectangle cut a third of the frame. Locking the plane to the
+     * camera's *orientation* removed the edge and bought the worse bug — the
+     * backdrop then showed the identical image whichever way the lens turned, so
+     * everything in the scene moved except the one thing behind all of it.
+     *
+     * A sphere fixes both. Carrying the position keeps the lens centred — the
+     * dome can never be reached or clipped — while leaving the orientation in
+     * world space, which is the whole point: turn, and a different piece of sky
+     * is there.
+     */
+    if (backdrop.current) backdrop.current.position.copy(camera.position)
+    resources.nebula.uniforms.uChaos.value = chaos
+    resources.nebula.uniforms.uVacuum.value = vacuum
+    {
+      // Static except for the two laws that are allowed to touch the whole sky.
+      const u = resources.far.uniforms;
+      u.uOpacity.value = 0.55 * (1 - vacuum * 0.35);
+      u.uPixel.value = size.height * viewport.dpr * 0.5;
+      u.uTime.value = clock.elapsedTime;
+      u.uChaos.value = chaos;
+      u.uVacuum.value = vacuum;
+      const d = resources.dust.uniforms;
+      d.uOpacity.value = 0.7 * (1 - vacuum * 0.3);
+      d.uAngular.value = angular;
+      d.uTime.value = clock.elapsedTime;
+      d.uChaos.value = chaos;
+      d.uVacuum.value = vacuum;
+    }
+    resources.nebula.uniforms.uFade.value =
+      (1 - s.drain * 0.95) * (1 - vacuum * 0.7);
     if (galaxy.current) {
-      const scale = GALAXY_RADIUS * (0.84 + b * 0.16)
-      galaxy.current.scale.setScalar(scale)
-      // The galaxy's plane *is* the accretion disk's plane, and its centre *is* the
-      // singularity — so the object's own origin is the hole and `uHole` is zero.
-      // That is the whole of task one: the bulge cannot be off-centre from a point
-      // it is defined as being centred on.
+      const scale = GALAXY_RADIUS * (0.84 + b * 0.16);
+      galaxy.current.scale.setScalar(scale);
       galaxy.current.quaternion
         .setFromUnitVectors(UP, axis)
-        .multiply(SPIN.setFromAxisAngle(UP, 0.4 + b * 0.42 + time * 0.006))
-      // `uHole` and `uAxis` stay at the material's defaults — the origin and +Y —
-      // precisely because the object is centred on the singularity and its plane is
-      // the disk's. There is nothing to update.
-      const u = resources.halo.uniforms
-      u.uHollow.value = Math.max(1e-3, shadow / scale)
-      u.uPixel.value = pixel
-      u.uDrain.value = s.drain
-      u.uSuction.value = s.suction
-      u.uTide.value = s.tide
-      u.uOrbit.value = s.orbit
-      // Fades up with the corridor's charge — the arms should arrive as the well
-      // does, not hang behind an unbuilt room — and out only at the crossing, since
-      // the stars now leave by falling rather than by being turned off.
+        .multiply(
+          SPIN.setFromAxisAngle(
+            UP,
+            // CHAOS winds the disk up; VACUUM brakes it to a near standstill —
+            // a sky with nothing left to feed the middle is a sky holding still.
+            0.4 + b * 0.42 + time * (0.006 + chaos * 0.05 - vacuum * 0.0058),
+          ),
+        );
+      const u = resources.halo.uniforms;
+      u.uHollow.value = Math.max(1e-3, shadow / scale);
+      u.uPixel.value = pixel;
+      u.uDrain.value = galaxySwallow.drain;
+      u.uSuction.value = galaxySwallow.suction;
+      u.uTide.value = galaxySwallow.tide * sceneState.distortion;
+      u.uOrbit.value = galaxySwallow.orbit;
+      u.uTime.value = time;
+      u.uChaos.value = chaos;
+      u.uVacuum.value = vacuum;
       u.uOpacity.value =
-        (0.3 + THREE.MathUtils.smoothstep(b, 0.18, 0.64) * 0.6) * (1 - s.crossing)
+        (0.65 + THREE.MathUtils.smoothstep(b, 0.18, 0.64) * 0.25) *
+        (1 - galaxySwallow.crossing) *
+        // A gentle global dim on top of the shader's per-star extinction, which
+        // is the part that actually reads as VACUUM.
+        (1 - vacuum * 0.2);
     }
-    if (stars.current) {
-      const u = resources.field.uniforms
-      u.uHole.value.copy(holeCenter)
-      u.uAxis.value.copy(axis)
-      u.uHollow.value = Math.max(1e-3, shadow)
-      u.uPixel.value = pixel
-      u.uDrain.value = s.drain
-      u.uSuction.value = s.suction
-      u.uTide.value = s.tide
-      u.uOrbit.value = s.orbit
-      u.uOpacity.value = 0.82 * (1 - s.crossing)
+    {
+      const u = resources.field.uniforms;
+      u.uAngular.value = angular;
+      u.uHole.value.copy(holeCenter);
+      u.uAxis.value.copy(axis);
+      u.uHollow.value = Math.max(1e-3, shadow);
+      u.uDrain.value = s.drain;
+      u.uSuction.value = s.suction;
+      u.uTide.value = s.tide * sceneState.distortion;
+      u.uOrbit.value = s.orbit;
+      u.uTime.value = time;
+      u.uChaos.value = chaos;
+      u.uVacuum.value = vacuum;
+      u.uOpacity.value = 0.82 * (1 - s.crossing) * (1 - vacuum * 0.2);
     }
-  })
-
+  });
   return (
     <>
-      <mesh position={[0, 6, -46]} material={resources.nebula} renderOrder={-10}>
-        <planeGeometry args={[180, 120]} />
+      <mesh ref={backdrop} material={resources.nebula} renderOrder={-10}>
+        <sphereGeometry args={[96, 40, 24]} />
       </mesh>
-      {/* Both point clouds move their own vertices, so no bounding sphere the CPU
-          could compute for them is true for more than one frame. */}
-      <points
-        ref={stars}
-        geometry={resources.stars}
-        material={resources.field}
-        frustumCulled={false}
-      />
+      <primitive object={resources.stars} />
+      <primitive object={resources.deep} renderOrder={-9} />
+      {FAR_GALAXIES.map((g) => (
+        <points
+          key={g.at.join()}
+          geometry={resources.galaxy}
+          material={resources.far}
+          position={[...g.at]}
+          rotation={[...g.tilt]}
+          scale={g.scale}
+          frustumCulled={false}
+        />
+      ))}
       <points
         ref={galaxy}
         geometry={resources.galaxy}
@@ -899,40 +722,28 @@ export const CosmicWorld = ({ quality }: { quality: Quality }) => {
         position={holeCenter}
         frustumCulled={false}
       />
-      <group ref={worlds}>
-        {PLANETS.map((p, i) => (
-          <group key={p.air + p.kind} position={[...p.at]} scale={p.size}>
-            <mesh geometry={resources.sphere} material={resources.planets[i]} />
-            {p.ring ? (
-              <mesh
-                geometry={resources.ring}
-                material={resources.rings[i]}
-                rotation={[-Math.PI / 2, 0, 0]}
-              />
-            ) : null}
-          </group>
-        ))}
-      </group>
+      <Planets quality={quality} />
+      <CosmicEvents quality={quality} />
     </>
-  )
-}
-
+  );
+};
 export const CosmicIntro = ({ copy }: { copy: Copy }) => {
-  const root = useRef<HTMLDivElement>(null)
+  const root = useRef<HTMLDivElement>(null);
   useEffect(
     () =>
       addTick(() => {
-        if (!root.current) return
+        if (!root.current) return;
         root.current.style.opacity = String(
           1 - THREE.MathUtils.smoothstep(sceneState.build, 0.005, 0.055),
-        )
+        );
       }),
     [],
-  )
+  );
   return (
     <div ref={root} className="cosmic-intro" aria-hidden="true">
       <p className="cosmic-eyebrow">
-        DG / {copy.locale === 'es' ? 'OBSERVATORIO DIGITAL' : 'DIGITAL OBSERVATORY'}
+        DG /{" "}
+        {copy.locale === "es" ? "OBSERVATORIO DIGITAL" : "DIGITAL OBSERVATORY"}
       </p>
       <h1>
         David
@@ -944,5 +755,5 @@ export const CosmicIntro = ({ copy }: { copy: Copy }) => {
         <span>{copy.hero.cue} ↓</span>
       </div>
     </div>
-  )
-}
+  );
+};

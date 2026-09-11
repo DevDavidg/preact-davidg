@@ -112,8 +112,6 @@ export interface Copy {
     cta: string
     menuOpen: string
     menuClose: string
-    soundOn: string
-    soundOff: string
     langGroup: string
     langNames: Record<Locale, string>
   }

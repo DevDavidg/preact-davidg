@@ -6,7 +6,6 @@ import { rememberLocale } from '../lib/locale'
 import { trackEvent } from '../lib/analytics'
 import { homePath, samePath, translatePath, type SectionId } from '../lib/routes'
 import { useSceneStore } from '../scene/sceneState'
-import { SoundToggle } from './SoundToggle'
 import { Action } from './ui/Action'
 
 /** Sections that earn a nav slot. Hero and contact are reached by mark and CTA. */
@@ -117,8 +116,6 @@ export const Nav = () => {
             </Link>
           ))}
         </div>
-
-        <SoundToggle />
 
         {/*
           Hidden by a wrapper rather than by a `hidden sm:inline-flex` class on the

@@ -65,25 +65,7 @@ export interface LawProfile {
   /** Colour push toward the accent, 0 → 1. */
   heat: number
 
-  /*
-   * The three fields below are what make a law a different *rendering* rather
-   * than a different amount of the same one.
-   *
-   * The laws used to be multipliers only — spread, jitter, drift — so all three
-   * produced the same picture with more or less noise in it. Switching law
-   * changed how agitated the room was and nothing else. These fields let each law
-   * be built out of a different substance:
-   *
-   *   VACUUM   solid, unlined, matte. Pure 3D: no edges drawn at all, matter with
-   *            nothing to say about how it was made.
-   *   VISCOUS  solid with its structure visible. 3D *with* its triangulation —
-   *            the authored look, matter in the middle of being assembled. Every
-   *            one of its values is 1 or 0 by definition: it is the baseline the
-   *            other two are departures from.
-   *   CHAOS    no matter at all. Pure UI: every object collapses to the drawing
-   *            of itself, flat, unlit, hot — a schematic of a room rather than a
-   *            room.
-   */
+  /* VACUUM: cold matte mass. VISCOUS: visible structure. CHAOS: heated debris. */
   /** How much the barycentric edge read *replaces* the shaded one, 0 → 1. */
   wire: number
   /**
@@ -100,42 +82,22 @@ export interface LawProfile {
   solid: number
   /** Flattens lighting toward an unlit UI read, 0 → 1. */
   flat: number
-  /**
-   * How badly the medium fails to carry sound, 0 → 1.
-   *
-   * The laws are the room's physics, and the room has an instrument in it
-   * (`src/audio/reactorSound.ts`) whose whole premise is that every voice belongs
-   * to something physical. A law that changes what matter *is* has to change what
-   * the room sounds like, or the two halves of the same idea disagree: VACUUM
-   * looked airless and sounded exactly as full-bodied as VISCOUS.
-   */
-  airless: number
 }
 
 export const LAW_PROFILES: Record<LawId, LawProfile> = {
-  /**
-   * VACUUM — pure 3D, no lines.
-   *
-   * Nothing holds matter together and nothing draws it either: the room is
-   * finished, matte, and floating. Shards barely spread because there is no
-   * medium to push them through, and the edge read goes to zero, which is what
-   * makes this feel like a product render rather than a construction site.
-   */
+  /** Quiet drift, dim edges and no added heat. */
   VACUUM: {
     spread: 0.42,
-    jitter: 0.22,
+    jitter: 0.12,
     drift: 0.85,
     damping: 0.55,
     magnet: 0.45,
-    agitation: 0.35,
-    heat: 0.06,
+    agitation: 0.2,
+    heat: 0,
     wire: 0,
-    edge: 0.3,
-    solid: 1.35,
+    edge: 0.08,
+    solid: 1.02,
     flat: 0,
-    // No medium: the body of the room drops away and only the thin, high signal
-    // is left. This is the law you *hear* the absence of.
-    airless: 1,
   },
   /**
    * VISCOUS — 3D with its structure showing.
@@ -156,31 +118,20 @@ export const LAW_PROFILES: Record<LawId, LawProfile> = {
     edge: 1,
     solid: 1,
     flat: 0,
-    airless: 0,
   },
-  /**
-   * CHAOS — pure UI.
-   *
-   * The room stops being matter and becomes its own schematic: no shaded faces,
-   * no light, only hot lines and the copy. It is the most violent of the three
-   * physically — everything is flying — and the calmest optically, because a
-   * blueprint has no highlights to blow out.
-   */
+  /** Violent motion with shaded, heated matter that retains its volume. */
   CHAOS: {
-    spread: 2.3,
-    jitter: 2.6,
-    drift: 1.4,
-    damping: 1.5,
-    magnet: 1.4,
-    agitation: 2.8,
-    heat: 0.95,
-    wire: 1,
-    edge: 1.7,
-    solid: 0.12,
-    flat: 1,
-    // A medium, but a violent one: the room still has a body, it is just being
-    // driven past what it can carry cleanly.
-    airless: 0.12,
+    spread: 3.4,
+    jitter: 3.5,
+    drift: 1.8,
+    damping: 0.8,
+    magnet: 0.55,
+    agitation: 4.6,
+    heat: 1,
+    wire: 0.15,
+    edge: 1.45,
+    solid: 1.1,
+    flat: 0.1,
   },
 }
 
@@ -195,7 +146,7 @@ const LAW_KEYS = Object.keys(LAW_PROFILES.VISCOUS) as (keyof LawProfile)[]
 
 /* Modes -------------------------------------------------------------------- */
 
-export const MODES = ['wire', 'crt', 'overclock', 'ghost'] as const
+export const MODES = ['crt', 'overclock', 'ghost'] as const
 
 export type ModeId = (typeof MODES)[number]
 
@@ -232,32 +183,6 @@ export interface Beat {
   position: Vector3
 }
 
-/* Audio bridge ------------------------------------------------------------- */
-
-/**
- * The voices the scene can ask for. Implemented by `reactorSound`, registered by
- * the sound toggle, and null until the visitor opts in — so every call site can
- * fire an event unconditionally and silence is the default, not a special case.
- */
-export interface ReactorVoices {
-  /** Pointer crossed a hot object. */
-  hover: () => void
-  /** UI plate hover — brighter than a world hover so the two never blur. */
-  tick: () => void
-  /** A module locked. `index` selects the pitch, so each module has a voice. */
-  lock: (index: number) => void
-  /** The law changed — an interval, not a transient. */
-  law: (index: number) => void
-  /** Energy arriving down a conduit. */
-  whoosh: () => void
-  /** The uplink handshake completed. */
-  uplink: () => void
-  /** A refused operation (a mode the fidelity cannot afford). */
-  deny: () => void
-  /** Instantaneous loudness, 0 → 1, for anything that visualises the sound. */
-  level: () => number
-}
-
 /* State -------------------------------------------------------------------- */
 
 interface ReactorControl {
@@ -272,7 +197,7 @@ interface ReactorControl {
   modeAmount: Record<ModeId, number>
   /** Id of whatever the operator is currently holding, or null. */
   held: string | null
-  /** How fast the held object is moving, 0 → 1. Feeds friction audio. */
+  /** How fast the held object is moving, 0 → 1. */
   heldSpeed: number
   /** Damped 1 while the pointer is over something operable. */
   hot: number
@@ -291,8 +216,6 @@ interface ReactorControl {
   punch: number
   /** Sustained camera shake from the law, 0 → 1. */
   shake: number
-  /** Smoothed audio loudness for `uAudio`. */
-  audio: number
   /** Sectors the visitor has fired off the hero shell. */
   fired: number
   /** How many times the core has been struck without a decompose. */
@@ -316,8 +239,8 @@ export const reactorControl: ReactorControl = {
   armed: false,
   law: 'VISCOUS',
   lawMix: { VACUUM: 0, VISCOUS: 1, CHAOS: 0 },
-  modes: { wire: false, crt: false, overclock: false, ghost: false },
-  modeAmount: { wire: 0, crt: 0, overclock: 0, ghost: 0 },
+  modes: { crt: false, overclock: false, ghost: false },
+  modeAmount: { crt: 0, overclock: 0, ghost: 0 },
   held: null,
   heldSpeed: 0,
   hot: 0,
@@ -326,7 +249,6 @@ export const reactorControl: ReactorControl = {
   probeLive: false,
   punch: 0,
   shake: 0,
-  audio: 0,
   fired: 0,
   coreStrikes: 0,
   decompose: 0,
@@ -338,13 +260,6 @@ export const reactorControl: ReactorControl = {
   revision: 0,
 }
 
-let voices: ReactorVoices | null = null
-/**
- * The sound toggle's own switch, registered by the button. The developer
- * console needs to be able to mute without owning React state, and the button
- * has to stay the single place that starts and tears down the audio graph.
- */
-let soundRequest: ((on: boolean) => void) | null = null
 let logId = 0
 
 const listeners = new Set<() => void>()
@@ -364,35 +279,6 @@ export const subscribeControl = (listener: () => void) => {
 /** Snapshot for `useSyncExternalStore`; only changes when `notify` runs. */
 export const controlRevision = () => reactorControl.revision
 
-/* Audio -------------------------------------------------------------------- */
-
-export const setVoices = (next: ReactorVoices | null) => {
-  voices = next
-}
-
-export const hasVoices = () => voices !== null
-
-export const setSoundRequest = (next: ((on: boolean) => void) | null) => {
-  soundRequest = next
-}
-
-/** Ask the sound toggle to switch. No-ops when the button is not mounted. */
-export const requestSound = (on: boolean) => {
-  soundRequest?.(on)
-}
-
-/**
- * Play a voice if the visitor has opted into sound. Every call site fires
- * unconditionally — silence is a null bridge, not a branch in the scene.
- */
-export const play = <K extends keyof ReactorVoices>(
-  name: K,
-  ...args: Parameters<Extract<ReactorVoices[K], (...rest: never[]) => unknown>>
-) => {
-  const voice = voices?.[name] as ((...rest: unknown[]) => unknown) | undefined
-  voice?.(...(args as unknown[]))
-}
-
 /* Operations --------------------------------------------------------------- */
 
 export const pushLog = (text: string, weight = 1) => {
@@ -410,10 +296,10 @@ export const punch = (amount = 1) => {
 }
 
 export const setLaw = (law: LawId, { silent = false } = {}) => {
+  if (!LAWS.includes(law)) law = 'VISCOUS'
   if (reactorControl.law === law) return
   reactorControl.law = law
   if (!silent) {
-    play('law', LAWS.indexOf(law))
     pushLog(`law · ${law}`)
     punch(0.35)
   }
@@ -426,27 +312,23 @@ export const cycleLaw = () => {
 }
 
 export const setMode = (mode: ModeId, on: boolean) => {
+  if (!MODES.includes(mode)) return
   if (reactorControl.modes[mode] === on) return
   reactorControl.modes[mode] = on
   // Overclock is a law and a look at once — the visual heat would be a lie if
   // the physics stayed viscous.
   if (mode === 'overclock') setLaw(on ? 'CHAOS' : 'VISCOUS', { silent: true })
   pushLog(`${mode} · ${on ? 'engaged' : 'released'}`)
-  play(on ? 'law' : 'tick', 1)
   notify()
 }
 
 export const toggleMode = (mode: ModeId) =>
   setMode(mode, !reactorControl.modes[mode])
 
-/**
- * The pointer entered something operable. Only the first entry sounds, so a
- * pointer sliding across a shell does not machine-gun the hover voice.
- */
-export const markHot = (id: string, { ui = false } = {}) => {
+/** The pointer entered something operable. */
+export const markHot = (id: string) => {
   if (reactorControl.hotId === id) return
   reactorControl.hotId = id
-  play(ui ? 'tick' : 'hover')
 }
 
 export const clearHot = (id: string) => {
@@ -470,13 +352,11 @@ export const decomposeCore = () => {
   reactorControl.decompose = 1
   reactorControl.coreStrikes = 0
   punch(0.8)
-  play('lock', 0)
   pushLog('core · decompose', 1)
 }
 
 export const fireSector = () => {
   reactorControl.fired += 1
-  play('lock', reactorControl.fired % 3)
   pushLog(`sector ${String(reactorControl.fired).padStart(2, '0')} · vented`)
   punch(0.18)
   return reactorControl.fired
@@ -486,7 +366,6 @@ export const completeUplink = () => {
   if (reactorControl.uplinked) return
   reactorControl.uplinked = true
   reactorControl.uplink = 1
-  play('uplink')
   pushLog('uplink · handshake complete', 1)
   punch(1.2)
   notify()
@@ -577,12 +456,6 @@ export const advanceControl = (delta: number) => {
     control.shake,
     control.modeAmount.overclock * 0.6 + control.lawMix.CHAOS * 0.4,
     3,
-    delta,
-  )
-  control.audio = damp(
-    control.audio,
-    voices ? voices.level() : 0,
-    9,
     delta,
   )
 }

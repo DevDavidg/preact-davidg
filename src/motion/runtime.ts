@@ -96,7 +96,19 @@ export const startMotionRuntime = ({
       corridorShare >= 1
         ? 0
         : clamp01((clamped - corridorShare) / (1 - corridorShare))
-    sceneState.velocity = lenis.velocity
+    /*
+     * Sanitised here, at the one place it enters the scene.
+     *
+     * Lenis' velocity is a delta over a frame time, so it arrives as `Infinity`
+     * or `NaN` on the first frame after a tab wakes and on a hard fling — and it
+     * has nine readers, seven of which feed a shader uniform. One nonfinite
+     * number there is NaN geometry and NaN colour for a whole instanced draw.
+     * Clamped as well as checked: no consumer reads past ~125, and a wheel spike
+     * beyond that is jitter nobody asked for.
+     */
+    sceneState.velocity = Number.isFinite(lenis.velocity)
+      ? Math.max(-200, Math.min(200, lenis.velocity))
+      : 0
     setPhase(phaseFor(sceneState.build))
     ScrollTrigger.update()
   }

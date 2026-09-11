@@ -6,6 +6,10 @@ import {
   subscribeControl,
 } from '../scene/control/reactorControl'
 import { livePowerFor, sceneState, swallowShape } from '../scene/sceneState'
+// The document's own half of the ending. Imported here rather than from
+// `app/root.tsx` because this is the component that writes the property it reads,
+// and the two have no business being able to ship without each other.
+import '../../app/swallow.css'
 
 /**
  * Screen-space atmosphere only: vignette, grain, ignition wash — and the two
@@ -40,6 +44,8 @@ export const StageTreatment = () => {
     let lastVignette = ''
     let lastCrt = ''
     let lastOverclock = ''
+    let lastSwallowed = ''
+    let lastStage = ''
 
     return addTick(() => {
       const root = document.documentElement
@@ -86,6 +92,36 @@ export const StageTreatment = () => {
         vignette.current.style.opacity = scrim
       }
 
+      /*
+       * ...and the page itself goes in.
+       *
+       * The one part of the ending the scene cannot reach. `app/swallow.css` flies
+       * the operator panel into the middle of the frame — where the well is, by
+       * construction — on this value, and the attribute below is the switch that
+       * mounts that rule at all: an identity transform and a zero blur still
+       * promote an element to its own compositing layer, so the corridor has to be
+       * able to have no rule rather than a neutral one. Same split as the modes
+       * further down, for the same reason.
+       *
+       * On the drain rather than on `amount`, because the drain is what the room's
+       * own collapse rides: the panel goes in *with* the room and is gone before
+       * `beyond` opens, which leaves the crossing to be nothing but the light. The
+       * 0.62 is shared with the CSS only through this normalisation — the sheet
+       * reads a 0 → 1 value and does not know what it was divided by.
+       */
+      const eaten = Math.min(1, swallow.drain / 0.62)
+      const swallowed = eaten.toFixed(3)
+      if (swallowed !== lastSwallowed) {
+        lastSwallowed = swallowed
+        root.style.setProperty('--swallowed', swallowed)
+      }
+      const stage = eaten >= 1 ? 'gone' : eaten > 0.001 ? 'on' : ''
+      if (stage !== lastStage) {
+        lastStage = stage
+        if (stage) root.dataset.swallow = stage
+        else delete root.dataset.swallow
+      }
+
       const crt = (reactorControl.modeAmount.crt * (1 - swallow.drain)).toFixed(3)
       if (crt !== lastCrt) {
         lastCrt = crt
@@ -123,6 +159,8 @@ export const StageTreatment = () => {
       for (const mode of MODES) delete root.dataset[mode]
       root.style.removeProperty('--crt')
       root.style.removeProperty('--overclock')
+      root.style.removeProperty('--swallowed')
+      delete root.dataset.swallow
     }
   }, [])
 

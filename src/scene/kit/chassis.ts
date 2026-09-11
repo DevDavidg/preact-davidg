@@ -12,7 +12,7 @@ import { toShards } from '../shardGeometry'
  * Everything here is boxes. That is not a limitation — it is the same machined
  * vocabulary the corridor is already built from, and it means every chassis is a
  * single merged geometry under `ReconstructMaterial`, so a housing costs one
- * draw call and inherits the reconstruction, the law and WIRE mode for free.
+ * draw call and inherits the reconstruction and the current law.
  * A downloaded GLTF would cost bytes, a second material language, and a look
  * that belongs to someone else's scene.
  */

@@ -279,8 +279,23 @@ export const Console = ({
     // waits until the panel is genuinely opaque: a half-faded plate does not
     // occlude anything, and writing depth for one would punch a hole in the post
     // chain wherever a console was still arriving.
+    /*
+     * The uplink is no longer exempt, and giving up the exemption is the point.
+     *
+     * It used to read `!uplink && ...`, alongside an airy 0.45 face, so the well
+     * could be seen *through* the last panel: a window onto the thing at the end of
+     * the corridor. It is a good idea and it cost more than it was worth. With no
+     * depth written for this plate, `BlackHoleEffect` had nothing to respect here —
+     * so at the end of the rail the shadow and the photon ring were drawn across
+     * the panel's left third, and worse, the pass's bent rays *fetched* the copy and
+     * dragged it: "ESCRIBIME POR MAIL" arrived on screen as "R MAI", "GITHUB" as
+     * "T W". Warped-illegible contact details are not a window onto anything.
+     *
+     * So this plate occludes like every other one. The well is still framed beside
+     * it rather than behind it, which is the same shot with the copy still readable.
+     */
     const occluderNode = occluder.current
-    if (occluderNode) occluderNode.visible = !uplink && faceOpacity > 0.85
+    if (occluderNode) occluderNode.visible = faceOpacity > 0.85
   })
 
   return (

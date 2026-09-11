@@ -1,0 +1,18 @@
+import { chromium, devices } from '@playwright/test'
+const b = await chromium.launch()
+const p = await (await b.newContext({ ...devices['iPhone 13'], reducedMotion: 'reduce' })).newPage()
+await p.goto('http://localhost:5175/', { waitUntil: 'networkidle', timeout: 60000 })
+await p.waitForTimeout(2500)
+await p.screenshot({ path: 'work/mobile-audit/nav-closed.png' })
+await p.click('.world-nav-toggle')
+await p.waitForTimeout(400)
+await p.screenshot({ path: 'work/mobile-audit/nav-open.png' })
+// navigate to a case through the panel
+await p.click('.world-nav-panel >> text=Valores')
+await p.waitForTimeout(3000)
+console.log('landed on:', p.url())
+const toggleVisible = await p.locator('.world-nav-toggle').isVisible()
+const panelOpen = await p.locator('.world-nav[data-open="true"]').count()
+console.log('toggle visible on case route:', toggleVisible, '| panel still open:', panelOpen > 0)
+await p.screenshot({ path: 'work/mobile-audit/case-route.png' })
+await b.close()

@@ -187,13 +187,7 @@ export const SignalConduits = ({ quality }: SignalConduitsProps) => {
     const build = sceneState.build
     const { uniforms } = material
     uniforms.uTime.value = state.clock.elapsedTime
-    // The harness carries the sound as well as the charge: with audio on, the
-    // conduits are the room's own level meter, so the visitor can see what they
-    // are hearing travel down the corridor.
-    uniforms.uPower.value = Math.min(
-      1,
-      livePowerFor(build) + reactorControl.audio * 0.5,
-    )
+    uniforms.uPower.value = livePowerFor(build)
     uniforms.uSignal.value.copy(sceneColors.signal)
     uniforms.uAccent.value.copy(sceneColors.accent)
 

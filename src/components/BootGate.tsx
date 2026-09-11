@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import { play } from '../scene/control/reactorControl'
 import { useSceneStore } from '../scene/sceneState'
 
 /**
@@ -62,10 +61,6 @@ export const BootGate = () => {
       setBooted(true)
       return
     }
-
-    // Silent unless the visitor already opted into sound on a previous visit and
-    // has since armed it — `play` is a no-op with no voices registered.
-    play('law', 0)
 
     const timer = window.setTimeout(() => {
       release()

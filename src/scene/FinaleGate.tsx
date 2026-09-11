@@ -14,7 +14,7 @@ import {
   GATE_APERTURE_Y,
   GATE_APERTURE_Z_AHEAD,
   HOLE_SPIN,
-  holeGateFor,
+  holeGlowFor,
   holeRadiusFor,
   holeRender,
   iscoRs,
@@ -405,9 +405,18 @@ export const FinaleGate = () => {
     const build = sceneState.build
     const power = livePowerFor(build)
     const swallow = swallowShape(sceneState.swallow)
-    // Same ramp cinema uses for uGate, so lite's nucleus lands with the jewel
-    // instead of waiting until 0.94 while the galaxy already has a hole in it.
-    const ease = Math.max(holeGateFor(build), swallow.amount)
+    /*
+     * How present the nucleus is on the billboard, 0 → 1.
+     *
+     * `holeGlowFor` is the same normalised ramp cinema spends on `uCharge`, and it
+     * is floored rather than starting at zero — so this reads a fifth of full
+     * strength on the establishing frame and reaches full by the end of the
+     * corridor. That floor is the whole point on this path: lite has no geodesic
+     * pass, so this billboard *is* the galaxy's nucleus, and a nucleus that fades
+     * up at build 0.52 left the bulge with a hole in it for the first half of the
+     * page. The swallow overrides it, because by then the well is the frame.
+     */
+    const ease = Math.max(holeGlowFor(build), swallow.amount)
     const handshake = reactorControl.uplink
     const time = state.clock.elapsedTime
 
@@ -451,8 +460,21 @@ export const FinaleGate = () => {
     portalMaterial.uniforms.uSpin.value = HOLE_SPIN
     portalMaterial.uniforms.uDiskIn.value =
       iscoRs(HOLE_SPIN) / captureRs(HOLE_SPIN)
+    /*
+     * The ring rides the charge; the shadow does not.
+     *
+     * This is the one structural difference between the two paths and it is what
+     * kept the billboard invisible on the opening frame after `ease` was floored.
+     * On cinema the black disc is drawn at full strength whatever `uCharge` is —
+     * charge scales the *emission*, and a horizon that is merely faintly dark is not
+     * a dimmer black hole, it is a smudge. Here one opacity was scaling both, so a
+     * quiescent nucleus came out as nothing at all rather than as a dark centre with
+     * a faint rim. So the two are split: the ring and the disk fade up with the
+     * corridor's charge, and the shadow is most of the way opaque from the first
+     * frame, which is what a shadow is.
+     */
     portalMaterial.uniforms.uOpacity.value = Math.max(
-      THREE.MathUtils.smoothstep(ease, 0.45, 0.95) * (0.35 + power * 0.65),
+      ease * (0.62 + power * 0.38),
       swallow.amount,
     )
     portalMaterial.uniforms.uInner.value
@@ -466,22 +488,28 @@ export const FinaleGate = () => {
     horizonMaterial.uniforms.uHorizon.value = shadow
     horizonMaterial.uniforms.uSpin.value = HOLE_SPIN
     horizonMaterial.uniforms.uGround.value.copy(sceneColors.base)
-    // ponytail: horizon ramps behind the portal so the dark nucleus never appears
-    // before the ring is lit — a black disc flashing on ahead of its own halo is
-    // the "black flash" symptom; portal starts at ease 0.45, this at 0.6.
+    /*
+     * The old note here said the horizon has to ramp *behind* the portal so a black
+     * disc never flashes on ahead of its own halo. That was a rule about a
+     * transition, and there is no transition any more: the well is drawn from the
+     * first frame, so there is nothing to flash. What is left is the floor, and it
+     * is high on purpose — see the split above.
+     */
     horizonMaterial.uniforms.uOpacity.value =
-      THREE.MathUtils.smoothstep(ease, 0.6, 0.95) * (0.4 + swallow.pull * 0.6)
+      (0.5 + ease * 0.5) * (0.6 + swallow.pull * 0.4)
 
     /*
      * The plane grows with the drain so the well can take the frame. Both
      * discs scale together so the horizon stays concentric with the ring.
      *
      * ponytail: early in the corridor the aperture is a small nucleus, not the
-     * full plane — the galaxy stars around it stay visible. mouth eases from
-     * 0.3 up to 1.0 as the gate comes on, then drain widens it past the frame.
-     * Ceiling: ease<=1 ⇒ mouth<=1.0; drain<=1 ⇒ +2.2 ⇒ 3.2 (same max as before).
+     * full plane — the galaxy stars around it stay visible. Floored at 0.7 rather
+     * than 0.3 so the disk it stands for is about the two and a half metres cinema's
+     * `DISK_OUTER_RS * rs` gives at the same stop; below that the two paths were
+     * drawing objects of visibly different sizes. Ceiling unchanged: ease<=1 ⇒
+     * mouth<=1.0, drain<=1 ⇒ +2.2 ⇒ 3.2.
      */
-    const mouth = 0.3 + ease * 0.7 + swallow.drain * 2.2
+    const mouth = 0.7 + ease * 0.3 + swallow.drain * 2.2
     if (portal.current) {
       portal.current.scale.setScalar(mouth)
       portal.current.visible = billboard

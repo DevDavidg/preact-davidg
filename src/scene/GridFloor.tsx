@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { holeCenter } from './blackHole'
 import type { Quality } from './capability'
-import { liveLaw, reactorControl } from './control/reactorControl'
+import { liveLaw } from './control/reactorControl'
 import { pulse } from './pulse'
 import { sceneColors } from './sceneColors'
 import { liveFor, sceneState, swallowShape } from './sceneState'
@@ -36,10 +36,9 @@ uniform float uTime;
 uniform float uCinema;
 /** Master envelope, supplied by the shared clock — never a local sine. */
 uniform float uPulse;
-/** Same law/audio reads every ReconstructMaterial gets — keeps the floor in
+/** Same law reads every ReconstructMaterial gets — keeps the floor in
  * step with the shard architecture instead of reading as a separate system. */
 uniform float uHeat;
-uniform float uAudio;
 uniform vec3 uInk;
 uniform vec3 uAccent;
 
@@ -107,8 +106,7 @@ void main() {
       uLive * 0.5 +
         beam * 0.4 * scrollW * (1.0 - workQuiet * 0.4) +
         idleBeam * 0.22 * idleW +
-        uHeat * 0.3 +
-        uAudio * 0.15,
+        uHeat * 0.3,
       0.0,
       1.0
     )
@@ -136,7 +134,6 @@ export const GridFloor = ({ quality }: { quality: Quality }) => {
           uCinema: { value: 0 },
           uPulse: { value: 0 },
           uHeat: { value: 0 },
-          uAudio: { value: 0 },
           uInk: { value: sceneColors.ink.clone() },
           uAccent: { value: sceneColors.accent.clone() },
           uHole: { value: new THREE.Vector3() },
@@ -168,7 +165,6 @@ export const GridFloor = ({ quality }: { quality: Quality }) => {
     // Gated by idle so the standby sweep steps back the moment scroll takes over.
     material.uniforms.uPulse.value = 0.5 + (pulse.master - 0.5) * pulse.idle
     material.uniforms.uHeat.value = liveLaw.heat
-    material.uniforms.uAudio.value = reactorControl.audio
     material.uniforms.uInk.value.copy(sceneColors.ink)
     material.uniforms.uAccent.value.copy(sceneColors.accent)
     const swallow = swallowShape(sceneState.swallow)

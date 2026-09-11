@@ -1,5 +1,8 @@
 import { create } from 'zustand'
 import type { ExperienceState, Quality } from './capability'
+// `import type` only — erased at compile time, so this cannot close a runtime
+// cycle with `reactorControl`, which imports this module for real.
+import type { LawId } from './control/reactorControl'
 
 /** The reactor's four chapters, in scroll order. */
 const PHASES = ['STANDBY', 'CHARGE', 'TRANSMIT', 'IGNITION'] as const
@@ -38,16 +41,71 @@ export const sceneState = {
    * axis below.
    */
   build: 0,
+  /** Scroll remains reversible; the other laws also consume matter on a clock. */
+  scrollSwallow: 0,
+  autonomousSwallow: 0,
+  collapseAge: 0,
+  collapseLaw: 'VISCOUS' as LawId,
+  /** Optical/tidal distortion is reserved for the final VISCOUS approach. */
+  distortion: 0,
   /**
-   * Progress through the swallow, 0 → 1. Zero for the whole corridor.
+   * How far CHAOS has got into taking the worlds apart, 0 → 1.
    *
-   * A pure function of scroll position, like `build`, and for the same reason:
-   * the visitor has to be able to stop it by stopping, run it forward by scrolling
-   * down and run it backward by scrolling up. Nothing may integrate this — no
-   * springs, no accumulators, no one-way latches — or the ending stops being
-   * scrubbable and becomes an animation that merely starts when you arrive.
+   * The CHAOS counterpart of `distortion`, and deliberately a *different* channel
+   * rather than a second writer on that one. `distortion` is a geometric warp —
+   * the tide that draws a body into a filament — and it belongs to the VISCOUS
+   * ending alone. Nothing reads this as a vertex displacement. It gates surface
+   * destruction only: fracture, magma, the debris a dying world sheds.
+   *
+   * Two channels rather than one because the two endings have to stay different
+   * shots. Spaghettification is VISCOUS's signature; if CHAOS stretched things
+   * too, the law switch would stop meaning anything at the finale, which is the
+   * one place the laws should read most distinctly. CHAOS breaks surfaces and
+   * throws rock instead — which is also what was actually asked for: explosions,
+   * collisions and fragmentation are a body shattering, not a body stretching.
+   *
+   * Derived here rather than twice: without it `Planets` and `CosmicEvents` would
+   * each roll their own `chaos × drain` curve and the cracks would stop agreeing
+   * with the debris coming out of them. Same rule as `holeAxis` — one clock,
+   * never one per object.
    */
-  swallow: 0,
+  chaosBurn: 0,
+  get swallow(): number {
+    return Math.max(this.scrollSwallow, this.autonomousSwallow)
+  },
+  set swallow(value: number) {
+    this.scrollSwallow = clamp01(value)
+  },
+  /*
+   * The brightest stellar eruption on this frame, and where it is.
+   *
+   * Published as four numbers rather than driven as a `pointLight` because there
+   * are deliberately no scene lights out here — `Atmosphere` carries the reasoning:
+   * every material in the corridor and the cosmos is unlit and holds its own light
+   * directions, so a real lamp would cost uniforms and illuminate nothing. A nova
+   * that brightens by five thousand additive pixels and leaves the side of a planet
+   * shaded exactly as before reads as a sprite over the scene rather than an event
+   * in it, so the eruption hands its light over here and the materials that want a
+   * second light source read it as a uniform.
+   *
+   * World space, and zero when nothing is erupting. `flash` is already faded by the
+   * crossing and by VACUUM, so a reader can use it directly as a weight.
+   */
+  flash: 0,
+  flashX: 0,
+  flashY: 0,
+  flashZ: 0,
+  /**
+   * Where the lens is along the corridor, in metres of world z, before any orbit.
+   *
+   * The camera's own z stopped being usable as "where in the story we are" the
+   * moment it started swinging around Earth: the worlds' anchors are a function of
+   * the lens's depth, so feeding the orbited z back into them would make the planets
+   * swing with the camera and the pass drive itself. This is the rail's z — the
+   * un-orbited path point — and it is what every reader that means *story position*
+   * must use. The camera's actual position stays the camera's business.
+   */
+  railZ: 0,
   /** Smoothed scroll velocity. Feeds camera weight and shard jitter. */
   velocity: 0,
   /** Pointer in normalised device coordinates, -1 → 1. */
@@ -60,10 +118,64 @@ export const sceneState = {
 export const resetSceneMotion = () => {
   sceneState.build = 0
   sceneState.swallow = 0
+  sceneState.autonomousSwallow = 0
+  sceneState.collapseAge = 0
+  sceneState.collapseLaw = 'VISCOUS'
+  sceneState.distortion = 0
+  sceneState.chaosBurn = 0
+  sceneState.railZ = 0
+  sceneState.flash = 0
+  sceneState.flashX = 0
+  sceneState.flashY = 0
+  sceneState.flashZ = 0
   sceneState.velocity = 0
   sceneState.pointerX = 0
   sceneState.pointerY = 0
   sceneState.focus = -1
+}
+
+/** One clock for planets, galaxy, horizon and camera; never advance it per object. */
+export const advanceCollapse = (
+  delta: number,
+  law: LawId,
+  reducedMotion = false,
+) => {
+  const dt = Number.isFinite(delta) ? Math.max(0, Math.min(delta, 0.1)) : 0
+  if (sceneState.collapseLaw !== law) {
+    sceneState.collapseLaw = law
+    sceneState.collapseAge = 0
+  }
+  sceneState.collapseAge += reducedMotion ? 0 : dt
+  // Chaos consumes the scene in ~38 seconds; vacuum quietly takes three minutes.
+  const duration = law === 'CHAOS' ? 38 : 180
+  const t = clamp01(sceneState.collapseAge / duration)
+  const target = law === 'VISCOUS' || reducedMotion ? 0 : t * t * (3 - 2 * t)
+  sceneState.autonomousSwallow +=
+    (target - sceneState.autonomousSwallow) * (1 - Math.exp(-3 * dt))
+  const end = clamp01((sceneState.scrollSwallow - 0.68) / 0.27)
+  const distortion = law === 'VISCOUS' && !reducedMotion ? end * end * (3 - 2 * end) : 0
+  sceneState.distortion += (distortion - sceneState.distortion) * (1 - Math.exp(-5 * dt))
+  /*
+   * CHAOS's own destruction gate.
+   *
+   * A readout of the collapse, not a driver of it — it touches neither
+   * `autonomousSwallow` nor `distortion` above, so `scripts/check-swallow.ts`
+   * still sees exactly the curve it already asserts.
+   *
+   * Full burn at 0.40 of the drain because the worlds' own fade window closes at
+   * drain 0.42: the fracture has to finish while the world is still on screen, or
+   * the visitor watches a fade instead of a destruction. On the 38-second CHAOS
+   * clock that lands about sixteen seconds in — sixteen of red worlds and falling
+   * rock, then eight of coming apart, then they are gone.
+   *
+   * Damped at 4.2 to match `LAW_CROSSFADE` in the control plane, reproducing the
+   * law's own crossfade without importing it and closing a module cycle.
+   */
+  const burn =
+    law === 'CHAOS' && !reducedMotion
+      ? clamp01(swallowShape(sceneState.swallow).drain / 0.4)
+      : 0
+  sceneState.chaosBurn += (burn - sceneState.chaosBurn) * (1 - Math.exp(-4.2 * dt))
 }
 
 export const phaseFor = (build: number): Phase => {

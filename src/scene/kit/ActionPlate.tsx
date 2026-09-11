@@ -4,7 +4,6 @@ import * as THREE from 'three'
 import {
   clearHot,
   markHot,
-  play,
   punch,
   reactorControl,
 } from '../control/reactorControl'
@@ -171,9 +170,7 @@ export const ActionPlate = ({
         onPointerOver={(event) => {
           event.stopPropagation()
           setHovered(true)
-          // UI ticks sit above the world's hover voice on purpose: a control and
-          // a piece of the room should never sound like the same thing.
-          markHot(hotId, { ui: true })
+          markHot(hotId)
           invalidate()
         }}
         onPointerOut={() => {
@@ -188,7 +185,6 @@ export const ActionPlate = ({
         }}
         onClick={(event) => {
           event.stopPropagation()
-          play('lock', 3)
           punch(0.25)
           onActivate()
         }}

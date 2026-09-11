@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { holeAxis, holeCenter, holeRadiusFor } from './blackHole'
-import { liveLaw, reactorControl } from './control/reactorControl'
+import { liveLaw } from './control/reactorControl'
 import { sceneColors } from './sceneColors'
 import { sceneState, swallowShape } from './sceneState'
 
@@ -113,8 +113,20 @@ void main() {
 
   vBary = aBary;
   vUv = uv;
-  vNormalW = normalize(mat3(modelMatrix) * mat3(instance) * mix(normal, spin * normal, uDrift));
-  vViewDir = normalize(cameraPosition - worldPos.xyz);
+  /*
+   * Guarded, not normalize()d — and the guard is load-bearing rather than
+   * defensive. normalize(vec3(0.0)) is a NaN, this material renders into the
+   * cinema composer's half-float target, and one NaN fragment is enough for
+   * bloom's downsample chain to hand the *whole frame* to the tone mapper as
+   * black. That is the screen-wide flicker, and it is the same failure
+   * PortraitVoxelMaterial was guarded against: the corridor camera scrolls
+   * *through* the depth these shards occupy, so a shard mid-flight can land on
+   * the eye itself, and a degenerate instance scale zeroes the normal.
+   */
+  vec3 normalW = mat3(modelMatrix) * mat3(instance) * mix(normal, spin * normal, uDrift);
+  vNormalW = normalW / max(length(normalW), 1e-5);
+  vec3 toEye = cameraPosition - worldPos.xyz;
+  vViewDir = toEye / max(length(toEye), 1e-4);
   vWorldY = worldPos.y;
   vAssembled = assembled;
   vStage = assembleBuild;
@@ -137,16 +149,14 @@ uniform sampler2D uMap;
 uniform float uHasMap;
 /** 1 when the mesh is a console plate that has to back world type opaquely. */
 uniform float uSolidFill;
-/** WIRE mode *or* the CHAOS law: the corridor as a blueprint rather than as matter. */
+/** Law: the corridor can blend shaded matter with its visible structure. */
 uniform float uWire;
-/** Law: how present the shaded face is. VACUUM densifies it, CHAOS removes it. */
+/** Law: density of shaded matter; all laws preserve physical volume. */
 uniform float uLawSolid;
-/** Law: flattens lighting toward an unlit UI read. CHAOS is 1. */
+/** Law: blends lighting toward a flatter treatment. */
 uniform float uLawFlat;
 /** Law: how visible the object's own triangulation is. VACUUM erases it. */
 uniform float uLawEdge;
-/** Live loudness, 0 → 1. The room lights on what the visitor is hearing. */
-uniform float uAudio;
 /** Law heat, 0 → 1. CHAOS runs the whole corridor hotter. */
 uniform float uHeat;
 /** The shared studio, sampled as a mirror reflection when a mesh opts in. */
@@ -196,15 +206,20 @@ void main() {
   float bandY = mix(-1.4, 5.8, smoothstep(0.1, 0.54, uBuild)) + sin(uTime * 0.22) * 0.28;
   float band = exp(-pow((vWorldY - bandY) * 2.1, 2.0));
 
-  vec3 normal = normalize(vNormalW);
-  vec3 view = normalize(vViewDir);
+  // Interpolated vectors are only *nearly* unit, and a degenerate one must not
+  // become a NaN — see the vertex stage for what one NaN costs here.
+  vec3 normal = vNormalW / max(length(vNormalW), 1e-5);
+  vec3 view = vViewDir / max(length(vViewDir), 1e-5);
   vec3 keyLight = normalize(vec3(0.45, 0.82, 0.34));
   vec3 fillLight = normalize(vec3(-0.6, 0.3, -0.5));
 
   float key = max(dot(normal, keyLight), 0.0);
   float fill = max(dot(normal, fillLight), 0.0) * 0.35;
-  float fresnel = pow(1.0 - max(dot(normal, view), 0.0), 2.6);
-  float spec = pow(max(dot(reflect(-keyLight, normal), view), 0.0), 42.0);
+  // clamp, not max: the max used to be applied to the dot rather than to the
+  // result, so a renormalised interpolant putting dot() a hair over 1.0 left
+  // pow() with a negative base and a fractional exponent — a NaN.
+  float fresnel = pow(clamp(1.0 - dot(normal, view), 0.0, 1.0), 2.6);
+  float spec = pow(clamp(dot(reflect(-keyLight, normal), view), 0.0, 1.0), 42.0);
 
   /*
    * The law decides what this object is made of.
@@ -268,10 +283,8 @@ void main() {
   // Heat on shards still in flight — hotter on photo debris so it reads as
   // project matter before it locks into a plate.
   color += uAccent * (1.0 - vAssembled) * mix(0.06, 0.2, uHasMap);
-  // The law's heat, and the sound the visitor is actually hearing. Both are
-  // deliberately additive rim terms: they change how the room *feels* without
-  // ever repainting a surface, so a photo shot still reads as the photo.
-  color += uAccent * fresnel * (uHeat * 0.35 + uAudio * 0.18);
+  // Law heat follows the rim, preserving the colours in project images.
+  color += uAccent * fresnel * uHeat * 0.35;
 
   float alpha = solid * (0.40 + key * 0.32) + edgeGlow + fresnel * lit * 0.22;
   // Textured panels need presence while flying and hold against the lattice when home.
@@ -282,7 +295,7 @@ void main() {
   alpha *= 1.0 - depthFocus * 0.18;
   alpha *= uOpacity * mix(mix(0.35, 0.82, uHasMap), 1.0, vAssembled);
 
-  // WIRE: the same object, drawn as the drawing of itself.
+  // Structural lines blend over the same shaded object.
   //
   // Not a second shader, and not THREE's own wireframe flag — both would lose
   // the per-shard settle and the photo tint that make this readable. The
@@ -298,8 +311,11 @@ void main() {
     alpha = mix(alpha, wireAlpha, uWire);
   }
 
-  if (alpha < 0.004) discard;
-  fragColor = vec4(color, clamp(alpha, 0.0, 1.0));
+  // Written as a failed >= so a nonfinite alpha discards too: alpha < 0.004 is
+  // false for NaN, which is precisely the fragment that must not be drawn.
+  if (!(alpha >= 0.004)) discard;
+  // Ordered clamp — the last stop before the composer's half-float target.
+  fragColor = vec4(clamp(color, vec3(0.0), vec3(8.0)), clamp(alpha, 0.0, 1.0));
 }
 `
 
@@ -381,7 +397,18 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
       fragmentShader,
       transparent: true,
       side: THREE.DoubleSide,
-      depthWrite: false,
+      /*
+       * Opaque faces occlude from the first frame, and this cannot wait for `sync`.
+       *
+       * `sync` decides the same thing every frame and carries the reasoning, but
+       * traversing the live scene found that 17 of the 18 of these materials never
+       * have `sync` called on them at all — their `uBuild` sits at this
+       * constructor's 0 for the whole page. So for the corridor's plates and
+       * chassis, whatever is written here is final, and `false` meant the lensing
+       * pass had almost no depth to respect and drew the black hole straight
+       * through the console panels.
+       */
+      depthWrite: (options.opacity ?? 1) > 0.8,
       uniforms: {
         uBuild: { value: 0 },
         uTime: { value: 0 },
@@ -430,7 +457,6 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
         uLawSolid: { value: 1 },
         uLawFlat: { value: 0 },
         uLawEdge: { value: 1 },
-        uAudio: { value: 0 },
         uHeat: { value: 0 },
         uEnvMap: { value: blankMap },
         uHasEnv: { value: 0 },
@@ -482,23 +508,19 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
     uniforms.uAssembleAt.value = state.assembleAt ?? -1
     uniforms.uAccent.value.copy(sceneColors.accent)
     uniforms.uInk.value.copy(sceneColors.ink)
-    /*
-     * WIRE the mode and CHAOS the law want the same thing — the object drawn as
-     * its own drawing — so they share the uniform and whichever is stronger wins.
-     * Adding them would double-count when a visitor engages WIRE while CHAOS is
-     * already running, which is exactly the combination someone exploring the
-     * room will try.
-     */
-    const wire = Math.max(reactorControl.modeAmount.wire, liveLaw.wire)
-    uniforms.uWire.value = wire
+    uniforms.uWire.value = liveLaw.wire
     uniforms.uLawSolid.value = liveLaw.solid
     uniforms.uLawFlat.value = liveLaw.flat
     uniforms.uLawEdge.value = liveLaw.edge
-    uniforms.uAudio.value = reactorControl.audio
     uniforms.uHeat.value = liveLaw.heat
     const swallow = swallowShape(sceneState.swallow)
     uniforms.uDrain.value = swallow.drain
-    uniforms.uTide.value = swallow.tide
+    // Gated like every sibling reader (`CosmicWorld`, `Planets`, `ReactorScene`,
+    // `CinemaLayer`): the tide only deforms matter on the final VISCOUS approach.
+    // Ungated, CHAOS and VACUUM — which consume the scene on a timer while
+    // `distortion` stays 0 — squashed every shard, plate and chassis in the
+    // corridor while the planets, the galaxy and the lens stayed undeformed.
+    uniforms.uTide.value = swallow.tide * sceneState.distortion
     uniforms.uOrbit.value = swallow.orbit
     uniforms.uSuction.value = swallow.suction
     uniforms.uHole.value.copy(holeCenter)
@@ -513,16 +535,44 @@ export class ReconstructMaterial extends THREE.ShaderMaterial {
     // Console plates occlude a little earlier than shaded backdrop: their whole
     // job is to be behind type, and a plate that is opaque but not yet writing
     // depth lets the corridor show through the copy for a few frames.
-    // A blueprint does not occlude: in WIRE the far side of the corridor has to
-    // show through the near side, which is the whole point of the mode.
-    // A blueprint does not occlude — whether the blueprint came from the mode or
-    // from the law.
+    // Strong wire shading stays translucent while objects assemble.
     //
     // Exception: once the swallow starts the lensing pass can only spare geometry
     // that wrote depth. Without writers the well paints over wires that are still
     // in front of it. The corridor's ghost behaviour yields for that stretch.
+    /*
+     * ...and a face authored opaque occludes, whatever the assembly bookkeeping says.
+     *
+     * This clause is load-bearing for the black hole, not for the corridor's own
+     * look, and it was found by measuring rather than by reading. The lensing pass
+     * has a depth guard whose whole job is to leave what the room drew in front of
+     * the well exactly as it was drawn — a console plate at reading distance must
+     * occlude a well thirty metres past the aperture, exactly as it occludes the
+     * galaxy the well sits in. That guard reads the depth buffer, so it can only
+     * protect geometry that wrote depth.
+     *
+     * Traversing the live scene at build 0.9 found four depth writers in it: the
+     * three planets and the portal. Every console plate and every chassis face
+     * reported `depthWrite: false` — and would have at any build, because 17 of the
+     * 18 of them are synced with no `assembleAt` and a `build` of 0, so `stage`
+     * evaluates to 0 and `0 > 0.55` is false forever. The result on screen was the
+     * shadow and the photon ring drawn straight through the UPLINK panel, cutting
+     * its border and its rows in half: precisely the "hole burnt in a panel" the
+     * pass's guard was written to prevent.
+     *
+     * `uOpacity` is the honest test for it. It is set once at construction from the
+     * caller's own `opacity`, so it is a static statement of what the face is *for*
+     * — 0.88 to 1.0 on plates and chassis — rather than a per-frame value that can
+     * be caught mid-assembly. Shards keep passing light because they are authored
+     * translucent, which is the distinction the old `stage` test was reaching for.
+     *
+     * Still inside the wire clause: a blueprint does not occlude, whichever law
+     * asked for it.
+     */
+    const opaque = (this.uniforms.uOpacity.value as number) > 0.8
     this.depthWrite =
       sceneState.swallow >= 0.12 ||
-      (wire < 0.5 && stage > (mapped ? 0.72 : solid ? 0.45 : 0.55))
+      (liveLaw.wire < 0.5 &&
+        (opaque || stage > (mapped ? 0.72 : solid ? 0.45 : 0.55)))
   }
 }

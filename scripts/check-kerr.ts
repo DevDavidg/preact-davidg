@@ -22,15 +22,24 @@ import {
   captureRs,
   captureRsRetro,
   closestApproach,
+  DISK_OUTER_RS,
+  holeCenter,
   HOLE_SPIN,
+  GATE_APERTURE_Z_AHEAD,
+  holeGlowFor,
   holeRadiusFor,
   iscoRs,
+  LENS_FAR,
+  LENS_NEAR,
   PHOTON_RS,
   photonRs,
   photonRsRetro,
   PLUNGE_RADIUS,
+  RING_SIGMA,
+  ringWidthFor,
   SHADOW_RS,
 } from '../src/scene/blackHole'
+import { CAMERA_PATH, cameraProgressFor } from '../src/scene/layout'
 import { BASE_FOV } from '../src/scene/viewportFit'
 
 // a = 0 is Schwarzschild, bit for bit where the frame depends on it.
@@ -219,10 +228,262 @@ for (const seam of [0, 1, 2, 5, 137]) {
   )
 }
 
+/*
+ * The other end of the object's life: the nucleus on the opening frame.
+ *
+ * The well is the galaxy's own middle and it is drawn from the first frame, so the
+ * size it has *there* is now as load-bearing as the size it has at the end — and it
+ * is bounded on both sides, but not symmetrically, and this is where the floor
+ * used to be wrong. It read `nucleus > 0.045` — a *large* nucleus on the opening
+ * frame — from back when the well had to announce itself before the corridor could
+ * hand over to it. The shot is now the other way round: the well is a small dark
+ * bite in the middle of a distant galaxy, and the whole of the approach is it
+ * growing. So the floor is no longer about apparent size at all.
+ *
+ * What actually fails when the nucleus is too small is legibility, and legibility
+ * has two separate failure modes with two separate floors. The photon ring going
+ * sub-pixel is the one that fails silently in motion, and it has its own check
+ * further down against `ringWidthFor`. This is the other one: the shadow itself has
+ * to be a resolvable dark disk rather than a single dim sample, or the middle of
+ * the bulge reads as a dead pixel. Three pixels of radius on the shortest frame the
+ * cinema path is ever given is that line — and at the authored `RS_DORMANT` there
+ * are seven, so the intent is a small nucleus with margin, not a nucleus tuned to
+ * the edge of disappearing.
+ *
+ * Measured from the camera path's own first point rather than from a figure, so a
+ * retune of the establishing shot moves this with it.
+ */
+const OPENING = CAMERA_PATH.getPointAt(0).distanceTo(holeCenter)
+const nucleusRs = holeRadiusFor(0, 0)
+const nucleus = apparentShadow(nucleusRs, OPENING, BASE_FOV)
+// A frame is two half-frame-heights tall, hence the halving.
+const SHORTEST_FRAME = 720
+assert.ok(
+  nucleus * SHORTEST_FRAME * 0.5 > 3,
+  `the nucleus is a dead pixel on the opening frame — ${(
+    nucleus * SHORTEST_FRAME * 0.5
+  ).toFixed(1)} px of radius at ${SHORTEST_FRAME}px, ${OPENING.toFixed(1)} m out`,
+)
+/*
+ * ...and the ceiling, which is the same number pushed the other way.
+ *
+ * The galaxy's bright core — the exponential disk's scale length, not its outer
+ * radius — subtends about 0.14 half-frame-heights from here. The accretion disk is
+ * `DISK_OUTER_RS` against the shadow's `captureRsRetro`, so it draws about three
+ * times whatever this is; past 0.075 the disk is more than half again as wide as
+ * the bulge it is supposed to be the middle of, and the well stops reading as the
+ * galaxy's nucleus and starts reading as an object parked in front of it.
+ */
+assert.ok(
+  nucleus * (DISK_OUTER_RS / captureRsRetro(HOLE_SPIN)) < 0.22,
+  `the disk is wider than the galaxy around it — shadow ${nucleus.toFixed(4)}, ` +
+    `disk ${(nucleus * (DISK_OUTER_RS / captureRsRetro(HOLE_SPIN))).toFixed(4)}`,
+)
+
+/* ------------------------------------- the corridor is the charge, not the ending */
+
+/*
+ * The middle of the object's life, which nothing here used to bound.
+ *
+ * `build = 0` is asserted above and `swallow = 1` further up, and between the two
+ * the script had no opinion — so `charge` was free to ramp the well to its full
+ * charged radius by the middle of the rail, and it did. At the bottom of the
+ * corridor, with the room still standing and the finale not yet begun, the shadow
+ * covered 0.37 of a half-frame-height: three quarters of the frame's height of black
+ * next to a console panel that had not been swallowed by anything. A visitor reads
+ * that as the ending having already happened, and then the ending has nothing to be.
+ *
+ * Measured off the camera path rather than off a figure, exactly as the opening
+ * frame is, so a retune of the dolly or of `cameraProgressFor` moves these with it.
+ */
+const lensAt = (build: number) =>
+  CAMERA_PATH.getPointAt(cameraProgressFor(build)).distanceTo(holeCenter)
+const shadowAt = (build: number) =>
+  apparentShadow(holeRadiusFor(build, 0), lensAt(build), BASE_FOV)
+
+/*
+ * Bounded on both sides at the bottom of the corridor, and asymmetrically.
+ *
+ * The ceiling is the regression above: past a quarter of a half-height the well
+ * stops being the destination at the end of the room and starts being the room. The
+ * floor is the opposite failure — twenty-four metres of corridor that ends on a
+ * jewel is the thing `RS_DORMANT`'s comment records as the original bug, and it is
+ * what an over-corrected charge curve produces. 0.17 sits between them with margin
+ * either way.
+ */
+const corridorEnd = shadowAt(1)
+assert.ok(
+  corridorEnd > 0.11 && corridorEnd < 0.24,
+  `the well is the wrong size at the bottom of the corridor, before the ending has ` +
+    `begun — ${corridorEnd.toFixed(3)} of a half-frame-height, wanted 0.11…0.24`,
+)
+
+/*
+ * ...and it gets there late.
+ *
+ * Past halfway down the rail the well must still be a minority of what it will be at
+ * the bottom of it, or the corridor has spent the growth the ending needs. The curve
+ * this replaced read 0.42 here — the well was nearly half-open with two fifths of
+ * the consoles still unread.
+ */
+assert.ok(
+  shadowAt(0.6) < corridorEnd * 0.36,
+  `the well opens in the corridor instead of at the end — ${(
+    shadowAt(0.6) / corridorEnd
+  ).toFixed(3)} of its bottom-of-corridor size at build 0.6`,
+)
+
+/*
+ * The beat itself: the ending has to be where the growth is.
+ *
+ * `shadowAtEnd` is computed above against the same `deepestRs`; this is the ratio
+ * the visitor actually experiences, and it is the one number that says "the well
+ * swallows the room at the end" rather than "the well was always going to be big".
+ * The curve this replaced scored 5.7 — the corridor grew the shadow 19× and the
+ * finale only 5.7× more, which is a hole that arrives early and then merely gets
+ * closer.
+ */
+const endingMultiple = shadowAtEnd / corridorEnd
+assert.ok(
+  endingMultiple > 8,
+  `the finale is not where the well opens — it grows ${endingMultiple.toFixed(
+    1,
+  )}× across the whole ending, against ${(corridorEnd / shadowAt(0)).toFixed(
+    1,
+  )}× across the corridor`,
+)
+
+/*
+ * ...without switching on.
+ *
+ * The other half of the correction, and the one that fails silently: a charge
+ * deferred far enough reads as the well being *created* at the end of the rail
+ * rather than fed by it, and a still frame never shows it. Bounded as growth per
+ * unit scroll, because that is what an eye integrates — and on apparent size rather
+ * than on Rs, since the lens is closing over the same stretch and the two multiply.
+ * A fifth of the rail is a couple of screens of wheel; nothing in frame may half
+ * again inside one.
+ *
+ * The authored curve scores 1.23 and the one it replaced 1.28, so this is a ceiling
+ * on future retunes rather than a description of either.
+ */
+let worstStep = 1
+for (let index = 0; index <= 1900; index += 1) {
+  const build = index / 2000
+  worstStep = Math.max(worstStep, shadowAt(build + 0.05) / shadowAt(build))
+}
+assert.ok(
+  worstStep < 1.35,
+  `the well switches on rather than charging — it grows ${worstStep.toFixed(
+    2,
+  )}× inside five percent of scroll`,
+)
+
+// ...and it only ever grows from there, so the corridor is a charge and not a
+// flicker. `swallow` is held at 0: the ending's own growth is asserted above.
+let previousCharge = holeRadiusFor(0, 0)
+for (let index = 1; index <= 200; index += 1) {
+  const rs = holeRadiusFor(index / 200, 0)
+  assert.ok(rs >= previousCharge - 1e-12, `Rs fell at build=${index / 200}`)
+  previousCharge = rs
+}
+
+/*
+ * The nucleus never goes out.
+ *
+ * `holeGlowFor` is the floor under every emissive term in the pass, and the whole
+ * of the first fix is that it is a floor rather than a ramp from zero: at zero the
+ * disk, the ring and the jets are all multiplied to nothing and the galaxy has a
+ * hole where its middle should be.
+ */
+assert.ok(holeGlowFor(0) > 0.25, `the nucleus starts dark: ${holeGlowFor(0)}`)
+let previousGlow = holeGlowFor(0)
+for (let index = 1; index <= 200; index += 1) {
+  const glow = holeGlowFor(index / 200)
+  assert.ok(glow >= previousGlow - 1e-12, `glow fell at build=${index / 200}`)
+  assert.ok(glow <= 1 + 1e-12, `glow left the unit range: ${glow}`)
+  previousGlow = glow
+}
+assert.ok(holeGlowFor(1) > 0.99, `the nucleus never reaches full: ${holeGlowFor(1)}`)
+
+/*
+ * The photon ring is never thinner than a pixel.
+ *
+ * The one quantity in this pass that fails *silently in motion*: a Gaussian
+ * narrower than the sample grid renders as a dashed line that crawls along the rim
+ * rather than as a faint filament, and a still frame does not show it. Checked at
+ * both ends of the object's life and at the smallest frame the cinema path is ever
+ * given — the governor demotes below roughly 720p, and a shorter frame is the case
+ * where the floor has to bite hardest.
+ */
+const ringPixels = (rs: number, distance: number, framePixels: number) => {
+  const narrow =
+    apparentShadow(rs, distance, BASE_FOV) *
+    (captureRs(HOLE_SPIN) / captureRsRetro(HOLE_SPIN))
+  // σ as a fraction, times the narrow edge's own radius in pixels.
+  return (
+    ringWidthFor(narrow, framePixels) * narrow * framePixels * 0.5
+  )
+}
+for (const framePixels of [720, 900, 1440]) {
+  assert.ok(
+    ringPixels(nucleusRs, OPENING, framePixels) > 1.1,
+    `the ring is sub-pixel on the opening frame at ${framePixels}px: ` +
+      `${ringPixels(nucleusRs, OPENING, framePixels).toFixed(2)} px`,
+  )
+}
+// ...and at the end the physics wins outright: the floor must not be fattening a
+// filament that is already several pixels wide.
+const endNarrow =
+  shadowAtEnd * (captureRs(HOLE_SPIN) / captureRsRetro(HOLE_SPIN))
+assert.equal(
+  ringWidthFor(endNarrow, 900),
+  RING_SIGMA,
+  `the pixel floor is still widening the ring at the end of the rail: ` +
+    `${ringWidthFor(endNarrow, 900)}`,
+)
+
+/* ------------------------------------------------- the lens's own depth guard */
+
+/*
+ * The band inside which a bent ray may fetch what it lands on.
+ *
+ * A screen-space lens has no idea how far away the texel it sampled was, so this
+ * pair is the only thing standing between the corridor and a frame full of ghosts
+ * of itself wrapped around the nucleus. The rule is "only what is *at* the well is
+ * lensed by it", and what forces the band to be tight is that the gate's own
+ * structure stands `GATE_APERTURE_Z_AHEAD` in front of the singularity — closer to
+ * the lens than a body standing out in the corridor can be. So the near edge has
+ * to fall beyond the gate's reach, which means the mechanism's columns are not
+ * lensed either. That is the trade, and it is the right way round: a column two
+ * metres in front of a black hole is not bent around it.
+ *
+ * The first pass at this pair read 0.86/0.995 fitted to the establishing frame,
+ * which left a planet at 0.933 of the lens's own distance inside the transition —
+ * three quarters of its ghost survived, rings and all, hanging above the nucleus
+ * on the opening shot. These asserts are what that cost.
+ */
+const gateReach = (OPENING - GATE_APERTURE_Z_AHEAD) / OPENING
+assert.ok(
+  LENS_NEAR > gateReach,
+  `the lens guard reaches in front of the gate, so the corridor is lensable: ` +
+    `LENS_NEAR ${LENS_NEAR} vs the gate's own reach ${gateReach.toFixed(3)}`,
+)
+assert.ok(
+  LENS_NEAR < LENS_FAR && LENS_FAR < 1,
+  `the guard must cross-fade, and the aperture itself sits at 1.0 and has to be ` +
+    `lensed: ${LENS_NEAR} → ${LENS_FAR}`,
+)
+
 console.log(
   `kerr ok — a=${HOLE_SPIN}: isco ${iscoRs(HOLE_SPIN).toFixed(3)} Rs, ` +
     `photon ${photonRs(HOLE_SPIN).toFixed(3)}/${photonRsRetro(HOLE_SPIN).toFixed(3)} Rs, ` +
     `capture ${captureRs(HOLE_SPIN).toFixed(3)}/${captureRsRetro(HOLE_SPIN).toFixed(3)} Rs; ` +
     `ending Rs ${deepestRs.toFixed(2)} m at ${ENDING_DISTANCE.toFixed(1)} m — ` +
-    `shadow ${prograde.toFixed(2)}…${shadowAtEnd.toFixed(2)} half-frames`,
+    `shadow ${prograde.toFixed(2)}…${shadowAtEnd.toFixed(2)} half-frames; ` +
+    `nucleus ${nucleus.toFixed(3)} half-frames at ${OPENING.toFixed(1)} m, ` +
+    `corridor ends at ${corridorEnd.toFixed(3)} (${endingMultiple.toFixed(1)}× left ` +
+    `for the ending, worst step ${worstStep.toFixed(2)}×); ` +
+    `ring ${ringPixels(nucleusRs, OPENING, 900).toFixed(2)} px; ` +
+    `lens guard ${LENS_NEAR}→${LENS_FAR} clears the gate at ${gateReach.toFixed(3)}`,
 )

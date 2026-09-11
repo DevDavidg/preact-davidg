@@ -56,14 +56,22 @@ import * as THREE from 'three'
  *
  * ## Why it is affordable
  *
- * Because almost no pixel pays for it. The pass is masked to a feathered disc
- * around the well's projected centre, sized from its own apparent radius, so for
- * the whole corridor it touches a patch inside the gate's doorway and nothing
- * else. Within that mask there are three tiers: pixels outside the disk's reach
- * take a closed-form weak-field deflection, pixels well inside the capture radius
- * get a short budget because their fate is already known, and only the ring — the
- * part that carries the picture — is integrated at full step count. Step count
- * itself comes from the fidelity the governor has settled on.
+ * Because almost no pixel pays for it, and the pixels that do are bounded by the
+ * *object* rather than by the mask. The pass runs for the whole page now — the
+ * well is the galaxy's nucleus and a nucleus does not switch on — but the mask is
+ * still a feathered disc around its projected centre, and inside it there are
+ * three tiers: pixels whose impact parameter is past the disk's own reach take a
+ * closed-form weak-field deflection and one texture sample, pixels well inside the
+ * capture radius get a short budget because their fate is already known, and only
+ * the ring — the part that carries the picture — is integrated at full step count.
+ *
+ * That first tier is what makes the corridor free. Its threshold is `max(uOuter,
+ * 14 Rs)`, which at the establishing shot is three and a half metres seen from
+ * thirty-two: a quarter of a half-frame-height. So a mask floored several times
+ * wider than that — wide enough that the galaxy's arms are visibly bent around the
+ * nucleus, which is the whole read of "it lives there" — buys the winding at the
+ * price of a rotation and a fetch per pixel, and the integrator never sees them.
+ * Step count itself comes from the fidelity the governor has settled on.
  *
  * It is also, deliberately, its own pass. `EffectAttribute.CONVOLUTION` is what
  * tells `@react-three/postprocessing` not to merge this into the pass that holds
@@ -87,8 +95,9 @@ uniform float uOuter;
 uniform float uSteps;
 uniform float uStep;
 uniform float uMask;
-uniform float uGate;
+uniform float uRingWidth;
 uniform float uNearGuard;
+uniform float uNearSoft;
 uniform float uDepthGuard;
 uniform float uSwallow;
 uniform float uEclipse;
@@ -96,6 +105,22 @@ uniform float uFlow;
 uniform float uCharge;
 uniform float uSuction;
 uniform float uSpin;
+/*
+ * How much of the weak-field bend the sky actually gets, 0 → 1.
+ *
+ * The lensing used to be gated on uDistortion, which is the VISCOUS tide's
+ * schedule, so for most of the page the pass bent nothing and the nucleus was a
+ * decal. Removing that gate fixed the decal and bought a worse problem: tier one
+ * below is the tier most of the masked area falls into for most of the page, so
+ * the starfield and the galaxy's arms were visibly smeared around a hole that is
+ * thirty pixels wide and thirty metres away. A distant black hole does not warp a
+ * quarter of the sky; that reads as a lens smudge, not as gravity.
+ *
+ * So the bend gets its own schedule instead of borrowing the tide's. It is floored
+ * rather than zeroed — a few percent keeps the rim from being a flat sticker — and
+ * opens on the swallow, which is exactly "the end" whichever law is running.
+ */
+uniform float uLensGain;
 uniform float uCapturePro;
 uniform float uCaptureRetro;
 uniform vec3  uHot;
@@ -309,7 +334,16 @@ vec4 bhDisk(vec3 pos, float radius, vec3 tangent, float column) {
    */
   float lr = log(rn) - uFlow * (0.45 + uSwallow * 0.7 + uSuction * 1.1) / 2.3;
   float spiral = omega * 7.5 + uSpin * 0.55;
-  float boost = 0.25 + uSuction * 0.7 + uSwallow * 0.35;
+  /*
+   * The filaments have to win the max() in bhGas or they are not drawn at all.
+   * stream peaks at 1.55 before the boost, so at 0.25 it reached 0.39 against a
+   * grain that averages 0.27 and peaks at 1.0 — max() picked grain almost
+   * everywhere and the three-mode MRI field this function spends most of its cost
+   * on only ever appeared mid-gulp. 0.6 puts the filament peak at 0.93, which is
+   * over grain's mean everywhere and under its peak, so the streams read *through*
+   * the turbulence instead of replacing it.
+   */
+  float boost = 0.6 + uSuction * 0.45 + uSwallow * 0.3;
   float grain = mix(
     bhGas(angle - sweep * lag, lr, floor(phase + 0.5) * 7.31, spiral, boost),
     bhGas(angle - sweep * lead, lr, floor(phase) * 7.31, spiral, boost),
@@ -328,12 +362,19 @@ vec4 bhDisk(vec3 pos, float radius, vec3 tangent, float column) {
    * local — bloom is downstream, and one bad texel spreads through the mip chain
    * and takes the whole frame black. Same reason at the ring.
    */
-  float clump = sin((angle - uFlow * 0.85) * 0.5) * 2.2;
+  /*
+   * 4.2, not 2.2: at 2.2 the gaussian stays above half its peak for about 60° of
+   * azimuth, which is a sixth of the disk and reads as a brightness gradient rather
+   * than as a clump of gas. 4.2 is ~25° FWHM — a knot the eye can follow round —
+   * and 0.95 rather than 0.55 is what a knot has to be worth to be seen at all now
+   * that the density floor below is a sixth instead of a third.
+   */
+  float clump = sin((angle - uFlow * 0.85) * 0.5) * 4.2;
   float spot =
     exp(-clump * clump) *
     pow(uInner / max(radius, uInner), 2.0);
   // A clump adds gas, it does not replace it — hence a sum and not a max.
-  grain = min(1.35, grain + spot * 0.55);
+  grain = min(1.5, grain + spot * 0.95);
 
   /*
    * Shakura–Sunyaev with the zero-torque inner boundary — Novikov–Thorne.
@@ -379,36 +420,37 @@ vec4 bhDisk(vec3 pos, float radius, vec3 tangent, float column) {
   float shift = doppler * wellShift;
 
   /*
-   * Relativistic beaming, at the exponent the physics actually has.
+   * Relativistic beaming, at the exponent the frame can display.
    *
-   * Observed intensity goes as the fourth power of the total shift. This ran at
-   * 3.2 with an apology attached: the honest exponent was said to put a factor of
-   * eighty on the approaching limb and tone-map it to a white wedge with no hue.
-   * That was the wrong diagnosis. The *peak* barely moves between 3.2 and 4,
-   * because at the inner rim the gravitational term cancels most of the boost and
-   * the total shift is ~1 — where any exponent is 1. The whole of the extra 0.8 is
-   * spent on the dark side, which is exactly where the references put it.
+   * Observed intensity goes as the fourth power of the total shift, and this ran
+   * at 4.0 on the grounds that the pass emits linear and ACES compresses it
+   * downstream. ACES compresses the *top* of the range; it does nothing at all for
+   * the bottom, and the bottom is where the whole of that exponent was being spent.
+   * Measured across the two limbs at 4.0: 310:1 at the a = 0.85 ISCO (1.32 Rs,
+   * shift 1.010 against 0.241), 32:1 at 3 Rs, 10.8:1 at 6 Rs. Nothing renders one
+   * three-hundredth of a bloomed highlight as anything but black, so the receding
+   * half of the disk was simply not in the picture — which is Thorne's own verdict
+   * on the honest frame, "exceedingly lopsided, with the hole's shadow barely
+   * discernible, was obviously unacceptable". The note this replaces ended by
+   * saying to dial it here if it ever needed dialling back. It did.
    *
-   * The numbers: at the a = 0.85 ISCO the orbital β is 0.6185 in the local
-   * non-rotating frame, so edge-on δ_app/δ_rec = (1+β)/(1−β) = 4.24 and the honest
-   * ratio is 4.24⁴ = 324:1. β peaks near a = 0.94 and falls again toward extremal,
-   * so 0.85 is already at 93% of the most beaming this object can have.
+   * 2.3 leaves 7.3:1 at 3 Rs and 30:1 at the ISCO — three times what NASA's edge-on
+   * render displays (2.4:1 measured in linear light) and unmistakably more than
+   * Interstellar shipped (beaming off entirely, 0.80:1), so the cue stays loud while
+   * both limbs survive into the frame. The physics is unchanged and still readable
+   * above: at the a = 0.85 ISCO the orbital β is 0.6185 in the local non-rotating
+   * frame, edge-on δ_app/δ_rec = (1+β)/(1−β) = 4.24, and 4.24⁴ = 324:1 is the
+   * honest number. This is the art-direction decision taken after it, the same one
+   * every reference render takes.
    *
-   * What the references *display* is far less, and deliberately so. NASA's edge-on
-   * render measures 2.4:1 in linear light. Thorne's own physically-correct frame
-   * measures 55:1 and he threw it out — "exceedingly lopsided, with the hole's
-   * shadow barely discernible, was obviously unacceptable" — so Interstellar
-   * shipped with beaming at 0.80:1, which is to say off. Both are tone-mapping and
-   * art-direction decisions taken *after* the physics. This pass emits linear and
-   * ACES compresses it downstream, so 324 is the figure to hand it and the frame is
-   * where to judge the result. If it ever needs dialling back, dial it here and
-   * know that Thorne got there first.
+   * The peak moves with the exponent and is paid back at the emission below: 4.0
+   * peaked at 2.51 in the mid-disk, 2.3 peaks at 1.70.
    *
    * The cap stays as a guard rather than as a shaper: the total shift tops out
    * around 1.3 in the mid-disk on its own, so 2.4 is never reached in practice and
    * exists so a future spin or ISCO retune cannot produce an infinity.
    */
-  float beam = pow(clamp(shift, 0.05, 2.4), 4.0);
+  float beam = pow(clamp(shift, 0.05, 2.4), 2.3);
 
   /*
    * Thickness, from geometry rather than from a volume.
@@ -423,7 +465,16 @@ vec4 bhDisk(vec3 pos, float radius, vec3 tangent, float column) {
    * ponytail: slab of scalar height. If a true volume is ever asked for, the
    * upgrade is a second crossing at ±h, not a 3D grid.
    */
-  float density = edge * (0.34 + grain * 0.92) * column;
+  /*
+   * The floor is a sixth, not a third. Against grain's 0.92 range a floor of 0.34
+   * capped the gas at 3.7:1 light-to-dark, which is a smooth gradient with faint
+   * banding in it — no gaps, so no filaments, whatever the field above computes.
+   * 0.16 against 1.05 is 8:1, which is where the lanes between the streams go
+   * actually dark and the band reads as braided plasma. NASA's own description of
+   * the reference render is the target: "bright knots constantly form and
+   * dissipate."
+   */
+  float density = edge * (0.16 + grain * 1.05) * column;
 
   /*
    * Colour by temperature, on the reference renders' own ramp.
@@ -444,9 +495,17 @@ vec4 bhDisk(vec3 pos, float radius, vec3 tangent, float column) {
    * flatter span than the bare law's, and one that goes back to zero at the rim.
    * Measured against the render's own ramp: amber at 2 shadow radii, #a20301 at
    * three, black by four and a half.
+   *
+   * The hot window is 0.55/0.88 and was 0.72/0.95, which put uHot somewhere the eye
+   * could not reach it. temp hits 0.97 at 2.1 Rs — but at a = 0.85 the shadow covers
+   * 1.53 to 3.37 Rs, so the whole of that window lay *behind the shadow* on the
+   * retrograde side and every visible sample came out 85–100% uCool. One colour, and
+   * the brown smudge the screenshots show. Measured on the new window: fully hot by
+   * 2.5 Rs, 0.72 hot at the shadow's retrograde edge, 0.22 at 5 Rs, nothing by 10 —
+   * white-hot to amber to deep red across the band that is actually in frame.
    */
   vec3 tint = mix(uEmber, uCool, smoothstep(0.34, 0.62, temp));
-  tint = mix(tint, uHot, smoothstep(0.72, 0.95, temp));
+  tint = mix(tint, uHot, smoothstep(0.55, 0.88, temp));
   /*
    * The same shift that set the brightness now spends itself on hue — and spends
    * enough of it that the two limbs read as different *temperatures*, not as the
@@ -455,8 +514,14 @@ vec4 bhDisk(vec3 pos, float radius, vec3 tangent, float column) {
    * falling toward ink. Still the room's own ramp end to end — a blue-UV wedge is
    * the honest blackbody answer and the wrong one in here.
    */
+  /*
+   * The cold end leans, it does not replace. At 1.45 the receding limb was 0.68 of
+   * the way to uEmber by 3 Rs, on top of being beamed down — recoloured to a dark
+   * brown *and* dimmed, which under ACES is black twice over. 0.95 lands the same
+   * sample at 0.45: still visibly the cooler limb, still in the picture.
+   */
   tint = mix(tint, uChill, clamp((shift - 1.0) * 0.9, 0.0, 1.0));
-  tint = mix(tint, uEmber, clamp((1.0 - shift) * 1.45, 0.0, 1.0));
+  tint = mix(tint, uEmber, clamp((1.0 - shift) * 0.95, 0.0, 1.0));
 
   /*
    * Optically *thick enough*, and that is the difference between plasma and paint.
@@ -475,9 +540,15 @@ vec4 bhDisk(vec3 pos, float radius, vec3 tangent, float column) {
    * still lands well over one — bloom is downstream and wants headroom to find —
    * but the *body* of the disk now sits inside the range tone mapping can render as
    * a colour instead of as white.
+   *
+   * 0.72 rather than 0.5, which is exactly the peak the beaming exponent gave back:
+   * 4.0 peaked at 2.51 in the mid-disk and 2.3 peaks at 1.70, so 0.5 · 2.51/1.70 =
+   * 0.74 and the disk's overall level is unchanged to within a couple of percent.
+   * What changed is where that level is spread — over a ring rather than over a
+   * comma.
    */
   return vec4(
-    tint * density * radial * beam * uCharge * (0.5 + uSuction * 1.25 + uSwallow * 0.55),
+    tint * density * radial * beam * uCharge * (0.72 + uSuction * 1.25 + uSwallow * 0.55),
     clamp(density * 0.34, 0.0, 0.8)
   );
 }
@@ -487,8 +558,38 @@ vec3 bhTurn(vec3 v, vec3 axis, float angle) {
   return v * cos(angle) + cross(axis, v) * sin(angle);
 }
 
-/** The frame the composer already rendered, sampled along a bent ray. */
-vec3 bhSky(vec3 direction) {
+/**
+ * The frame the composer already rendered, sampled along a bent ray.
+ *
+ * home is the colour this fragment already had — the answer a straight line would
+ * have given — and it is what the sample falls back to when the bent ray lands on
+ * something that cannot have been lensed. See the guard at the end.
+ */
+vec3 bhSky(vec3 direction, vec3 home) {
+  /*
+   * No gate, and the uniform it was gated on is gone from this pass entirely.
+   *
+   * This early-outed to home whenever uDistortion was under a ten-thousandth,
+   * with a note about keeping the environment optically stable until the final
+   * VISCOUS approach. uDistortion is the *tide's* schedule — advanceCollapse
+   * only raises it for VISCOUS in the last stretch — so what that line actually
+   * did was switch the lensing off for about ninety-five percent of the page: the
+   * tier-one branch rotated the ray and then called a function that threw the
+   * rotation away, and the header's claim that the galaxy's arms are visibly bent
+   * around the nucleus was not happening on any frame anybody sees.
+   *
+   * Lensing is not a tide. Nothing here deforms geometry; this is a screen-space
+   * refetch of the frame the composer already rendered, and a nucleus that does
+   * not bend the sky behind it is a black disc with a decal on it. The Einstein
+   * ring is the one cue that still reads when the object is thirty pixels across,
+   * which is the size it is for the whole corridor.
+   *
+   * What the gate was standing in for is the depth guard at the end of this
+   * function, which is the correct and much narrower protection: anything the room
+   * drew in *front* of the well still comes back exactly as it was drawn. It costs
+   * one texture fetch per masked pixel, and during the corridor the mask is a few
+   * dozen pixels across.
+   */
   vec4 clip = uToClip * vec4(direction, 0.0);
   if (clip.w <= 0.0001) return uVoid;
   vec2 uv = clip.xy / clip.w * 0.5 + 0.5;
@@ -526,11 +627,31 @@ vec3 bhSky(vec3 direction) {
   vec2 inside =
     smoothstep(vec2(0.0), vec2(0.02), uv) *
     (1.0 - smoothstep(vec2(0.98), vec2(1.0), uv));
-  return mix(
-    uVoid,
-    texture2D(inputBuffer, clamp(uv, vec2(0.001), vec2(0.999))).rgb,
-    inside.x * inside.y
-  );
+  vec2 look = clamp(uv, vec2(0.001), vec2(0.999));
+  vec3 lensed = mix(uVoid, texture2D(inputBuffer, look).rgb, inside.x * inside.y);
+
+  /*
+   * ...and nothing nearer than the well may be lensed *by* it.
+   *
+   * The guard in mainImage stops the pass overwriting a console at reading
+   * distance. This is the same rule applied to the other end of the sample, and it
+   * is the half a screen-space lens gets wrong on its own: a bent ray fetches
+   * whatever texel it lands on with no idea how far away that texel was, so the
+   * corridor's own plates were being picked up and drawn back as arcs of mirrored
+   * type wrapped over the top of the shadow, and a planet five metres from the lens
+   * returned as a crescent ghost of itself beside itself. Light from in front of
+   * the well never went near the well; a ray that lands on it has not found a
+   * second image of anything, it has found the room it is already standing in.
+   *
+   * So it hands back home rather than the abyss. At the rim the deflection is
+   * already almost nothing, so the undeflected colour is continuous with its
+   * neighbours, while a hole cut out of the frame would be a new artefact in place
+   * of the old one. Faded on the same uDepthGuard that lifts the near guard: once
+   * the room is inside the field, "in front of" has stopped meaning anything and
+   * every last texel of it is fair game.
+   */
+  float behind = smoothstep(uNearSoft, uNearGuard, readDepth(look));
+  return mix(lensed, home, (1.0 - behind) * uDepthGuard);
 }
 
 /**
@@ -558,8 +679,14 @@ vec3 bhJet(vec3 origin, vec3 dir) {
   float axial = abs(up);
   if (axial > jetLen) return vec3(0.0);
 
-  // A beam that opens slowly with distance from the throat.
-  float beamR = uRs * 0.22 + axial * 0.11;
+  /*
+   * A beam that opens slowly with distance from the throat — 2.6° of half-angle,
+   * not 6.3°. A jet's whole read is that it is collimated, and at 0.22/0.11 the
+   * envelope reached 1.2 Rs across at the tip with the gaussian's own tail putting
+   * visible grey a further Rs beyond that. What that draws is a plume, and in the
+   * finale frame the two of them read as lens dirt above and below the shadow.
+   */
+  float beamR = uRs * 0.10 + axial * 0.045;
   float core = exp(-pow(length(w0 + along * dir - up * uAxis) / beamR, 2.0));
   if (core < 0.004) return vec3(0.0);
 
@@ -573,20 +700,35 @@ vec3 bhJet(vec3 origin, vec3 dir) {
   // The beam fired at the lens runs a little hotter than the one fired away.
   float boost = mix(0.7, 1.35, 0.5 + 0.5 * dot(uAxis * lobe, -dir));
 
-  // Paler than the rim, and dark until the gate is fully armed: in the corridor
-  // there are no two searchlights coming out of the stator.
-  // ...and "dark" means off, not dim: a window on the last sixth of the gate,
-  // where the room has already gone. uGate² still left two visible beams
-  // standing in the corridor at half a gate.
-  vec3 tint = mix(uChill, uHot, 0.35);
-  return tint * core * grain * envelope * boost *
-    smoothstep(0.85, 1.0, uGate) * uCharge *
+  /*
+   * Paler than the rim, and on for the whole page.
+   *
+   * They used to be windowed on the last sixth of a ramp called uGate, with a note
+   * saying there are no two searchlights coming out of the stator in the corridor.
+   * There is no stator any more and the well is a galactic nucleus, and a nucleus
+   * that is feeding has jets — they are the cheapest and most legible signal at
+   * distance that the thing at the middle of the galaxy is *running*, which is
+   * exactly what the corridor needed and did not have.
+   *
+   * The floor is a twelfth, which against the corridor's own uCharge lands them at
+   * a few percent of the rim: a pair of faint axial spikes that bloom picks up and
+   * nothing else reads as an object. The gulps and the swallow take them the rest
+   * of the way, which is where the beams belong.
+   */
+  /*
+   * Synchrotron, so it stays on the cold end of the room's ramp. Lerped 0.35 toward
+   * the peach it landed as neutral grey beside an amber disk, and grey is the one
+   * colour in this frame that reads as dirt rather than as an object. 0.12 keeps it
+   * a pale blue-white spike. CHAOS still recolours it, because uChill does.
+   */
+  vec3 tint = mix(uChill, uHot, 0.12);
+  return tint * core * grain * envelope * boost * uCharge *
     (0.12 + uSuction * 0.5 + uSwallow * 0.3);
 }
 
 void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth, out vec4 outputColor) {
   outputColor = inputColor;
-  if (uGate < 0.002 || uRs < 0.0001) return;
+  if (uCharge < 0.0005 || uRs < 0.0001) return;
 
   // Where the well is on screen. Behind the lens, there is nothing to draw.
   vec4 holeClip = uToClip * vec4(uHole, 1.0);
@@ -605,7 +747,7 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth,
    * seam — it is buying back the ninety-odd percent of the frame where the answer
    * would have been "unchanged" at the cost of a hundred integration steps.
    */
-  float mask = (1.0 - smoothstep(uMask * 0.74, uMask, length(offset))) * uGate;
+  float mask = 1.0 - smoothstep(uMask * 0.74, uMask, length(offset));
   /*
    * Nothing here rides the gulp. Driving the mask off suction — its size *or* its
    * opacity — is what flashed the frame: the mask reaches the corners at its
@@ -654,8 +796,27 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth,
    * authority. The plate edge still exists out there; it is now a step in a term
    * the mask is already fading to zero, which is why it stops reading as an edge.
    */
-  float ahead = smoothstep(uNearGuard - 0.004, uNearGuard, depth);
-  float cede = smoothstep(uMask * 0.34, uMask * 0.78, length(offset));
+  /*
+   * ...and the exemption only opens once there is an ending to exempt it for.
+   *
+   * "Nothing stands in front of the horizon" is a rule about the finale. For the
+   * corridor it is simply false: the well is thirty metres past the aperture and a
+   * moon eight metres from the lens really does occlude it, exactly as it occludes
+   * the galaxy it sits in. Before the well was drawn during the corridor there was
+   * nothing for that to be wrong about; now there is, and a lensed bite punched out
+   * of a planet is the most obviously broken thing this pass can produce.
+   *
+   * So the core's unconditional win is faded in on the swallow. During the corridor
+   * the guard has full authority everywhere, which is also what keeps a console
+   * plate at reading distance intact while the mask is floored wide enough to show
+   * the arms winding.
+   */
+  float ahead = smoothstep(uNearSoft, uNearGuard, depth);
+  float cede = mix(
+    1.0,
+    smoothstep(uMask * 0.34, uMask * 0.78, length(offset)),
+    smoothstep(0.0, 0.12, uSwallow)
+  );
   mask *= mix(1.0, ahead, uDepthGuard * cede);
   if (mask < 0.004) return;
 
@@ -697,8 +858,26 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth,
    * The projection is also the honest quantity: a ray whose plane contains the axis
    * carries no angular momentum about it and is dragged neither way. sign() was
    * claiming the maximum of one or the other for exactly those rays.
+   *
+   * Negated, together with side below — they are one quantity and they were both
+   * pointing away from the disk's own approaching limb. orbit is
+   * cross(uAxis, pos) with the axis near world up and the lens out on +Z, so gas at
+   * world −X moves toward the lens, and the flow's own advection agrees (diskX is
+   * −X̂, diskY is +Ẑ, and bhGas is advected toward increasing angle). Screen right
+   * is world +X̂, so the Doppler-bright limb is at screen −x — which the screenshots
+   * confirm, the wing and the crescent are both on the left. That is therefore the
+   * side the D has to be flattened on and the side the filament has to brighten on:
+   * every reference image, EHT M87* and Sgr A* included, has the flat edge, the
+   * bright arc and the beamed limb on one side, because they are all the same
+   * light. Here the disk was bright on one side and the other two on the other, and
+   * the note at the halo below already stated the intent correctly — only the sign
+   * failed to deliver it.
+   *
+   * Flip them together or not at all: sense shapes the integrated shadow through
+   * bhAccel and side places the analytic ring on top of it, so flipping one alone
+   * floats the filament ~1.8 Rs off the shadow edge it is supposed to trace.
    */
-  float sense = dot(plane, uAxis);
+  float sense = -dot(plane, uAxis);
   float b = sense * impact;
   /*
    * Silhouette by azimuth, not a left/right switch. Two capture radii with
@@ -713,7 +892,8 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth,
    * one twentieth too short. Upgrade: a second uniform for the polar semi-axis, if
    * anyone can see six percent.
    */
-  float side = offset.x / max(length(offset), 0.0001);
+  // Negated with sense above, and for the reason recorded there.
+  float side = -offset.x / max(length(offset), 0.0001);
   float capture =
     mix(uCaptureRetro, uCapturePro, 0.5 + 0.5 * side) * uRs;
 
@@ -729,10 +909,14 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth,
     vec3 bent = bhTurn(
       dir,
       plane,
-      (2.0 + uSwallow * 5.2 + uSuction * 2.0) * uRs / impact +
-        uSpin * 2.0 * uRs / impact * sense
+      uLensGain *
+        ((2.0 + uSwallow * 5.2 + uSuction * 2.0) * uRs / impact +
+          uSpin * 2.0 * uRs / impact * sense)
     );
-    outputColor = vec4(mix(inputColor.rgb, bhSky(bent), clamp(mask, 0.0, 1.0)), inputColor.a);
+    outputColor = vec4(
+      mix(inputColor.rgb, bhSky(bent, inputColor.rgb), clamp(mask, 0.0, 1.0)),
+      inputColor.a
+    );
     return;
   }
 
@@ -886,7 +1070,19 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth,
       -du * (cosPhi * radialAxis + sinPhi * swing) +
       safeU * (-sinPhi * radialAxis + cosPhi * swing)
     );
-    sky = bhSky(escape);
+    /*
+     * The same gain the weak-field tier gets, and for the same reason.
+     *
+     * Gating tier one alone was half a fix: the integrator here is what draws the
+     * galaxy's own stars as concentric arcs wrapped round the shadow, and it was
+     * still running at full strength for the whole corridor. At build 0.88 — well
+     * before any ending — the field behind the nucleus was a set of smeared rings,
+     * which is the "horizonte distorsionado de lejos" this pair of gates exists to
+     * remove. Blending the escaped ray back toward the one that came in leaves the
+     * capture test, the disk and the photon ring exactly as they were: only the
+     * *background* stops being wound.
+     */
+    sky = bhSky(normalize(mix(dir, escape, uLensGain)), inputColor.rgb);
   }
 
   /*
@@ -906,16 +1102,27 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth,
    * percent of the shadow's diameter. σ = 2.2% of the radius is that, and it is the
    * narrowest a Gaussian can be here without the line breaking up between pixels.
    */
+  /*
+   * σ arrives as a uniform because 2.2% of the radius is a width in *metres at the
+   * hole*, and what has to stay legible is a width in pixels. For the whole
+   * corridor the well is thirty metres off and its capture radius covers a dozen
+   * pixels, so the honest 2.2% is a third of a pixel — and a filament thinner than
+   * the grid it is sampled on does not draw faint, it draws as a dotted line that
+   * crawls when the camera moves. CinemaLayer floors the fraction against the
+   * frame's own height so the ring is never under about a pixel and a quarter, and
+   * hands back the physical 2.2% the moment the object is big enough to carry it.
+   */
   // Signed base — impact runs under capture everywhere inside the shadow — so
   // squared, not pow(). See the clump in bhDisk.
-  float off1 = (impact - capture) / max(capture * 0.022, 0.0001);
+  float off1 = (impact - capture) / max(capture * uRingWidth, 0.0001);
   float ring = exp(-off1 * off1);
   /*
    * N=2: the same light after one more winding — thinner, a hair further in,
    * and about 1/e of N=1's amplitude. The cascade stops here on purpose: a
    * finite RK4 budget cannot produce N=3, and the image does not promise it.
    */
-  float off2 = (impact - capture * 0.993) / max(capture * 0.010, 0.0001);
+  float off2 =
+    (impact - capture * 0.993) / max(capture * uRingWidth * 0.4545, 0.0001);
   ring += 0.37 * exp(-off2 * off2);
 
   /*
@@ -969,8 +1176,13 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth,
   // limb is. Reusing side — the prograde weight the shadow was cut with — lands
   // the bright arc on the flattened edge for free. An even ring around an uneven
   // shadow is the one thing none of the references show.
+  //
+  // 6.8:1 across the arc, not 3:1. Twenty degrees off edge-on is nearly the most
+  // beaming this geometry can show, and 0.5/1.5 was too polite to read as an arc at
+  // all — it drew an evenly-lit rim, which is the signature of a lit sphere and the
+  // single worst misread in the finale frame.
   vec3 halo = mix(uHot, uChill, 0.5) * ring *
-    mix(0.5, 1.5, 0.5 + 0.5 * side) *
+    mix(0.28, 1.9, 0.5 + 0.5 * side) *
     (0.55 + uSwallow * 0.9 + uSuction * 0.25) * uCharge * blaze;
 
   /*
@@ -981,7 +1193,21 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth,
    */
   glow += bhJet(uCam, dir) * through * (1.0 - captured);
 
-  vec3 lit = (glow + sky * through) * survives + halo * ringSurvives;
+  /*
+   * ...and the filament is *behind* the near half of the disk wherever the near
+   * half crosses it.
+   *
+   * halo was added outside the front-to-back accumulation, so it drew a complete
+   * unbroken circle even through the band crossing in front of it — and an
+   * unbroken rim around a black disc is exactly what a rim-lit sphere looks like.
+   * Nothing else in the finale frame interrupts the silhouette, so that one term
+   * was carrying the whole misread. through is the transmittance the integration
+   * already accumulated, sitting right there; 0.8 of it rather than all, because
+   * the analytic ring stands in for windings the finite budget never took and some
+   * of those arrive outside the slab the accumulation measured.
+   */
+  vec3 lit = (glow + sky * through) * survives
+    + halo * ringSurvives * mix(1.0, through, 0.8);
   outputColor = vec4(mix(inputColor.rgb, lit, clamp(mask, 0.0, 1.0)), inputColor.a);
 }
 `
@@ -1025,14 +1251,16 @@ export class BlackHoleEffect extends Effect {
         ['uSteps', new THREE.Uniform(steps)],
         ['uStep', new THREE.Uniform(PHI_SPAN / steps)],
         ['uMask', new THREE.Uniform(0)],
-        ['uGate', new THREE.Uniform(0)],
+        ['uRingWidth', new THREE.Uniform(0.022)],
         ['uNearGuard', new THREE.Uniform(0)],
+        ['uNearSoft', new THREE.Uniform(0)],
         ['uDepthGuard', new THREE.Uniform(0)],
         ['uSwallow', new THREE.Uniform(0)],
         ['uEclipse', new THREE.Uniform(0)],
         ['uFlow', new THREE.Uniform(0)],
         ['uCharge', new THREE.Uniform(0)],
         ['uSuction', new THREE.Uniform(0)],
+        ['uLensGain', new THREE.Uniform(0.06)],
         ['uSpin', new THREE.Uniform(0)],
         ['uCapturePro', new THREE.Uniform(2.5980762)],
         ['uCaptureRetro', new THREE.Uniform(2.5980762)],

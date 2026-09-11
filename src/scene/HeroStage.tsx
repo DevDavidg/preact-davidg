@@ -1508,7 +1508,7 @@ export const HeroStage = ({
 
   const handleRingOver = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
-    markHot("ring", { ui: true });
+    markHot("ring");
     document.body.style.cursor = "ew-resize";
     invalidate();
   };

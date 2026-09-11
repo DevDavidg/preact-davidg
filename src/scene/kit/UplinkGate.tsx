@@ -6,7 +6,6 @@ import {
   clearHot,
   completeUplink,
   markHot,
-  play,
   reactorControl,
 } from '../control/reactorControl'
 import { sceneColors } from '../sceneColors'
@@ -239,13 +238,12 @@ export const UplinkGate = ({
     event.stopPropagation()
     held.current = true
     document.body.style.cursor = 'progress'
-    play('tick')
     invalidate()
   }
 
   const handleOver = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation()
-    markHot('uplink', { ui: true })
+    markHot('uplink')
     document.body.style.cursor = 'pointer'
     invalidate()
   }

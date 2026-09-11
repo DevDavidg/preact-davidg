@@ -56,6 +56,7 @@ export const CursorProbe = () => {
   const group = useRef<THREE.Group>(null)
   const ring = useRef<THREE.LineLoop>(null)
   const camera = useThree((state) => state.camera)
+  const cursorHidden = useRef(false)
 
   const geometries = useMemo(
     () => ({
@@ -96,6 +97,13 @@ export const CursorProbe = () => {
       geometries.cross.dispose()
       materials.ring.dispose()
       materials.cross.dispose()
+      // A governor demotion or a route change can unmount this mid-session;
+      // an OS cursor left hidden with no reticle to explain why is worse than
+      // the two-cursor problem this was hiding in the first place.
+      if (cursorHidden.current) {
+        delete document.documentElement.dataset.probeLive
+        cursorHidden.current = false
+      }
     },
     [geometries, materials],
   )
@@ -115,6 +123,18 @@ export const CursorProbe = () => {
      */
     const live = sceneState.pointerX !== 0 || sceneState.pointerY !== 0
     node.visible = live
+    /*
+     * The OS arrow drawn on top of this is a second reticle nobody asked for.
+     * A `data-` attribute rather than touching `style.cursor` directly, so
+     * `app/scene.css` owns the rule the same way it owns every other mode
+     * this room has (`data-crt`, `data-overclock`) — and guarded on a ref so
+     * a live-but-unchanged reading does not write the DOM every frame.
+     */
+    if (live !== cursorHidden.current) {
+      if (live) document.documentElement.dataset.probeLive = 'true'
+      else delete document.documentElement.dataset.probeLive
+      cursorHidden.current = live
+    }
     if (!live) return
 
     pointerOnPlane(camera, PROBE_DISTANCE, _probe)

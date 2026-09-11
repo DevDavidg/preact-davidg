@@ -1,0 +1,68 @@
+/*
+ * The document goes in too.
+ *
+ * The ending eats the room, the planets, the star field and the galaxy's arms,
+ * and for a long time it left one thing standing: the page. The operator panel
+ * sat in the top-right corner at full opacity across the event horizon, which is
+ * the single loudest way an ending can announce that it is a video playing behind
+ * a website rather than the website being swallowed.
+ *
+ * So the panel falls in as well. `--swallowed` is written by `StageTreatment` from
+ * the same `swallowShape` curve every layer of the scene reads, so this is a pure
+ * function of scroll position exactly like the rest of the ending: scroll back up
+ * and the panel walks back out to its corner, on the same arc, at the same speed.
+ * Nothing here is a transition or an animation and nothing may become one — a
+ * `transition` on these properties would make the panel lag the well it is falling
+ * into and, worse, would keep moving after the visitor stopped.
+ *
+ * Compositor-only on purpose: translate, rotate, scale, blur and opacity, all on
+ * one fixed element with no layout in it. The `[data-swallow]` gate is what keeps
+ * even that off the table for the ninety-odd percent of the page that has no
+ * swallow — an identity `transform` and a zero `blur()` still promote the element
+ * to its own layer, so the rule has to be genuinely absent rather than neutral.
+ * That is the same reason `StageTreatment` mounts its mode filters by attribute.
+ *
+ * The panel is the only chrome on a 3D route (`SiteShell` does not mount there),
+ * and it is also the only focusable thing outside the canvas — so it is taken out
+ * of the tab order and off the pointer at the moment it becomes invisible and not
+ * before, and it comes straight back on the way up.
+ */
+
+:root[data-swallow] .operator-bar {
+  /*
+   * Into the middle of the frame, because that is where the well is.
+   *
+   * Not projected: the camera looks straight down the aperture's axis for the
+   * whole ending, so screen centre and the event horizon are the same point by
+   * construction — the same fact `.finale-card` is positioned around. The offsets
+   * are the panel's own corner inset read backwards, which is as accurate as a
+   * target this size needs and costs no per-frame write.
+   */
+  transform-origin: 50% 50%;
+  transform: translate(
+      calc(var(--swallowed, 0) * (-50vw + 9rem)),
+      calc(var(--swallowed, 0) * (50vh - 2.6rem))
+    )
+    rotate(calc(var(--swallowed, 0) * var(--swallowed, 0) * 220deg))
+    scale(calc(1 - var(--swallowed, 0) * 0.92));
+  /* Squared, so the panel is still legible while it is still readable-sized. */
+  filter: blur(calc(var(--swallowed, 0) * var(--swallowed, 0) * 5px));
+  opacity: calc(1 - var(--swallowed, 0));
+}
+
+/*
+ * Reduced motion keeps the panel where it is and simply fades it, which is the
+ * honest translation: the information that it has gone survives, the flight does
+ * not.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-swallow] .operator-bar {
+    transform: none;
+    filter: none;
+  }
+}
+
+:root[data-swallow='gone'] .operator-bar {
+  visibility: hidden;
+  pointer-events: none;
+}

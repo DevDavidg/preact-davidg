@@ -13,6 +13,13 @@ import {
   CAMERA_PATH,
   TARGET_PATH,
 } from './layout'
+import {
+  earthOrbitAngle,
+  earthPass,
+  orbitAround,
+  PLANETS,
+  planetAnchor,
+} from './planetSpec'
 import { sceneState, swallowShape } from './sceneState'
 import {
   APPROACH_Z,
@@ -47,6 +54,8 @@ export const Rig = ({ quality }: { quality: Quality }) => {
     () => ({
       position: new THREE.Vector3(),
       target: new THREE.Vector3(),
+      /** Earth's anchor this frame — the centre the lens laps around. */
+      orbit: new THREE.Vector3(),
       smoothTarget: new THREE.Vector3(0, 1.25, 4.2),
       /**
        * Where the lens is pulled to as the room goes in: short of the gate, on
@@ -84,29 +93,72 @@ export const Rig = ({ quality }: { quality: Quality }) => {
       ? cameraProgressFor(scrollBuild)
       : cameraPacing(scrollBuild)
     const hold = cinema ? cameraHoldFor(scrollBuild) : 0
-    const parallax = cinema ? 1 : 0
+    /*
+     * VACUUM parks the camera.
+     *
+     * Parallax, breathing and the velocity pull are all *medium* cues — air,
+     * a hand on the lens, momentum in something. Take the medium away and the
+     * shot goes probe-steady: the one law where the frame itself holds its
+     * breath. The swallow channels below are untouched — falling into the well
+     * is not turbulence, and the ending keeps its moves under every law.
+     */
+    const vacuum = reactorControl.lawMix.VACUUM
+    const still = 1 - vacuum * 0.9
+    const parallax = cinema ? still : 0
     const pointerX = sceneState.pointerX * parallax
     const pointerY = sceneState.pointerY * parallax
     const standby = cinema
       ? 1 - THREE.MathUtils.smoothstep(scrollBuild, 0.02, 0.16)
       : 0
     const time = state.clock.elapsedTime
-    const breath = Math.sin(time * 0.35) * standby
+    const breath = Math.sin(time * 0.35) * standby * still
 
     CAMERA_PATH.getPointAt(build, vectors.position)
     vectors.position.x *= lane
     vectors.position.x += pointerX * 0.85
     vectors.position.y -= pointerY * 0.45
-    // Fast scrolling pulls the camera back a little, which reads as weight.
-    vectors.position.z += Math.min(0.7, Math.abs(sceneState.velocity) * 0.007)
+    // Fast scrolling pulls the camera back a little, which reads as weight —
+    // unless the law says there is nothing to have weight in.
+    vectors.position.z +=
+      Math.min(0.7, Math.abs(sceneState.velocity) * 0.007) * (1 - vacuum * 0.6)
     vectors.position.y += breath * 0.03
-    vectors.position.z += Math.cos(time * 0.28) * 0.05 * standby
+    vectors.position.z += Math.cos(time * 0.28) * 0.05 * standby * still
 
     TARGET_PATH.getPointAt(build, vectors.target)
     vectors.target.x *= lane
     vectors.target.x += pointerX * 0.36
     vectors.target.y -= pointerY * 0.2
     vectors.target.y += breath * 0.012
+
+    /*
+     * One lap around Earth.
+     *
+     * The rail is a straight run down a corridor and Earth hangs beside it, so the
+     * visitor was shown one face of it and then it was gone. This carries the lens
+     * all the way round instead — same height, same distance, bearing sweeping a
+     * full turn — so every side of the planet comes past on the way, the night side
+     * and its city lights included, and the lap closes on the face that has
+     * Argentina.
+     *
+     * The turn is *exactly* one, and that is what makes it cost nothing at the ends:
+     * a full revolution puts the camera back on the rail it left, so there is no
+     * displacement to blend out and no seam where the detour rejoins the path.
+     *
+     * `railZ` and not `camera.position.z`, published just above for everyone else:
+     * Earth's anchor is a function of how far down the corridor the lens is, so
+     * feeding the *orbited* z back into it would let the planet swing with the
+     * camera and the pass drive itself in a circle.
+     */
+    sceneState.railZ = vectors.position.z
+    const pass = cinema ? earthPass(vectors.position.z) : 0
+    if (pass > 0.0005 && pass < 0.9995) {
+      planetAnchor(PLANETS[0], vectors.position.z, vectors.orbit)
+      const angle = earthOrbitAngle(pass)
+      orbitAround(vectors.position, vectors.orbit, angle)
+      // ...and the lens looks at what it is going round. Weighted by sin so the aim
+      // leaves the corridor and returns to it on the same curve the position does.
+      vectors.target.lerp(vectors.orbit, Math.sin(Math.PI * pass) * 0.92)
+    }
 
     /*
      * The swallow takes the lens too.
@@ -225,7 +277,7 @@ export const Rig = ({ quality }: { quality: Quality }) => {
      */
     roll.current = THREE.MathUtils.damp(
       roll.current,
-      -pointerX * 0.017 - (cinema ? swallow.grip * 0.18 + Math.min(swallow.surge, 1) * 0.06 : 0),
+      -pointerX * 0.017 * still - (cinema ? swallow.grip * 0.22 + Math.min(swallow.surge, 1) * 0.06 : 0),
       3,
       delta,
     )
@@ -244,13 +296,23 @@ export const Rig = ({ quality }: { quality: Quality }) => {
      *
      * Both are damped to nothing in `advanceControl`, so a dropped frame or a
      * torn-down scene can never leave the camera displaced.
+     *
+     * `tidal` adds a third, physically-caused shake: `swallow.tide` is the same
+     * 1/r³ stretch that is drawing the worlds into filaments, read here instead
+     * as a jostle on the lens. Unlike `shake` it has no timer and no operator
+     * behind it — it is a pure function of scroll, so it has a reason (the well
+     * has the room by now) rather than a schedule, and scrolling back up settles
+     * it exactly like every other channel of the ending.
      */
     const kick = reactorControl.punch
-    const shake = reactorControl.shake
+    // Gated on `distortion` for the same reason the materials are: in CHAOS and
+    // VACUUM the tide deforms nothing, so a lens jostling from it has no cause.
+    const tidal = swallow.tide * sceneState.distortion * 0.55
+    const totalShake = reactorControl.shake + tidal
     if (kick > 0.001) camera.translateZ(-kick * 0.34)
-    if (shake > 0.001) {
-      camera.rotateX(Math.sin(time * 31.7) * shake * 0.0035)
-      camera.rotateY(Math.cos(time * 27.3) * shake * 0.0035)
+    if (totalShake > 0.001) {
+      camera.rotateX(Math.sin(time * 31.7) * totalShake * 0.0035)
+      camera.rotateY(Math.cos(time * 27.3) * totalShake * 0.0035)
     }
 
     if (camera instanceof THREE.PerspectiveCamera) {
@@ -259,12 +321,24 @@ export const Rig = ({ quality }: { quality: Quality }) => {
         (cinema ? cameraFovFor(scrollBuild, BASE_FOV) : BASE_FOV) +
         breath * 0.5 +
         fovBump
-      // The lens opens up as it falls through the aperture — a wider angle is what
-      // sells "going in" rather than "arriving at", and it is also what lets the
-      // shadow reach the frame edges instead of sitting inside them.
+      /*
+       * A counter-zoom, not a straight widen. Position and focal length used to
+       * move the same way through the whole swallow — the lens dollying in while
+       * the angle also opened, which is redundant drama: both read as "getting
+       * closer" and neither one bought the vertigo the other could not.
+       *
+       * Tightening on `drain` while the dolly is still closing the distance is
+       * what a real counter-zoom is — the two channels disagreeing about size —
+       * and it reads as the shot being reeled in rather than merely approached.
+       * The widen is saved for `beyond`, the last stretch once the room is gone
+       * and the well itself is the frame, which is also where the original
+       * "shadow reaches the frame edges" is still true — just later, and as a
+       * release rather than a constant.
+       */
       const targetFov =
-        THREE.MathUtils.lerp(base, 42 + fovBump * 0.55, standby) +
-        swallow.grip * 8 +
+        THREE.MathUtils.lerp(base, 42 + fovBump * 0.55, standby) -
+        swallow.drain * 10 +
+        swallow.beyond * 14 +
         (cinema ? Math.min(swallow.surge, 1) * 3 : 0)
       // The kick reaches the lens as well as the body — a punch-in of a couple
       // of degrees is what turns a nudge into an impact.

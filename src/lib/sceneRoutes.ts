@@ -23,11 +23,30 @@ import { SECTION_IDS, type SectionId } from './routes'
  *   the beat it sits inside rather than opening a dead stretch.
  * - `finale` is the swallow: the stretch past the end of the corridor where the
  *   portal takes the room in, and the only chapter whose scroll drives something
- *   other than `build`. It is the longest chapter on the rail after the hero, and
- *   it has to be: the ending now carries a real infall — an orbit that winds two
- *   and a half turns while it decays, a tidal stretch, and a lens falling through
- *   the aperture. At the 1.6 it used to have, the swallow occupied about a screen
- *   and a half of wheel and the last third of it went past in a flick.
+ *   other than `build`. It is the longest chapter on the rail, and it has to be:
+ *   the ending carries a real infall — three gulps, an orbit that winds four turns
+ *   while it decays, a tidal stretch, a lens falling through the aperture, and then
+ *   the crossing. At the 1.6 it once had, the swallow occupied about a screen and a
+ *   half of wheel and the last third of it went past in a flick. At 2.6 it owned
+ *   fifteen percent of the rail: the third gulp — the beat that takes the room —
+ *   and the whole crossing after it fitted inside two screens of wheel, and a
+ *   visitor who reached the bottom and kept pushing found the page simply over.
+ *
+ *   4.4 is that read as the brief it was. The ask was that reaching the end and
+ *   continuing to scroll should swallow everything, and there are exactly two
+ *   honest ways to give scroll to a rail that has run out of it. One is to capture
+ *   the wheel and touch deltas the browser is already throwing away at the clamp —
+ *   Lenis exposes them on `virtual-scroll`, before its own clamp — and integrate
+ *   them into a second axis. The other is for the end to be longer than the visitor
+ *   expects. This is the second, and the reason is that the first is not a scroll
+ *   *position*: an integral of gestures cannot be restored on reload, cannot be
+ *   deep-linked, has nothing to hand a keyboard, and keeps running for the second
+ *   of trackpad inertia after the fingers have left the glass — which is the exact
+ *   opposite of the one rule this ending is built on, that it stops when you stop
+ *   and runs backwards when you scroll back. The swallow now owns 28% of the rail
+ *   instead of 15%, `corridorShare` is measured so nothing in the corridor moves,
+ *   and the visitor does reach what feels like the end — the room gone, the plate
+ *   up — and finds there is more of it.
  */
 const BEAT_VH = 170
 
@@ -41,7 +60,7 @@ export const HOME_CHAPTER_VH: Record<SectionId, number> = {
   process: BEAT_VH,
   about: BEAT_VH,
   contact: BEAT_VH,
-  finale: Math.round(BEAT_VH * 2.6),
+  finale: Math.round(BEAT_VH * 4.4),
 }
 
 export const homeRailChapters = (

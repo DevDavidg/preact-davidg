@@ -4,7 +4,6 @@ import * as THREE from 'three'
 import {
   clearHot,
   markHot,
-  play,
   punch,
   pushLog,
   reactorControl,
@@ -251,14 +250,12 @@ export const ModuleRig = ({
      * The slam.
      *
      * A module that simply finishes fading in has arrived; a module that lands
-     * has *seated*. One latch, fired once per pass, gives the moment a sound, a
+     * has *seated*. One latch, fired once per pass, gives the moment a
      * short camera kick and a line in the log — which is the whole difference
      * between a page loading content and a machine accepting a part.
      */
     if (!locked.current && assemble >= LOCK_AT && leaving < 0.2) {
       locked.current = true
-      play('lock', moduleIndex)
-      play('whoosh')
       punch(0.45)
       pushLog(`module ${String(moduleIndex + 1).padStart(2, '0')} · ${label}`)
     }
@@ -315,8 +312,7 @@ export const ModuleRig = ({
         const phase = time * 0.9 + index * 2.399963
         const amount =
           0.2 +
-          (0.5 + 0.5 * Math.sin(phase)) * (0.4 + lit * 0.5) * assemble +
-          reactorControl.audio * 0.3
+          (0.5 + 0.5 * Math.sin(phase)) * (0.4 + lit * 0.5) * assemble
         const barHeight = Math.min(0.46, 0.05 + amount * 0.36)
         _position.set(-spread / 2 + t * spread, rail - barHeight / 2, 0)
         _quaternion.identity()
