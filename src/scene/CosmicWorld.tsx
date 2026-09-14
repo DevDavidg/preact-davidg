@@ -18,8 +18,9 @@ import { reactorControl } from "./control/reactorControl";
 /*
  * The sky, drawn rather than sampled.
  *
- * Stars are geometry. The dome only holds a faint equatorial glow so the void
- * is not a flat clear-colour.
+ * Stars are geometry; the dome behind them is a procedural galaxy — band, clouds
+ * and dust lanes — so the void has structure rather than being a clear colour with
+ * a gradient on it.
  */
 const skyVertex = /* glsl */ `
 varying vec3 vDir;
@@ -28,15 +29,126 @@ void main(){
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
 `;
-const nebulaFragment = /* glsl */ `
+/*
+ * The dome: a galaxy, dust lanes and all, evaluated per pixel.
+ *
+ * This used to be one term — a faint equatorial glow — and it read exactly like
+ * what it was: a clear colour with a smear across the middle. The sky is the
+ * largest surface the site draws and it was the only one with no detail in it, so
+ * every star sat on flat paint.
+ *
+ * What is here instead is the structure a real sky has, and all of it is arithmetic
+ * on the view direction — no texture, no sprite, no extra draw call:
+ *
+ * - A galactic band around a *tilted* great circle, so the horizon of the sky is
+ *   not the horizon of the room. A band on the room's own equator reads as a
+ *   gradient; a band cutting the frame at an angle reads as a galaxy.
+ * - Clouds. The band's brightness is fbm, not a Gaussian, which is what turns a
+ *   smear into something with near and far in it.
+ * - Dust. A second, higher-frequency field *subtracts* along the band's spine —
+ *   the dark rift. The darkest parts of a real Milky Way are not empty sky, they
+ *   are the sky with something in front of it, and having the bright parts and the
+ *   black parts adjacent is most of what makes the rest read as deep.
+ * - A floor that is not zero and not uniform. Away from the band the old shader
+ *   fell to pure black, which is the flattest value a screen has.
+ * - Dither. At these levels eight-bit steps band visibly across a third of the
+ *   frame; a half-LSB of noise costs one hash and removes it.
+ *
+ * The shape, term by term, since the shader itself only carries markers — prose
+ * inside the template literal is shipped to the browser verbatim, because the
+ * minifier strips JS comments and this one is a string:
+ *
+ * - GAL_POLE is the galaxy's pole, tilted off the room's up axis so the band cuts
+ *   the frame diagonally instead of lying on the horizon. `lat` is the distance
+ *   from that plane, in band widths.
+ * - `core` + `halo`: a ribbon with a wing, not one wide bell. A single Gaussian
+ *   spread the same light over a third of the frame and read as haze; what a
+ *   galaxy has and haze does not is an edge — a narrow bright spine falling off
+ *   fast either side. `knots` is the cloud fbm pushed through a contrast curve for
+ *   the same reason: raw fbm sits near its mean nearly everywhere, which is a
+ *   uniform grey, so the bottom third is clamped off and the top third runs.
+ * - The two lane terms are dust in front of the band. They are where the dark
+ *   parts come from, and having black adjacent to bright is most of what makes
+ *   the rest read as deep.
+ * - `cool`/`warm`: old stars in the core, hot young ones in the arms. Mixing on
+ *   cloud density puts the warm light where the material is.
+ * - BAND_GAIN is the one number deciding galaxy or fog bank. At full strength the
+ *   band came out brighter than the reading plates in front of it — ~0.09 linear
+ *   is about 90/255, an overcast sky rather than the inside of one. A quarter puts
+ *   the brightest cloud near 40/255 and the lanes near 8.
+ * - The floor is deliberately not zero and not uniform: away from the band the old
+ *   shader fell to pure black, which is the flattest value a screen has.
+ */
+const fbmFragment = (octaves: number) => /* glsl */ `
 uniform float uFade; uniform float uChaos; uniform float uVacuum;
 varying vec3 vDir;
+
+float hash13(vec3 p){
+  p = fract(p * 0.1031);
+  p += dot(p, p.zyx + 31.32);
+  return fract((p.x + p.y) * p.z);
+}
+float vnoise(vec3 x){
+  vec3 i = floor(x);
+  vec3 f = fract(x);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(
+    mix(mix(hash13(i), hash13(i + vec3(1,0,0)), f.x),
+        mix(hash13(i + vec3(0,1,0)), hash13(i + vec3(1,1,0)), f.x), f.y),
+    mix(mix(hash13(i + vec3(0,0,1)), hash13(i + vec3(1,0,1)), f.x),
+        mix(hash13(i + vec3(0,1,1)), hash13(i + vec3(1,1,1)), f.x), f.y),
+    f.z);
+}
+float fbm(vec3 p){
+  float sum = 0.0;
+  float amp = 0.5;
+  for (int i = 0; i < ${octaves}; i++) {
+    sum += amp * vnoise(p);
+    p *= 2.03;
+    amp *= 0.5;
+  }
+  return sum;
+}
+
+const vec3 GAL_POLE = vec3(0.3714, 0.8971, -0.2381);
+
 void main(){
   vec3 d = normalize(vDir);
-  vec3 col = vec3(0.014, 0.016, 0.026) * exp(-pow(d.y * 2.9, 2.0));
-  col += vec3(0.010, 0.002, 0.001) * uChaos;
+
+  float lat = dot(d, GAL_POLE);
+
+  float clouds = fbm(d * 3.6);
+  float grain  = fbm(d * 9.4 + 23.7);
+  float slow   = fbm(d * 0.85 - 8.3);
+
+  float knots = smoothstep(0.30, 0.76, clouds);
+  float core = exp(-lat * lat * 22.0);
+  float halo = exp(-lat * lat * 5.0);
+  float band = core * (0.20 + knots * 1.60) + halo * (0.06 + knots * 0.20);
+
+  float dust = smoothstep(0.28, 0.68, grain * 0.65 + clouds * 0.45);
+  band *= mix(0.12, 1.0, dust);
+  band *= mix(0.45, 1.0, smoothstep(0.02, 0.16, abs(lat) + grain * 0.10));
+
+  vec3 cool = vec3(0.030, 0.046, 0.085);
+  vec3 warm = vec3(0.075, 0.055, 0.042);
+  const float BAND_GAIN = 0.26;
+  vec3 col = mix(cool, warm, clamp(clouds * 1.25 - 0.15, 0.0, 1.0)) * band * BAND_GAIN;
+
+  col += vec3(0.052, 0.058, 0.080) * pow(band, 2.2) * 0.14;
+
+  col += mix(vec3(0.0016, 0.0021, 0.0052), vec3(0.0038, 0.0045, 0.0098), slow);
+
+  float neb = exp(-pow(distance(d, normalize(vec3(-0.55, 0.42, -0.72))) * 1.9, 2.0));
+  col += vec3(0.030, 0.014, 0.048) * neb * (0.25 + slow * 1.5) * 0.32;
+
+  col += vec3(0.085, 0.010, 0.004) * uChaos * (band * BAND_GAIN + neb * 0.5);
   col = mix(col, vec3(dot(col, vec3(0.34))) * vec3(0.5, 0.62, 0.78), uVacuum * 0.85);
-  gl_FragColor = vec4(col * uFade, 1.0);
+
+  col *= uFade;
+  col += (hash13(vec3(gl_FragCoord.xy, 1.0)) - 0.5) * 0.0022;
+
+  gl_FragColor = vec4(max(col, 0.0), 1.0);
 #include <tonemapping_fragment>
 #include <colorspace_fragment>
 }
@@ -386,6 +498,10 @@ const deepGeometry = (count: number): Stellar => {
       warm > 0.82 ? 0.2 : 0.08,
       0.3 + random(i * 3 + 19) ** 3 * 0.65,
     );
+    // A thinner bright tail than the near field's — see the note there. Fewer and
+    // dimmer, because these are the sky behind the sky.
+    const first = random(i * 3 + 31) > 0.985
+    color.multiplyScalar(first ? 2.4 : 1)
     color.toArray(tint, i * 3);
     /*
      * Nearly all the same size, and that is the point.
@@ -396,7 +512,7 @@ const deepGeometry = (count: number): Stellar => {
      * across — which does not read as a bright star, it reads as an out-of-focus
      * smudge. The variety moved to lightness above, where it belongs.
      */
-    size[i] = 0.9 + random(i * 3 + 23) ** 2 * 0.85;
+    size[i] = (0.9 + random(i * 3 + 23) ** 2 * 0.85) * (first ? 1.7 : 1);
     seed[i] = random(i * 3 + 29);
   }
   return { position, tint, size, seed };
@@ -437,8 +553,30 @@ const fieldGeometry = (count: number): Stellar => {
       kind > 0.8 ? 0.22 : 0.1,
       0.34 + random(i + 8) ** 3 * 0.6,
     );
+    /*
+     * The first-magnitude tail.
+     *
+     * A real sky is not a uniform sprinkle: a handful of stars are an order of
+     * magnitude brighter than the rest, and they are what the eye actually fixes
+     * on. `CinemaLayer`'s bloom threshold sits at 0.62 and a star's final colour is
+     * its tint times an alpha of roughly 0.7, so anything under ~0.9 of tint can
+     * never spill light however bright it looks in isolation. These cross it, and
+     * the halo comes from the composer that is already running rather than from a
+     * second quad per star.
+     */
+    const first = random(i + 17) > 0.965
+    color.multiplyScalar(first ? 3.2 : 1)
     color.toArray(tint, i * 3);
-    size[i] = 0.5 + random(i + 11) ** 3 * 2.2;
+    /*
+     * The bright tail gets angular size as well as brightness, and it has to.
+     * Bloom's luminance pass runs on a mipmap chain: a star one pixel across has
+     * its energy averaged into a 4×4 block before the first downsample is done, so
+     * however bright it is it never survives to spill. At two pixels of radius it
+     * does, and the halo comes out of the composer — which is also what a camera
+     * does with a first-magnitude star, and the reason not to draw the glow as a
+     * quad of our own.
+     */
+    size[i] = (0.5 + random(i + 11) ** 3 * 2.2) * (first ? 1.9 : 1);
     seed[i] = random(i + 13);
   }
   return { position, tint, size, seed };
@@ -537,14 +675,16 @@ export const CosmicWorld = ({ quality }: { quality: Quality }) => {
       dust,
       galaxy: attach(galaxyGeometry(quality === "cinema" ? 9000 : 3200)),
       /*
-       * Counts down again, and this time it is the geometry that asks for it: each
-       * of these is twenty triangles rather than a quad, and each is a *resolved*
-       * disc rather than a smear, so far fewer of them fill a sky. Nine hundred and
-       * six hundred put roughly eighty stars in a 42-degree frame, which is about
-       * what a dark-sky night gives the naked eye.
+       * Roughly twice what the naked eye gets on a dark night, and deliberately so:
+       * this sky is looked at from inside a galaxy's own disk with no atmosphere in
+       * the way, and the count is what carries the difference between "a few dots"
+       * and a field with depth in it. Each star is twenty triangles and a vertex
+       * shader, so the cost is linear and small — the previous six hundred were
+       * chosen when the dome behind them was flat and more stars only made the
+       * flatness more obvious.
        */
-      stars: swarm(fieldGeometry(quality === "cinema" ? 600 : 260), field),
-      deep: swarm(deepGeometry(quality === "cinema" ? 900 : 380), dust),
+      stars: swarm(fieldGeometry(quality === "cinema" ? 1100 : 420), field),
+      deep: swarm(deepGeometry(quality === "cinema" ? 1700 : 650), dust),
       halo: stellarMaterial(GALAXY_SPAN, 0.06, 4.2),
       /*
        * Their own material, and deliberately never driven. Sharing the nucleus's
@@ -565,7 +705,12 @@ export const CosmicWorld = ({ quality }: { quality: Quality }) => {
         // business: this is the far wall of everything.
         side: THREE.BackSide,
         vertexShader: skyVertex,
-        fragmentShader: nebulaFragment,
+        /*
+         * Octaves are the whole cost of this shader, and the dome covers the frame.
+         * Five is where the dust stops looking like one smooth lump; three still
+         * has clouds and a rift, at a little over half the ALU.
+         */
+        fragmentShader: fbmFragment(quality === "cinema" ? 5 : 3),
         depthWrite: false,
         uniforms: {
           uFade: { value: 1 },
