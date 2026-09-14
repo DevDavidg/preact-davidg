@@ -31,9 +31,8 @@ import {
   TARGET_PATH,
 } from '../src/scene/layout'
 import {
-  earthOrbitAngle,
+  earthLapPose,
   earthPass,
-  orbitAround,
   PLANETS,
   planetAnchor,
 } from '../src/scene/planetSpec'
@@ -114,7 +113,7 @@ const frame = (index: number, build: number, aspect: number): Framed => {
   const pass = earthPass(railZ)
   if (pass > 0.0005 && pass < 0.9995) {
     planetAnchor(PLANETS[0], railZ, ORBIT)
-    orbitAround(POSITION, ORBIT, earthOrbitAngle(pass))
+    earthLapPose(POSITION, ORBIT, pass)
     TARGET.lerp(ORBIT, Math.sin(Math.PI * pass) * 0.92)
   }
   FORWARD.copy(TARGET).sub(POSITION).normalize()

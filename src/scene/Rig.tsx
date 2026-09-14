@@ -14,9 +14,9 @@ import {
   TARGET_PATH,
 } from './layout'
 import {
-  earthOrbitAngle,
+  earthLapPose,
   earthPass,
-  orbitAround,
+  lapArc,
   PLANETS,
   planetAnchor,
 } from './planetSpec'
@@ -151,13 +151,16 @@ export const Rig = ({ quality }: { quality: Quality }) => {
      */
     sceneState.railZ = vectors.position.z
     const pass = cinema ? earthPass(vectors.position.z) : 0
+    let lap = 0
     if (pass > 0.0005 && pass < 0.9995) {
       planetAnchor(PLANETS[0], vectors.position.z, vectors.orbit)
-      const angle = earthOrbitAngle(pass)
-      orbitAround(vectors.position, vectors.orbit, angle)
+      lap = lapArc(pass)
+      // Bearing, close and climb together — `earthLapPose` is the one copy of the
+      // move, because `check-planets` has to fly the identical camera to measure it.
+      earthLapPose(vectors.position, vectors.orbit, pass)
       // ...and the lens looks at what it is going round. Weighted by sin so the aim
       // leaves the corridor and returns to it on the same curve the position does.
-      vectors.target.lerp(vectors.orbit, Math.sin(Math.PI * pass) * 0.92)
+      vectors.target.lerp(vectors.orbit, lap * 0.92)
     }
 
     /*
@@ -275,9 +278,21 @@ export const Rig = ({ quality }: { quality: Quality }) => {
      * larger than either. Bounded by `grip` rather than following `orbit`, because
      * two and a half turns of camera roll is not vertigo, it is a washing machine.
      */
+    /*
+     * The lap banks, and it is the same exception the swallow gets.
+     *
+     * A degree is the cap while the lens is flying a straight corridor, where the
+     * only horizon cue is the room itself. Going round a planet there is no
+     * corridor to be level with — and anything that actually carries a body through
+     * an arc leans into it. Six degrees at the middle of the turn, weighted by the
+     * same `lapArc` as the position so it is zero at both seams, is the difference
+     * between being carried round Earth and watching Earth on a turntable.
+     */
     roll.current = THREE.MathUtils.damp(
       roll.current,
-      -pointerX * 0.017 * still - (cinema ? swallow.grip * 0.22 + Math.min(swallow.surge, 1) * 0.06 : 0),
+      -pointerX * 0.017 * still -
+        lap * 0.105 -
+        (cinema ? swallow.grip * 0.22 + Math.min(swallow.surge, 1) * 0.06 : 0),
       3,
       delta,
     )

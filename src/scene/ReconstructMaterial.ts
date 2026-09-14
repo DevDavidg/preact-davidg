@@ -253,6 +253,19 @@ void main() {
   float shotExposure = mix(0.48, 0.78, vAssembled);
   vec3 litShot = shot * (shotExposure + key * 0.38 + fill * 0.2) + uInk * spec * lit * 0.14;
   litShot = mix(litShot, litShot * uAccent * 1.12, uFocus * 0.1);
+  /*
+   * Heat scorches the evidence too.
+   *
+   * The shot was the one surface in the room the law could not touch — the note
+   * below still says heat 'preserves the colours in project images', and that was
+   * right while heat was only a rim. It stopped being right once CHAOS spread the
+   * shards 3.4x: a project screenshot is mostly white, so the law that is supposed
+   * to be taking the room apart was filling a third of the frame with clean bright
+   * posters, brighter than anything it had heated. Ember and down, not away — the
+   * image is still legible, it is just no longer the best-preserved object in a
+   * room that is coming apart.
+   */
+  litShot = mix(litShot, litShot * vec3(1.15, 0.40, 0.20) * 0.78, uHeat * 0.85);
   float shotMix = uHasMap * smoothstep(0.52, 0.9, vAssembled);
   face = mix(face, litShot, shotMix);
 
@@ -288,7 +301,7 @@ void main() {
 
   float alpha = solid * (0.40 + key * 0.32) + edgeGlow + fresnel * lit * 0.22;
   // Textured panels need presence while flying and hold against the lattice when home.
-  alpha += shotMix * mix(0.55, 0.92, vAssembled);
+  alpha += shotMix * mix(0.55, 0.92, vAssembled) * (1.0 - uHeat * 0.3);
   // Loose shards stay translucent so debris still reads as debris; a settled
   // console plate goes fully opaque, which is what gives its copy real contrast.
   alpha = max(alpha, uSolidFill * smoothstep(0.2, 0.9, vAssembled));

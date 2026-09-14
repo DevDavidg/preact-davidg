@@ -183,3 +183,48 @@ export const orbitAround = (
   point.z = anchor.z + dx * sn + dz * c
   return point
 }
+
+/**
+ * How far off the rail the lap has carried the lens, 0 → 1 → 0.
+ *
+ * Every move the detour makes is weighted by this and by nothing else, which is
+ * what keeps the one-turn guarantee intact: a term that is zero at both ends adds
+ * no displacement to blend out at either seam.
+ */
+export const lapArc = (pass: number): number => Math.sin(Math.PI * pass)
+
+/**
+ * The whole lap pose, in one call, because two files have to fly it identically.
+ *
+ * `Rig` renders it and `scripts/check-planets.ts` measures it; when the bearing was
+ * the only thing the detour did, both could just call `orbitAround` and agree by
+ * accident. Now that the lap also climbs and closes, agreeing by accident is not
+ * good enough — the check would be scoring a shot nobody is being shown.
+ *
+ * What the two extra channels buy:
+ *
+ * - The close. A bearing sweep at a fixed radius is a turntable: the planet's disc
+ *   is exactly the same size for the whole detour, so nothing about the move reads
+ *   as approach. Drawing in a sixth at the far side means the planet grows as the
+ *   lens comes round behind it and falls back as it returns, which is the part that
+ *   reads as flying rather than as rotating.
+ * - The climb. The rail sits well below Earth's centre, so a flat lap spends its
+ *   whole length looking *up* at the same latitude band. Rising toward the planet's
+ *   own height at the far side brings the pole and the terminator into the shot and
+ *   gives the detour somewhere to have been.
+ */
+export const earthLapPose = (
+  point: THREE.Vector3,
+  anchor: THREE.Vector3,
+  pass: number,
+): THREE.Vector3 => {
+  orbitAround(point, anchor, earthOrbitAngle(pass))
+  const arc = lapArc(pass)
+  // Closing on the radius, not on z: the lens is on a circle, and pulling it
+  // straight down the corridor instead would flatten that circle into an ellipse.
+  const close = 1 - arc * 0.16
+  point.x = anchor.x + (point.x - anchor.x) * close
+  point.z = anchor.z + (point.z - anchor.z) * close
+  point.y += arc * 0.85
+  return point
+}

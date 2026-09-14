@@ -78,9 +78,16 @@ void main(){
  *   the brightest cloud near 40/255 and the lanes near 8.
  * - The floor is deliberately not zero and not uniform: away from the band the old
  *   shader fell to pure black, which is the flattest value a screen has.
+ * - `burn`/`flare` is CHAOS. The law used to add a flat red term and stop there,
+ *   which on a dome whose base is already near black is a tint on nothing — and the
+ *   same law was crushing the stars to dark red, so switching to CHAOS took the sky
+ *   *out* rather than setting it alight. Now what burns is the material that exists:
+ *   the band and the nebula are driven hot, the lanes between them stay black, and
+ *   the contrast is the point. The two sine terms are the flicker; a sky feeding a
+ *   runaway is not a still image.
  */
 const fbmFragment = (octaves: number) => /* glsl */ `
-uniform float uFade; uniform float uChaos; uniform float uVacuum;
+uniform float uFade; uniform float uChaos; uniform float uVacuum; uniform float uTime;
 varying vec3 vDir;
 
 float hash13(vec3 p){
@@ -124,25 +131,29 @@ void main(){
   float knots = smoothstep(0.30, 0.76, clouds);
   float core = exp(-lat * lat * 22.0);
   float halo = exp(-lat * lat * 5.0);
-  float band = core * (0.20 + knots * 1.60) + halo * (0.06 + knots * 0.20);
+  float band = core * (0.20 + knots * 1.60) + halo * (0.025 + knots * 0.10);
 
   float dust = smoothstep(0.28, 0.68, grain * 0.65 + clouds * 0.45);
-  band *= mix(0.12, 1.0, dust);
+  band *= mix(0.05, 1.0, dust);
   band *= mix(0.45, 1.0, smoothstep(0.02, 0.16, abs(lat) + grain * 0.10));
 
   vec3 cool = vec3(0.030, 0.046, 0.085);
   vec3 warm = vec3(0.075, 0.055, 0.042);
-  const float BAND_GAIN = 0.26;
+  const float BAND_GAIN = 0.185;
   vec3 col = mix(cool, warm, clamp(clouds * 1.25 - 0.15, 0.0, 1.0)) * band * BAND_GAIN;
 
-  col += vec3(0.052, 0.058, 0.080) * pow(band, 2.2) * 0.14;
+  col += vec3(0.052, 0.058, 0.080) * pow(band, 2.2) * 0.10;
 
   col += mix(vec3(0.0016, 0.0021, 0.0052), vec3(0.0038, 0.0045, 0.0098), slow);
 
   float neb = exp(-pow(distance(d, normalize(vec3(-0.55, 0.42, -0.72))) * 1.9, 2.0));
   col += vec3(0.030, 0.014, 0.048) * neb * (0.25 + slow * 1.5) * 0.32;
 
-  col += vec3(0.085, 0.010, 0.004) * uChaos * (band * BAND_GAIN + neb * 0.5);
+  float burn = band * BAND_GAIN + neb * 0.55;
+  float flare = 0.72 + 0.28 * sin(uTime * 0.9 + clouds * 11.0)
+                     + 0.18 * sin(uTime * 2.3 + grain * 17.0);
+  col = mix(col, col * vec3(1.9, 0.55, 0.35), uChaos * 0.9);
+  col += vec3(0.24, 0.045, 0.012) * uChaos * burn * flare;
   col = mix(col, vec3(dot(col, vec3(0.34))) * vec3(0.5, 0.62, 0.78), uVacuum * 0.85);
 
   col *= uFade;
@@ -198,16 +209,23 @@ void main(){
   gl_Position = projectionMatrix * (view + vec4(position * radius, 0.0));
   vTint = mix(aTint, vec3(0.72, 0.85, 1.0), fall * fall * 0.92) * (1.0 + fall * fall * 3.2 + uSuction * 0.4);
   float starLum = dot(vTint, vec3(0.34));
-  vTint = mix(vTint, vec3(1.3, 0.12, 0.06) * starLum, uChaos * 0.9);
+  vTint = mix(vTint, vec3(1.85, 0.62, 0.26) * starLum, uChaos * 0.9);
   vTint = mix(vTint, vec3(0.38, 0.52, 0.66) * starLum, uVacuum);
   /*
-   * VACUUM, as a sky and not as a dimmer. Two things a vacuum actually does to
-   * starlight: scintillation is the air's, not the star's, so every point burns
-   * steady; and the dim ones go first, which leaves a sparse field of hard bright
-   * points rather than the same field turned down. 'keep' is 1 at uVacuum 0.
+   * VACUUM, as a sky and not as a dimmer: the dim ones go first, which leaves a
+   * sparse field of hard bright points rather than the same field turned down.
+   * 'keep' is 1 at uVacuum 0, so the other laws pay nothing for it.
    */
   float keep = smoothstep(uVacuum * 1.05, uVacuum * 1.05 + 0.4, aSeed * 0.55 + aSize * 0.30);
-  float twinkle = mix(0.84 + 0.16 * sin(uTime * (0.4 + aSeed * 1.4) + aSeed * 97.0), 0.84, uVacuum);
+  /*
+   * Scintillation is the medium's, and the three laws disagree about the medium.
+   * VACUUM has none, so every point burns steady. CHAOS has too much: the rate and
+   * the depth both climb, which is what makes the field read as boiling rather than
+   * as the same stars with a red filter on them.
+   */
+  float rate = 0.4 + aSeed * 1.4 + uChaos * 5.0;
+  float depth = 0.16 + uChaos * 0.34;
+  float twinkle = mix(1.0 - depth + depth * sin(uTime * rate + aSeed * 97.0), 0.84, uVacuum);
   vAlpha = twinkle * uOpacity * mix(1.0, keep, uVacuum)
     * (1.0 - smoothstep(0.80, 0.975, fall))
     * smoothstep(uHollow * 0.8, uHollow * 1.4, length(p - uHole))
@@ -245,7 +263,7 @@ void main(){
   gl_PointSize=min(24.0,uPixel*uSize*aSize*(1.0+fall*1.6+uSuction*0.3)/max(0.35,-view.z));
   vTint=mix(aTint,vec3(0.72,0.85,1.0),fall*fall*0.92)*(1.0+fall*fall*3.2+uSuction*0.4);
   float starLum=dot(vTint,vec3(0.34));
-  vTint=mix(vTint,vec3(1.3,0.12,0.06)*starLum,uChaos*0.9);
+  vTint=mix(vTint,vec3(1.85,0.62,0.26)*starLum,uChaos*0.9);
   vTint=mix(vTint,vec3(0.38,0.52,0.66)*starLum,uVacuum);
   /*
    * VACUUM, as a sky and not as a dimmer.
@@ -258,7 +276,9 @@ void main(){
    * 1 for everything at uVacuum 0, so the other laws pay nothing.
    */
   float keep=smoothstep(uVacuum*1.05,uVacuum*1.05+0.4,aSeed*0.55+aSize*0.30);
-  float twinkle=mix(0.84+0.16*sin(uTime*(0.4+aSeed*1.4)+aSeed*97.0),0.84,uVacuum);
+  float rate=0.4+aSeed*1.4+uChaos*5.0;
+  float depth=0.16+uChaos*0.34;
+  float twinkle=mix(1.0-depth+depth*sin(uTime*rate+aSeed*97.0),0.84,uVacuum);
   vAlpha=twinkle*uOpacity*mix(1.0,keep,uVacuum)*(1.0-smoothstep(0.80,0.975,fall))*smoothstep(uHollow*0.8,uHollow*1.4,length(p-uHole))
     *smoothstep(uNear*0.45,uNear,-view.z);
 }
@@ -294,11 +314,59 @@ const random = (seed: number) => {
 };
 const gauss = (seed: number) =>
   (random(seed) + random(seed + 101) + random(seed + 211) - 1.5) / 1.5;
-const ARM_PITCH = 0.24;
-const ARMS = 2;
-const DISK_SCALE = 0.2;
+/**
+ * What kind of galaxy this is.
+ *
+ * The five far galaxies used to be the nucleus's own buffer drawn five times at
+ * five rotations, which is one galaxy claiming to be a sky full of them: same two
+ * arms at the same pitch, same bulge fraction, same everything, and once two of
+ * them were on screen together the repeat was the thing you saw. Hubble's actual
+ * sequence is mostly *not* grand-design spirals — it is ellipticals, flocculent
+ * multi-arm disks and edge-on lanes — so the generator takes the handful of numbers
+ * that separate those and the table below names three of them.
+ *
+ * The defaults are the nucleus's previous constants exactly, so the galaxy the
+ * whole ending is built around is byte-for-byte the shape it was.
+ */
+interface GalaxyShape {
+  /** How many spiral arms. Two is grand-design; four reads as flocculent. */
+  arms: number;
+  /** Winding. Lower is tighter — 0.16 is nearly circular, 0.36 is open. */
+  pitch: number;
+  /** Fraction of stars in the central bulge. 1 is an elliptical: no disk at all. */
+  bulge: number;
+  /** Disk length scale; larger throws more stars to the rim. */
+  scale: number;
+  /** Fraction of disk stars that ignore the arms. High is a smooth, dusty disk. */
+  smooth: number;
+  /** Disk thickness multiplier. Ellipticals are round, so they use their own. */
+  thickness: number;
+}
+
+const SPIRAL: GalaxyShape = {
+  arms: 2,
+  pitch: 0.24,
+  bulge: 0.34,
+  scale: 0.2,
+  smooth: 0.3,
+  thickness: 1,
+};
+
+/**
+ * The three the far sky is drawn from.
+ *
+ * Tilt does the fourth kind: `FAR_GALAXIES` turns two of these nearly edge-on,
+ * which is a different silhouette for free rather than a fourth generator.
+ */
+const FAR_SHAPES: readonly GalaxyShape[] = [
+  SPIRAL,
+  // Flocculent: four loose arms, a small core, stars pushed out to the rim.
+  { arms: 4, pitch: 0.36, bulge: 0.16, scale: 0.26, smooth: 0.55, thickness: 1.5 },
+  // Elliptical: no disk, no arms, no young blue stars — an old smooth ball.
+  { arms: 2, pitch: 0.24, bulge: 1, scale: 0.2, smooth: 1, thickness: 1 },
+];
+
 const BULGE_R = 0.33;
-const SMOOTH_DISK = 0.3;
 const OLD_STARS = new THREE.Color("#ffd2a1");
 const YOUNG_STARS = new THREE.Color("#8fb8ff");
 const HII_REGION = new THREE.Color("#ff86a8");
@@ -376,7 +444,10 @@ const attach = ({ position, tint, size, seed }: Stellar) =>
     .setAttribute("aTint", new THREE.BufferAttribute(tint, 3))
     .setAttribute("aSize", new THREE.BufferAttribute(size, 1))
     .setAttribute("aSeed", new THREE.BufferAttribute(seed, 1));
-export const galaxyGeometry = (count: number): Stellar => {
+export const galaxyGeometry = (
+  count: number,
+  shape: GalaxyShape = SPIRAL,
+): Stellar => {
   const position = new Float32Array(count * 3);
   const tint = new Float32Array(count * 3);
   const size = new Float32Array(count);
@@ -385,7 +456,7 @@ export const galaxyGeometry = (count: number): Stellar => {
   let written = 0;
   for (let k = 0; written < count && k < count * 8; k += 1) {
     const s = k * 17;
-    const bulge = random(s + 1) < 0.34;
+    const bulge = random(s + 1) < shape.bulge;
     let r: number;
     let x: number;
     let y: number;
@@ -400,22 +471,23 @@ export const galaxyGeometry = (count: number): Stellar => {
       y = r * cosT * 0.6;
     } else {
       r =
-        -DISK_SCALE *
+        -shape.scale *
         (Math.log(1 - random(s + 2) * 0.999) +
           Math.log(1 - random(s + 3) * 0.999));
       if (r > 1) continue;
       const off = gauss(s + 5);
-      const inArm = random(s + 12) >= SMOOTH_DISK;
+      const inArm = random(s + 12) >= shape.smooth;
       if (inArm && Math.abs(off + 0.42) < 0.14 && random(s + 6) < 0.85)
         continue;
       const theta = inArm
-        ? Math.floor(random(s + 4) * ARMS) * ((Math.PI * 2) / ARMS) +
-          Math.log(Math.max(r, 0.02) / 0.05) / Math.tan(ARM_PITCH) +
+        ? Math.floor(random(s + 4) * shape.arms) *
+            ((Math.PI * 2) / shape.arms) +
+          Math.log(Math.max(r, 0.02) / 0.05) / Math.tan(shape.pitch) +
           off * (0.35 + 0.45 / (1 + r * 5))
         : random(s + 13) * Math.PI * 2;
       x = Math.cos(theta) * r;
       z = Math.sin(theta) * r;
-      y = (0.008 + r * 0.05) * gauss(s + 7);
+      y = (0.008 + r * 0.05) * gauss(s + 7) * shape.thickness;
     }
     position.set([x, y, z], written * 3);
     const hii = !bulge && r > 0.18 && random(s + 8) > 0.982;
@@ -626,11 +698,17 @@ export const spiralFall = (
  * and off-frame for the whole detour.
  */
 const FAR_GALAXIES = [
-  { at: [43.2, 16, 38.5], scale: 5, tilt: [0.5, 0.9, -0.3] },
-  { at: [-59.1, -10, 20.4], scale: 4.2, tilt: [-0.9, 0.2, 0.6] },
-  { at: [7.7, 26, -59.2], scale: 4.6, tilt: [0.2, -1.3, 0.35] },
-  { at: [-38, 30, -52], scale: 3.4, tilt: [1.1, 0.4, 0.2] },
-  { at: [52, -26, -34], scale: 3.8, tilt: [-0.4, -0.7, 0.9] },
+  // Grand-design spiral, three-quarters on: the one that reads as a galaxy at a
+  // glance, so it gets the largest scale.
+  { at: [43.2, 16, 38.5], scale: 5, tilt: [0.5, 0.9, -0.3], shape: 0 },
+  // Flocculent, nearly edge-on — a lane rather than a pinwheel.
+  { at: [-59.1, -10, 20.4], scale: 4.6, tilt: [-1.48, 0.2, 0.6], shape: 1 },
+  // Elliptical. No arms to catch the eye, which is exactly what a far one looks like.
+  { at: [7.7, 26, -59.2], scale: 3.6, tilt: [0.2, -1.3, 0.35], shape: 2 },
+  // Flocculent, face-on.
+  { at: [-38, 30, -52], scale: 3.9, tilt: [1.1, 0.4, 0.2], shape: 1 },
+  // Spiral seen edge-on: the same generator as the first, and unrecognisable as it.
+  { at: [52, -26, -34], scale: 4.1, tilt: [-1.52, -0.7, 0.9], shape: 0 },
 ] as const;
 
 const GALAXY_RADIUS = 11.4;
@@ -675,6 +753,17 @@ export const CosmicWorld = ({ quality }: { quality: Quality }) => {
       dust,
       galaxy: attach(galaxyGeometry(quality === "cinema" ? 9000 : 3200)),
       /*
+       * The far shapes are their own buffers, and smaller ones.
+       *
+       * Five draws of the nucleus's 9000 points is 45k vertices spent on objects
+       * that are a smudge four pixels across; three buffers of 2800 covers the same
+       * five galaxies with a third of the vertices and three silhouettes instead of
+       * one. The count is what a smudge can afford, not what a galaxy needs.
+       */
+      farShapes: FAR_SHAPES.map((shape) =>
+        attach(galaxyGeometry(quality === "cinema" ? 2800 : 1200, shape)),
+      ),
+      /*
        * Roughly twice what the naked eye gets on a dark night, and deliberately so:
        * this sky is looked at from inside a galaxy's own disk with no atmosphere in
        * the way, and the count is what carries the difference between "a few dots"
@@ -716,6 +805,7 @@ export const CosmicWorld = ({ quality }: { quality: Quality }) => {
           uFade: { value: 1 },
           uChaos: { value: 0 },
           uVacuum: { value: 0 },
+          uTime: { value: 0 },
         },
       }),
     };
@@ -730,6 +820,7 @@ export const CosmicWorld = ({ quality }: { quality: Quality }) => {
       resources.far.dispose();
       resources.dust.dispose();
       resources.deep.dispose();
+      for (const shape of resources.farShapes) shape.dispose();
     },
     [resources],
   );
@@ -777,6 +868,7 @@ export const CosmicWorld = ({ quality }: { quality: Quality }) => {
     if (backdrop.current) backdrop.current.position.copy(camera.position)
     resources.nebula.uniforms.uChaos.value = chaos
     resources.nebula.uniforms.uVacuum.value = vacuum
+    resources.nebula.uniforms.uTime.value = time
     {
       // Static except for the two laws that are allowed to touch the whole sky.
       const u = resources.far.uniforms;
@@ -850,7 +942,7 @@ export const CosmicWorld = ({ quality }: { quality: Quality }) => {
       {FAR_GALAXIES.map((g) => (
         <points
           key={g.at.join()}
-          geometry={resources.galaxy}
+          geometry={resources.farShapes[g.shape]}
           material={resources.far}
           position={[...g.at]}
           rotation={[...g.tilt]}

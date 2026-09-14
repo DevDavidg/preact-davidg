@@ -450,15 +450,15 @@
     "semantic_hash": ""
   },
   "src/scene/ReconstructMaterial.ts": {
-    "mtime": 1788883055.2508252,
-    "seen": 1788883304.1647282,
-    "ast_hash": "a3fea15130b04fa83a7933c354fe5f44",
+    "mtime": 1789357112.013327,
+    "seen": 1789357278.9931068,
+    "ast_hash": "368ec3c3665f381ae1f449e834252c7b",
     "semantic_hash": ""
   },
   "src/scene/Rig.tsx": {
-    "mtime": 1789095694.378751,
-    "seen": 1789095980.93206,
-    "ast_hash": "2b81c56090d77f9257756cce42a6cc1d",
+    "mtime": 1789357047.8138514,
+    "seen": 1789357278.9931068,
+    "ast_hash": "34d6cfbf0c258781bf783ed28eeba378",
     "semantic_hash": ""
   },
   "src/scene/SignalConduits.tsx": {
@@ -1014,9 +1014,9 @@
     "semantic_hash": ""
   },
   "src/scene/CosmicWorld.tsx": {
-    "mtime": 1789354837.2843382,
-    "seen": 1789354891.4871979,
-    "ast_hash": "c8285f22b81077fa3cf3795832af3f71",
+    "mtime": 1789357047.8105893,
+    "seen": 1789357278.993102,
+    "ast_hash": "9ab93f17ef08c42f75d20fe9085092d9",
     "semantic_hash": ""
   },
   "public/cosmos/CREDITS.txt": {
@@ -1398,15 +1398,15 @@
     "semantic_hash": ""
   },
   "scripts/check-planets.ts": {
-    "mtime": 1789095949.593257,
-    "seen": 1789095980.93202,
-    "ast_hash": "1d26cf8d3e480b96fdc0e551f02a4855",
+    "mtime": 1789357047.8081326,
+    "seen": 1789357278.993058,
+    "ast_hash": "42db4d9b0e6e879927b4f5cb778ac993",
     "semantic_hash": ""
   },
   "src/scene/planetSpec.ts": {
-    "mtime": 1789095652.6134171,
-    "seen": 1789095980.9320781,
-    "ast_hash": "88c379323eefc98ab6f8f71d452b5204",
+    "mtime": 1789357047.8168626,
+    "seen": 1789357278.9931269,
+    "ast_hash": "21b5605b81da440965d77175650f61ee",
     "semantic_hash": ""
   },
   "work/cosmic-upgrade/depth.mjs": {
