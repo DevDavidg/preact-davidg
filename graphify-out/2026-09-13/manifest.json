@@ -282,15 +282,15 @@
     "semantic_hash": ""
   },
   "src/content/en.ts": {
-    "mtime": 1789354045.174923,
-    "seen": 1789354062.50559,
-    "ast_hash": "c29394da99dbebe0873d0702e1c86c9e",
+    "mtime": 1788872692.5652728,
+    "seen": 1788876796.316637,
+    "ast_hash": "e0c612424cf63f6da2ba22b710998f22",
     "semantic_hash": ""
   },
   "src/content/es.ts": {
-    "mtime": 1789354045.1742728,
-    "seen": 1789354062.5055912,
-    "ast_hash": "09fff195b4a4b376c3ed048d62e24210",
+    "mtime": 1788872692.5456169,
+    "seen": 1788876796.316637,
+    "ast_hash": "8c51521e096b7c257522bf4504fc94a1",
     "semantic_hash": ""
   },
   "src/content/index.ts": {
@@ -360,9 +360,9 @@
     "semantic_hash": ""
   },
   "src/lib/sceneRoutes.ts": {
-    "mtime": 1789353790.4866383,
-    "seen": 1789353997.0206761,
-    "ast_hash": "8cb76f7028c508a1f1491664ecb34944",
+    "mtime": 1788792503.7135422,
+    "seen": 1788793559.1910112,
+    "ast_hash": "cedbe0cc67e2dcdccb3648c51086aad7",
     "semantic_hash": ""
   },
   "src/lib/seo.ts": {
@@ -522,9 +522,9 @@
     "semantic_hash": ""
   },
   "src/scene/consoles/homeConsoles.ts": {
-    "mtime": 1789353778.0549579,
-    "seen": 1789353997.020693,
-    "ast_hash": "74871fcbc7b3755198706432bcb6a63d",
+    "mtime": 1788787662.923364,
+    "seen": 1788788066.576653,
+    "ast_hash": "353aaf50fa6dd1ad801d0f7162fcfd53",
     "semantic_hash": ""
   },
   "src/scene/consoles/placement.ts": {
@@ -885,6 +885,18 @@
     "mtime": 1788481926.8780575,
     "seen": 1788483481.4336069,
     "ast_hash": "20361def88fd93d71d89f2222a99a44d",
+    "semantic_hash": ""
+  },
+  "public/work/muscly.jpg": {
+    "mtime": 1788481926.2450392,
+    "seen": 1788483481.4336069,
+    "ast_hash": "c081276d5fbe56052bfc3670867120df",
+    "semantic_hash": ""
+  },
+  "public/work/muscly.webp": {
+    "mtime": 1788481926.2960722,
+    "seen": 1788483481.433608,
+    "ast_hash": "7c20b44096ff0d524225bea119775292",
     "semantic_hash": ""
   },
   "public/work/nonconformist.jpg": {

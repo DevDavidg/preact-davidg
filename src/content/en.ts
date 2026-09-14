@@ -628,54 +628,6 @@ export const en: Copy = {
       plate: 'LAB — BAM',
     },
     {
-      slug: 'muscly',
-      title: 'Muscly',
-      kind: 'experiment',
-      kindLabel: 'Experiment · public demo',
-      tags: ['NEXT.JS', 'WEB AUDIO', 'SUPABASE'],
-      summary:
-        'A beat-library player that analyses the audio as it plays: sub, bass, mid and high meters driven by the actual track.',
-      outcome:
-        'The visualisation comes out of the audio in real time rather than from a looping animation: the meters move with whatever is playing and sit still when nothing is.',
-      problem:
-        'A track list in a generic player says nothing about the material. I wanted the interface to show the shape of the sound while you listen to it.',
-      role: 'Full development.',
-      scope: 'Personal project with a real track catalogue. Public demo.',
-      stack: ['Next.js', 'React', 'TypeScript', 'Meyda', 'Supabase', 'Tailwind CSS'],
-      constraints: [
-        'Audio analysis runs in the browser and cannot eat the interface frame budget.',
-        'The tracks are WAV files, so loading has to be on demand rather than all at once.',
-      ],
-      decisions: [
-        {
-          title: 'Live analysis, not a prerecorded animation',
-          body: 'The meters are fed by the features Meyda extracts from the audio node, so what you see is the track and not a decorative loop on top of it.',
-        },
-        {
-          title: 'The catalogue lives outside the bundle',
-          body: 'Tracks and their metadata are served from Supabase, so adding material does not mean rebuilding the application.',
-        },
-      ],
-      contribution: [
-        'Player with a queue, track selection and loading states.',
-        'Audio analysis chain and per-frequency-band meters.',
-        'Library interface with the drive, warmth, brightness and motion controls.',
-      ],
-      evidence: [
-        'The demo is public: the meters move with the track that is playing.',
-        'The repository is public.',
-      ],
-      demoUrl: 'https://muscly-lake.vercel.app/',
-      repoUrl: 'https://github.com/DevDavidg/muscly',
-      image: {
-        src: '/work/muscly.jpg',
-        alt: 'Muscly: a beat player on a dark screen, with sub, bass, mid and high meters on the left and the track listing on the right',
-        width: 1600,
-        height: 1000,
-      },
-      plate: 'LAB — MUSCLY',
-    },
-    {
       slug: 'launch-flow',
       title: 'Launch Flow',
       kind: 'concept',

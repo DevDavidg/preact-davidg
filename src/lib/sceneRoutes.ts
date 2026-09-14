@@ -1,5 +1,5 @@
 import type { RailChapter } from '../components/ScrollRail'
-import type { CaseStudy, Copy } from '../content'
+import { COPY, type CaseStudy, type Copy } from '../content'
 import { SECTION_IDS, type SectionId } from './routes'
 
 /**
@@ -19,8 +19,8 @@ import { SECTION_IDS, type SectionId } from './routes'
  *   the optic's axis and through it costs `HERO_BUILD` of the rail — and then the
  *   opening console after it.
  * - `work` carries one beat per featured module, so it is a multiple of the base.
- * - `archive` carries no console of its own; it stays short so it only lengthens
- *   the beat it sits inside rather than opening a dead stretch.
+ * - `lab` and `archive` carry one console per study, so both are sized from the
+ *   number of studies rather than authored flat.
  * - `finale` is the swallow: the stretch past the end of the corridor where the
  *   portal takes the room in, and the only chapter whose scroll drives something
  *   other than `build`. It is the longest chapter on the rail, and it has to be:
@@ -50,11 +50,20 @@ import { SECTION_IDS, type SectionId } from './routes'
  */
 const BEAT_VH = 170
 
+/**
+ * A lab plate is a title, a line and two buttons — half a beat is enough to read
+ * one, and there are a dozen of them. Counting the studies is what keeps the
+ * chapter honest: `placement` splits a section's window evenly across the
+ * consoles it carries, so a chapter with a fixed height would silently shorten
+ * every beat in it the moment a case was added.
+ */
+const labVh = (count: number) => Math.round(BEAT_VH * 0.5) * count
+
 export const HOME_CHAPTER_VH: Record<SectionId, number> = {
   hero: BEAT_VH * 3,
   work: BEAT_VH * 2,
-  lab: BEAT_VH,
-  archive: Math.round(BEAT_VH * 0.4),
+  lab: BEAT_VH + labVh(COPY.es.lab.length),
+  archive: Math.round(BEAT_VH * 0.4) + labVh(COPY.es.archive.length),
   experience: BEAT_VH,
   services: BEAT_VH,
   process: BEAT_VH,

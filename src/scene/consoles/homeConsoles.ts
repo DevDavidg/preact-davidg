@@ -21,6 +21,73 @@ import type { ConsoleSpec } from './types'
  * being handed to a console at all.
  */
 
+/**
+ * Lab and archive, one console per project.
+ *
+ * These used to be a single plate naming four of the titles, so most of the work
+ * the static page lists existed in the DOM and nowhere in the room. Every study
+ * now gets its own beat: `sequenceTimings` splits a section's measured window
+ * evenly across the consoles it carries, and `HOME_CHAPTER_VH` scales the lab and
+ * archive chapters by how many studies there are — so adding a case lengthens the
+ * chapter instead of shortening everybody else's beat.
+ *
+ * No bay. A bay is a cinema-only rig wired to an `ARTIFACTS` slot and to the
+ * conduits that light it, and there are four slots for the featured modules. The
+ * lab plate carries the words, the case route carries the shot.
+ */
+const projectSpecs = (
+  studies: CaseStudy[],
+  section: string,
+  copy: Copy,
+  locale: Locale,
+  caseSegment: string,
+  [front, back]: [number, number],
+): ConsoleSpec[] =>
+  studies.map((study, index) => {
+    // Alternating lanes, opposite the featured run's opening side, so the lab
+    // reads as its own stretch of corridor rather than a continuation.
+    const side: -1 | 1 = index % 2 === 0 ? 1 : -1
+    const t = (index + 1) / (studies.length + 1)
+
+    return {
+      id: `lab-${study.slug}`,
+      section,
+      width: 2.8,
+      height: 1.9,
+      z: front + (back - front) * t,
+      side,
+      lateral: side * 0.7,
+      rise: 0.12,
+      rows: [
+        { kind: 'eyebrow', text: study.kindLabel.toUpperCase() },
+        { kind: 'title', text: trimTitle(study.title, 28) },
+        { kind: 'lead', text: trimLead(study.summary, 108) },
+        {
+          kind: 'data',
+          text: study.tags.slice(0, 3).join(' · ').toUpperCase(),
+        },
+      ],
+      actions: [
+        {
+          id: `case-${study.slug}`,
+          label: copy.work.openCase.toUpperCase(),
+          kind: 'route',
+          target: `/${locale}/${caseSegment}/${study.slug}`,
+        },
+        ...(study.demoUrl
+          ? [
+              {
+                id: `demo-${study.slug}`,
+                label: copy.work.openDemo.toUpperCase(),
+                kind: 'external' as const,
+                target: study.demoUrl,
+              },
+            ]
+          : []),
+      ],
+    }
+  })
+
 export const homeConsoleSpecs = (
   copy: Copy,
   featured: CaseStudy[],
@@ -158,15 +225,20 @@ export const homeConsoleSpecs = (
         { kind: 'eyebrow', text: copy.hud.sectorLabel },
         { kind: 'title', text: trimTitle(copy.work.labLabel, 24) },
         { kind: 'lead', text: trimLead(copy.work.labIntro, 108) },
-        {
-          kind: 'data',
-          text: [...copy.lab, ...copy.archive]
-            .slice(0, 4)
-            .map((s) => s.title)
-            .join(' · '),
-        },
+        // The titles used to be listed here because this was the only lab plate
+        // there was. Each study has its own console now, so the intro just opens
+        // the sector.
       ],
     },
+    ...projectSpecs(copy.lab, 'lab', copy, locale, caseSegment, [-5.45, -9.3]),
+    ...projectSpecs(
+      copy.archive,
+      'archive',
+      copy,
+      locale,
+      caseSegment,
+      [-9.35, -9.55],
+    ),
     {
       id: 'experience',
       section: 'experience',

@@ -638,54 +638,6 @@ export const es: Copy = {
       plate: 'LAB — BAM',
     },
     {
-      slug: 'muscly',
-      title: 'Muscly',
-      kind: 'experiment',
-      kindLabel: 'Experimento · demo pública',
-      tags: ['NEXT.JS', 'WEB AUDIO', 'SUPABASE'],
-      summary:
-        'Reproductor de una biblioteca de beats que analiza el audio mientras suena: medidores de sub, bass, medios y agudos alimentados por la pista real.',
-      outcome:
-        'La visualización sale del propio audio en tiempo real, no de una animación en loop: los medidores se mueven con lo que está sonando y se quedan quietos cuando no suena nada.',
-      problem:
-        'Una lista de tracks en un reproductor genérico no dice nada del material. Quería que la interfaz mostrara la forma del sonido mientras se escucha.',
-      role: 'Desarrollo completo.',
-      scope: 'Proyecto propio con catálogo real de pistas. Demo pública.',
-      stack: ['Next.js', 'React', 'TypeScript', 'Meyda', 'Supabase', 'Tailwind CSS'],
-      constraints: [
-        'El análisis de audio corre en el navegador y no puede comerse el frame de la interfaz.',
-        'Las pistas son WAV: la carga tiene que ser por demanda, no toda de entrada.',
-      ],
-      decisions: [
-        {
-          title: 'Análisis en vivo, no animación pregrabada',
-          body: 'Los medidores se alimentan de las features que Meyda extrae del nodo de audio, así lo que se ve es la pista y no un bucle decorativo encima.',
-        },
-        {
-          title: 'El catálogo vive fuera del bundle',
-          body: 'Las pistas y sus metadatos se sirven desde Supabase, así sumar material no implica volver a construir la aplicación.',
-        },
-      ],
-      contribution: [
-        'Reproductor con cola, selección de pista y estados de carga.',
-        'Cadena de análisis de audio y medidores por banda de frecuencia.',
-        'Interfaz de biblioteca con los controles de drive, warmth, brightness y motion.',
-      ],
-      evidence: [
-        'La demo es pública: los medidores se mueven con la pista que suena.',
-        'El repositorio es público.',
-      ],
-      demoUrl: 'https://muscly-lake.vercel.app/',
-      repoUrl: 'https://github.com/DevDavidg/muscly',
-      image: {
-        src: '/work/muscly.jpg',
-        alt: 'Muscly: reproductor de beats en pantalla oscura, con medidores de sub, bass, medios y agudos a la izquierda y el listado de pistas a la derecha',
-        width: 1600,
-        height: 1000,
-      },
-      plate: 'LAB — MUSCLY',
-    },
-    {
       slug: 'launch-flow',
       title: 'Launch Flow',
       kind: 'concept',
