@@ -36,7 +36,7 @@
     "@playwright/test": "^1.62.1",
     "@react-router/dev": "7.18.2",
     "@tailwindcss/vite": "^4.3.3",
-    "@types/node": "^24.13.3",
+    "@types/node": "^26.6.2",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@types/three": "^0.185.3",
